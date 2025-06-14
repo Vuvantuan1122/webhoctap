@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat với AI - Tuan</title>
+    <style>
+        /* Giao diện được cải tiến */
+        #chat-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 380px;
+            height: 550px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            background: white;
+            z-index: 1000;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        #chat-container.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        #chat-header {
+            background: #1a73e8; /* Màu xanh DeepSeek */
+            color: white;
+            padding: 12px 18px;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        #chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #fafafa;
+            scrollbar-width: thin;
+            scrollbar-color: #ddd #f5f5f5;
+        }
+
+        #chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chat-messages::-webkit-scrollbar-thumb {
+            background-color: #ddd;
+            border-radius: 3px;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 18px;
+            max-width: 85%;
+            word-wrap: break-word;
+            line-height: 1.4;
+            animation: messageAppear 0.2s ease-out;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        @keyframes messageAppear {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-message {
+            background: #1a73e8;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-message {
+            background: #f0f0f0;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
+        #chat-input-container {
+            display: flex;
+            padding: 12px;
+            border-top: 1px solid #eee;
+            background: white;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+            transition: border 0.2s;
+        }
+
+        #user-input:focus {
+            border-color: #1a73e8;
+        }
+
+        #send-button {
+            margin-left: 10px;
+            padding: 10px 16px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        #send-button:hover {
+            background: #0d5bb5;
+        }
+
+        #send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #close-chat {
+            cursor: pointer;
+            font-size: 20px;
+            padding: 2px 8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        #close-chat:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .typing-indicator {
+            display: inline-block;
+            padding: 10px 14px;
+            background: #f0f0f0;
+            border-radius: 18px;
+            margin-bottom: 12px;
+        }
+
+        .typing-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #777;
+            margin: 0 3px;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingAnimation {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+
+        /* Nút mở chat khi đóng */
+        #open-chat {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: #1a73e8;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 999;
+            border: none;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Nút mở chat -->
+    <button id="open-chat">💬</button>
+    
+    <!-- Chat Widget Container -->
+    <div id="chat-container">
+        <div id="chat-header">
+            <span>Trợ lý Tuan</span>
+            <span id="close-chat">×</span>
+        </div>
+        <div id="chat-messages">
+            <div class="message ai-message">Xin chào! Tôi là trợ lý ảo sử dụng Tuan AI. Tôi có thể giúp gì cho bạn hôm nay?</div>
+        </div>
+        <div id="chat-input-container">
+            <input type="text" id="user-input" placeholder="Nhập tin nhắn..." autocomplete="off">
+            <button id="send-button">Gửi</button>
+        </div>
+    </div>
+
+    <script>
+    const chatMessages = document.getElementById('chat-messages');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+    const closeChat = document.getElementById('close-chat');
+    const chatContainer = document.getElementById('chat-container');
+    const openChatBtn = document.getElementById('open-chat');
+
+    setTimeout(() => {
+        chatContainer.classList.add('visible');
+    }, 300);
+
+    sendButton.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    closeChat.addEventListener('click', function() {
+        chatContainer.classList.remove('visible');
+        setTimeout(() => {
+            chatContainer.style.display = 'none';
+            openChatBtn.style.display = 'flex';
+        }, 300);
+    });
+
+    openChatBtn.addEventListener('click', function() {
+        openChatBtn.style.display = 'none';
+        chatContainer.style.display = 'flex';
+        setTimeout(() => {
+            chatContainer.classList.add('visible');
+        }, 10);
+    });
+
+    async function sendMessage() {
+        const message = userInput.value.trim();
+        if (!message) return;
+
+        addMessage(message, 'user');
+        userInput.value = '';
+        sendButton.disabled = true;
+        showTypingIndicator();
+
+        try {
+            const aiResponse = await getGeminiResponse(message);
+
+            hideTypingIndicator();
+            addMessage(aiResponse, 'ai');
+        } catch (error) {
+            hideTypingIndicator();
+            addMessage("Xin lỗi, có lỗi xảy ra khi kết nối với Gemini API. Vui lòng thử lại sau.", 'ai');
+            console.error("Lỗi gọi Gemini API:", error);
+        } finally {
+            sendButton.disabled = false;
+            userInput.focus();
+        }
+    }
+
+    // Hàm gọi Gemini API
+    async function getGeminiResponse(message) {
+    const apiKey = "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"; // ← Thay bằng API key Groq của bạn
+    const url = "https://api.groq.com/openai/v1/chat/completions";
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: "llama3-70b-8192",
+            messages: [
+                { role: "system", content: "Bạn là một trợ lý AI hữu ích và thân thiện." },
+                { role: "user", content: message }
+            ],
+            temperature: 0.7
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || "Không có phản hồi từ AI.";
+}
+
+    function addMessage(text, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message');
+        messageDiv.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
+        messageDiv.innerHTML = text.replace(/\n/g, '<br>');
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.classList.add('typing-indicator');
+        typingDiv.id = 'typing-indicator';
+        typingDiv.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
+    }
+</script>
+</body>
+</html>

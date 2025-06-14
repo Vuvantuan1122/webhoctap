@@ -1,0 +1,19 @@
+<h3>Danh sách bài nộp:</h3>
+<ul id="fileList"></ul>
+
+<script>
+  async function loadFiles() {
+    const res = await fetch('/files', { credentials: 'include' });
+    const files = await res.json();
+
+    const list = document.getElementById('fileList');
+    list.innerHTML = '';
+    files.forEach(file => {
+      const li = document.createElement('li');
+      li.innerHTML = `<a href="/uploads/${file}" target="_blank">${file}</a>`;
+      list.appendChild(li);
+    });
+  }
+
+  loadFiles();
+</script>

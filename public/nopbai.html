@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Trang chính</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+        /* reset + font */
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            background: url('1.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 12.5%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .logo {
+            font-weight: 700;
+            font-size: 20px;
+            color: #e4e4e4;
+        }
+        
+        .navbar a {
+            position: relative;
+            font-size: 16px;
+            color: #e4e4e4;
+            text-decoration: none;
+            font-weight: 500;
+            margin-left: 30px;
+        }
+        
+        .navbar a::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -6px;
+            width: 100%;
+            height: 2px;
+            background: #e4e4e4;
+            border-radius: 5px;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: all 0.3s ease;
+        }
+        
+        .navbar a:hover::after {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        main {
+            padding: 120px 12.5% 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        form {
+            margin-top: 0;
+        }
+        
+        input[type="file"] {
+            cursor: pointer;
+        }
+        
+        button[type="submit"] {
+            padding: 15px 25px;
+            background-color: #ff00ee;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button[type="submit"]:hover {
+            background-color: #f700ff;
+        }
+        /* Nút Đăng xuất xuống góc trái dưới */
+        
+        #logoutBtn {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            padding: 15px 25px;
+            background-color: rgb(255, 0, 212);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            z-index: 110;
+        }
+        
+        #logoutBtn:hover {
+            background-color: rgb(255, 0, 251);
+        }
+        /* Phần welcome góc trên trái */
+        
+        #welcome {
+            position: fixed;
+            top: 80px;
+            /* cách header khoảng */
+            left: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 6px;
+            max-width: 300px;
+            font-weight: 600;
+            z-index: 110;
+        }
+        /* Form nộp bài nằm góc dưới phải, đối diện logout */
+        
+        #uploadForm {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px 20px;
+            border-radius: 8px;
+            max-width: 320px;
+            box-sizing: border-box;
+            z-index: 110;
+        }
+        
+        #uploadForm h2 {
+            margin-bottom: 10px;
+            color: #e4e4e4;
+        }
+        
+        #uploadForm input[type="file"] {
+            display: block;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <div class="logo"><i class='bx bx-book'></i> NT</div>
+        <nav class="navbar">
+            <a href="#">Trang chủ</a>
+            <a href="#">Bài tập</a>
+            <a href="#">Liên hệ</a>
+        </nav>
+    </header>
+
+    <p id="welcome"></p>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+        <h2>Nộp bài tập</h2>
+
+        <!-- THÊM TRƯỜNG ẨN Ở ĐÂY -->
+        <input type="hidden" name="student" id="studentName">
+
+        <input type="file" name="homework" required>
+        <button type="submit">Nộp bài</button>
+    </form>
+
+    <button id="logoutBtn">Đăng xuất</button>
+
+    <script>
+        async function loadUser() {
+    const res = await fetch('/me', { credentials: 'include' });
+    if (res.ok) {
+        const data = await res.json();
+
+        // 👇 GÁN TÊN HỌC SINH VÀO INPUT ẨN
+        document.getElementById('studentName').value = data.username;
+
+        // 👋 Hiển thị lời chào
+        document.getElementById('welcome').innerText = "Bạn đang đăng nhập với tên: " + data.username;
+    } else {
+        alert("Bạn chưa đăng nhập. Quay lại trang login.");
+        window.location.href = '1.html';
+    }
+}
+
+        document.getElementById('logoutBtn').addEventListener('click', async() => {
+            await fetch('/logout', {
+                credentials: 'include'
+            });
+            window.location.href = '1.html';
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+
+            const res = await fetch('/upload', {
+                method: 'POST',
+                body: formData,
+                credentials: 'include'
+            });
+
+            const text = await res.text();
+            alert(text);
+        });
+
+        loadUser();
+    </script>
+</body>
+
+</html>

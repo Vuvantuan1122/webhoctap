@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <title>Chat với AI - Tuan</title>
+    <style>
+        /* Giao diện được cải tiến */
+        #chat-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 380px;
+            height: 550px;
+            border: 1px solid #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(48, 116, 241, 0.1);
+            display: flex;
+            flex-direction: column;
+            background: white;
+            z-index: 1000;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        #chat-container.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        #chat-header {
+            background: #1a73e8; /* Màu xanh DeepSeek */
+            color: white;
+            padding: 12px 18px;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        #chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #fafafa;
+            scrollbar-width: thin;
+            scrollbar-color: #ddd #f5f5f5;
+        }
+
+        #chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chat-messages::-webkit-scrollbar-thumb {
+            background-color: #ddd;
+            border-radius: 3px;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 18px;
+            max-width: 85%;
+            word-wrap: break-word;
+            line-height: 1.4;
+            animation: messageAppear 0.2s ease-out;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        @keyframes messageAppear {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-message {
+            background: #1a73e8;
+            color: rgb(0, 0, 0);
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-message {
+            background: #3bc7ff;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
+        #chat-input-container {
+            display: flex;
+            padding: 12px;
+            border-top: 1px solid #000000;
+            background: white;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+            transition: border 0.2s;
+        }
+
+        #user-input:focus {
+            border-color: #1a73e8;
+        }
+
+        #send-button {
+            margin-left: 10px;
+            padding: 10px 16px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        #send-button:hover {
+            background: #0d5bb5;
+        }
+
+        #send-button:disabled {
+            background: #4151e7;
+            cursor: not-allowed;
+        }
+
+        #close-chat {
+            cursor: pointer;
+            font-size: 20px;
+            padding: 2px 8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        #close-chat:hover {
+            background: rgba(0, 4, 255, 0.2);
+        }
+
+        .typing-indicator {
+            display: inline-block;
+            padding: 10px 14px;
+            background: #f0f0f0;
+            border-radius: 18px;
+            margin-bottom: 12px;
+        }
+
+        .typing-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #000000;
+            margin: 0 3px;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingAnimation {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+
+        /* Nút mở chat khi đóng */
+        #open-chat {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: #1a73e8;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 999;
+            border: none;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Nút mở chat -->
+    <button id="open-chat">💬</button>
+    
+    <!-- Chat Widget Container -->
+    <div id="chat-container">
+        <div id="chat-header">
+            <span>Trợ lý Tuan</span>
+            <span id="close-chat">×</span>
+        </div>
+        <div id="chat-messages">
+            <div class="message ai-message">Xin chào! Tôi là trợ lý ảo sử dụng Tuan AI. Tôi có thể giúp gì cho bạn hôm nay?</div>
+        </div>
+        <div id="chat-input-container">
+            <input type="text" id="user-input" placeholder="Nhập tin nhắn..." autocomplete="off">
+            <button id="send-button">Gửi</button>
+        </div>
+    </div>
+
+    <script>
+    const chatMessages = document.getElementById('chat-messages');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+    const closeChat = document.getElementById('close-chat');
+    const chatContainer = document.getElementById('chat-container');
+    const openChatBtn = document.getElementById('open-chat');
+
+    setTimeout(() => {
+        chatContainer.classList.add('visible');
+    }, 300);
+
+    sendButton.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    closeChat.addEventListener('click', function() {
+        chatContainer.classList.remove('visible');
+        setTimeout(() => {
+            chatContainer.style.display = 'none';
+            openChatBtn.style.display = 'flex';
+        }, 300);
+    });
+
+    openChatBtn.addEventListener('click', function() {
+        openChatBtn.style.display = 'none';
+        chatContainer.style.display = 'flex';
+        setTimeout(() => {
+            chatContainer.classList.add('visible');
+        }, 10);
+    });
+
+    async function sendMessage() {
+        const message = userInput.value.trim();
+        if (!message) return;
+
+        addMessage(message, 'user');
+        userInput.value = '';
+        sendButton.disabled = true;
+        showTypingIndicator();
+
+        try {
+            const aiResponse = await getGeminiResponse(message);
+
+            hideTypingIndicator();
+            addMessage(aiResponse, 'ai');
+        } catch (error) {
+            hideTypingIndicator();
+            addMessage("Xin lỗi, có lỗi xảy ra khi kết nối với Gemini API. Vui lòng thử lại sau.", 'ai');
+            console.error("Lỗi gọi Gemini API:", error);
+        } finally {
+            sendButton.disabled = false;
+            userInput.focus();
+        }
+    }
+
+    // Hàm gọi Gemini API
+    async function getGeminiResponse(message) {
+    const apiKey = "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"; // ← Thay bằng API key Groq của bạn
+    const url = "https://api.groq.com/openai/v1/chat/completions";
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: "llama3-70b-8192",
+            messages: [
+                { role: "system", content: "Bạn là một trợ lý AI hữu ích và thân thiện." },
+                { role: "user", content: message }
+            ],
+            temperature: 0.7
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || "Không có phản hồi từ AI.";
+}
+
+    function addMessage(text, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message');
+        messageDiv.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
+        messageDiv.innerHTML = text.replace(/\n/g, '<br>');
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.classList.add('typing-indicator');
+        typingDiv.id = 'typing-indicator';
+        typingDiv.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
+    }
+</script>
+</body>
+<head>
+    <meta charset="UTF-8" />
+    <title>Trang chính với Avatar và Menu</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        /* === Reset & font === */
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            background: url('1.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+            min-height: 100vh;
+            position: relative;
+        }
+        /* === Header === */
+        
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 12.5%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .logo {
+            font-weight: 700;
+            font-size: 20px;
+            color: #e4e4e4;
+        }
+        
+        .navbar a {
+            position: relative;
+            font-size: 16px;
+            color: #e4e4e4;
+            text-decoration: none;
+            font-weight: 500;
+            margin-left: 30px;
+        }
+        
+        .navbar a::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -6px;
+            width: 100%;
+            height: 2px;
+            background: #e4e4e4;
+            border-radius: 5px;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: all 0.3s ease;
+        }
+        
+        .navbar a:hover::after {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        /* === Sidebar === */
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 220px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            padding-top: 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 99;
+        }
+        
+        .sidebar a {
+            position: relative;
+            padding: 10px 20px;
+            color: #e4e4e4;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 16px;
+        }
+        
+        .sidebar a::after {
+            content: '';
+            position: absolute;
+            left: 20px;
+            bottom: 5px;
+            width: calc(100% - 40px);
+            height: 2px;
+            background: #e4e4e4;
+            border-radius: 5px;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar a:hover::after {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        /* === Welcome message === */
+        
+        #welcome {
+            position: fixed;
+            top: 80px;
+            left: 260px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 6px;
+            max-width: 300px;
+            font-weight: 600;
+            z-index: 110;
+        }
+        /* === Logout button === */
+        
+        #logoutBtn {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            padding: 15px 25px;
+            background-color: rgb(255, 0, 212);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            z-index: 110;
+        }
+        
+        #logoutBtn:hover {
+            background-color: rgb(255, 0, 251);
+        }
+        /* === Upload form (hidden in this example) === */
+        
+        #uploadForm {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px 20px;
+            border-radius: 8px;
+            max-width: 320px;
+            box-sizing: border-box;
+            z-index: 110;
+        }
+        
+        #uploadForm h2 {
+            margin-bottom: 10px;
+            color: #e4e4e4;
+        }
+        
+        #uploadForm input[type="file"] {
+            display: block;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+        
+        button[type="submit"] {
+            padding: 15px 25px;
+            background-color: #ff00ee;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button[type="submit"]:hover {
+            background-color: #f700ff;
+        }
+        /* === Avatar styles === */
+        
+        #avatar {
+            position: fixed;
+            top: 10px;
+            left: 40px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            background-color: #ccc;
+            z-index: 120;
+        }
+        /* Menu popup */
+        
+        #avatarMenu {
+            position: fixed;
+            top: 70px;
+            left: 10px;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 5px;
+            display: none;
+            width: 180px;
+            z-index: 130;
+            padding: 5px 0;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        /* Các nút menu */
+        
+        #avatarMenu button {
+            position: relative;
+            width: 100%;
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            color: #e4e4e4;
+            font-size: 15px;
+            font-weight: 500;
+            text-align: left;
+            cursor: pointer;
+            outline: none;
+            transition: color 0.3s ease;
+        }
+        /* Hiệu ứng underline trượt */
+        
+        #avatarMenu button::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 6px;
+            width: 100%;
+            height: 2px;
+            background: #e4e4e4;
+            border-radius: 5px;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: all 0.3s ease;
+        }
+        
+        #avatarMenu button:hover {
+            color: #fff;
+        }
+        
+        #avatarMenu button:hover::after {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        /* === Popup xem ảnh đại diện lớn === */
+        
+        #avatarViewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 150;
+        }
+        
+        #avatarViewer .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            cursor: pointer;
+        }
+        
+        #avatarViewer .viewer-content {
+            position: relative;
+            z-index: 151;
+            background: #111;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px #000;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #avatarViewer img {
+            max-width: 80vw;
+            max-height: 80vh;
+            border-radius: 10px;
+            object-fit: contain;
+        }
+        
+        #avatarViewer button {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background-color: #ff00ee;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        #avatarViewer button:hover {
+            background-color: #f700ff;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="logo"><i class='bx bx-book'></i> NT</div>
+        <nav class="navbar">
+            <a href="#">Trang chủ</a>
+            <a href="#">Bài tập</a>
+            <a href="#">Liên hệ</a>
+        </nav>
+    </header>
+
+    <aside class="sidebar">
+        <a href="#">Bài Tập Về Nhà</a>
+        <a href="#">Tiến Độ Học Tập</a>
+        <a href="bangdiem.html">Bảng Điểm</a>
+        <a href="#">Bài Giảng</a>
+        <a href="#">Điểm Danh</a>
+    </aside>
+
+    <div id="welcome"></div>
+
+    <button id="logoutBtn">Đăng xuất</button>
+
+    <!-- Avatar và menu -->
+    <input type="file" id="upload" accept="image/*" style="display:none" />
+    <img id="avatar" src="default-avatar.png" alt="Avatar" />
+
+    <div id="avatarMenu">
+        <button id="viewAvatar">Xem ảnh đại diện</button>
+        <button id="changeAvatar">Đổi ảnh đại diện</button>
+        <button id="deleteAvatar">Xoá ảnh đại diện</button>
+    </div>
+
+    <!-- Popup xem ảnh đại diện lớn -->
+    <div id="avatarViewer">
+        <div class="overlay"></div>
+        <div class="viewer-content">
+            <img id="avatarLarge" src="" alt="Ảnh đại diện lớn" />
+            <button id="closeViewer">Đóng</button>
+        </div>
+    </div>
+
+    <script>
+        // === Phần logout & user welcome (giữ nguyên) ===
+        async function loadUser() {
+    try {
+        const res = await fetch('/me', {
+            credentials: 'include'
+        });
+        
+        if (!res.ok) {
+            throw new Error('Unauthorized');
+        }
+        
+        const data = await res.json();
+        
+        // Hiển thị lời chào
+        const welcomeElement = document.getElementById('welcome');
+        if (welcomeElement) {
+            welcomeElement.innerText = "Bạn đang đăng nhập với tên: " + (data.username || 'Khách');
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Lỗi xác thực:', error);
+        window.location.href = '1.html';
+        return false;
+    }
+}
+
+        loadUser();
+
+        document.getElementById('logoutBtn').addEventListener('click', async() => {
+            await fetch('/logout', {
+                credentials: 'include'
+            });
+            window.location.href = '1.html';
+        });
+
+        // === Phần Avatar và menu ===
+        const avatar = document.getElementById('avatar');
+        const upload = document.getElementById('upload');
+        const avatarMenu = document.getElementById('avatarMenu');
+        const viewBtn = document.getElementById('viewAvatar');
+        const changeBtn = document.getElementById('changeAvatar');
+        const deleteBtn = document.getElementById('deleteAvatar');
+        const defaultAvatar = 'default-avatar.png';
+
+        // Popup xem avatar lớn
+        const avatarViewer = document.getElementById('avatarViewer');
+        const avatarLarge = document.getElementById('avatarLarge');
+        const closeViewer = document.getElementById('closeViewer');
+
+        // Hiện menu khi click avatar
+        avatar.addEventListener('click', () => {
+            avatarMenu.style.display = avatarMenu.style.display === 'block' ? 'none' : 'block';
+        });
+
+        // Ẩn menu khi click ngoài
+        window.addEventListener('click', (e) => {
+            if (!avatar.contains(e.target) && !avatarMenu.contains(e.target)) {
+                avatarMenu.style.display = 'none';
+            }
+        });
+
+        // Xem ảnh đại diện: hiện popup
+        viewBtn.addEventListener('click', () => {
+            avatarLarge.src = avatar.src;
+            avatarViewer.style.display = 'flex';
+            avatarMenu.style.display = 'none';
+        });
+
+        // Đóng popup xem avatar
+        closeViewer.addEventListener('click', () => {
+            avatarViewer.style.display = 'none';
+        });
+
+        avatarViewer.querySelector('.overlay').addEventListener('click', () => {
+            avatarViewer.style.display = 'none';
+        });
+
+        // Đổi ảnh đại diện: mở file dialog
+        changeBtn.addEventListener('click', () => {
+            upload.click();
+            avatarMenu.style.display = 'none';
+        });
+
+        // Xoá ảnh đại diện: về avatar mặc định
+        deleteBtn.addEventListener('click', () => {
+            avatar.src = defaultAvatar;
+            localStorage.removeItem('userAvatar');
+            avatarMenu.style.display = 'none';
+        });
+
+        // Khi user chọn ảnh mới
+        upload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                avatar.src = reader.result;
+                localStorage.setItem('userAvatar', reader.result);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Load avatar khi mở trang
+        window.addEventListener('load', () => {
+            const savedAvatar = localStorage.getItem('userAvatar');
+            if (savedAvatar) {
+                avatar.src = savedAvatar;
+            } else {
+                avatar.src = defaultAvatar;
+            }
+        });
+    </script>
+
+</body>
+
+</html>
