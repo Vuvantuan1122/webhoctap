@@ -1,0 +1,35 @@
+[
+  {
+    "username": "hocsinh1",
+    "email": "abc@example.com",
+    "password": "123456"
+  },
+  {
+    "username": "nguyenvana",
+    "email": "test@gmail.com",
+    "password": "abc123"
+  },
+  {
+    "username": "tuantento",
+    "email": "tuanvuvan12@hotmail.com",
+    "password": "123456"
+  },
+  {
+    "username": "tuantento1",
+    "email": "tuanvuvan12@hotmail.com",
+    "password": "123456",
+    "role": "teacher"
+  },
+  {
+    "username": "tuantento12",
+    "email": "tuanvuvan12@hotmail.com",
+    "password": "123456",
+    "role": "teacher"
+  },
+  {
+    "username": "giaovien1",
+    "email": "giaovien1@mail.com",
+    "password": "123456",
+    "role": "teacher"
+  }
+]
