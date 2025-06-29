@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Trang chính với Avatar và Menu</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        /* === Reset & font === */
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            background: url('4.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+            min-height: 100vh;
+            position: relative;
+        }
+        /* === Header === */
+        
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 12.5%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            gap: 10px;
+            text-decoration: none;
+        }
+        
+        .logo img {
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
+        }
+        
+        .navbar a {
+            position: relative;
+            font-size: 16px;
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 500;
+            margin-left: 30px;
+        }
+        
+        .navbar a::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -6px;
+            width: 100%;
+            height: 2px;
+            background: #ffffff;
+            border-radius: 5px;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: all 0.3s ease;
+        }
+        
+        .navbar a:hover::after {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        /* === Sidebar === */
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 170px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            padding-top: 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            z-index: 99;
+        }
+        
+        .sidebar a {
+            position: relative;
+            padding: 10px 20px;
+            color: #e4e4e4;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .sidebar a::after {
+            content: '';
+            position: absolute;
+            left: 20px;
+            bottom: 5px;
+            width: calc(100% - 40px);
+            height: 2px;
+            background: #e4e4e4;
+            border-radius: 5px;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar a:hover::after {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        /* === Welcome message === */
+        
+        #welcome {
+            position: fixed;
+            top: 80px;
+            left: 260px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 6px;
+            max-width: 300px;
+            font-weight: 600;
+            z-index: 110;
+        }
+        /* === Streak counter === */
+        
+        .streak-box {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1000;
+            padding: 12px 20px;
+            border: 1px solid #ff5500;
+            border-radius: 10px;
+            background-color: rgb(75, 0, 0);
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        /* === Logout button === */
+        
+        #logoutBtn {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            padding: 15px 25px;
+            background-color: rgb(0, 0, 0);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            z-index: 110;
+        }
+        
+        #logoutBtn:hover {
+            background-color: rgb(66, 62, 65);
+        }
+        /* === Upload form === */
+        
+        #uploadForm {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px 20px;
+            border-radius: 8px;
+            max-width: 320px;
+            box-sizing: border-box;
+            z-index: 110;
+        }
+        
+        #uploadForm h2 {
+            margin-bottom: 10px;
+            color: #e4e4e4;
+        }
+        
+        #uploadForm input[type="file"] {
+            display: block;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+        
+        button[type="submit"] {
+            padding: 15px 25px;
+            background-color: #ff00ee;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button[type="submit"]:hover {
+            background-color: #f700ff;
+        }
+        /* === Avatar styles === */
+        
+        #avatar {
+            position: fixed;
+            top: 10px;
+            left: 40px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            background-color: #ccc;
+            z-index: 120;
+        }
+        /* Menu popup */
+        
+        #avatarMenu {
+            position: fixed;
+            top: 70px;
+            left: 10px;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 5px;
+            display: none;
+            width: 180px;
+            z-index: 130;
+            padding: 5px 0;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        /* Các nút menu */
+        
+        #avatarMenu button {
+            position: relative;
+            width: 100%;
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            color: #e4e4e4;
+            font-size: 15px;
+            font-weight: 500;
+            text-align: left;
+            cursor: pointer;
+            outline: none;
+            transition: color 0.3s ease;
+        }
+        /* Hiệu ứng underline trượt */
+        
+        #avatarMenu button::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 6px;
+            width: 100%;
+            height: 2px;
+            background: #e4e4e4;
+            border-radius: 5px;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: all 0.3s ease;
+        }
+        
+        #avatarMenu button:hover {
+            color: #fff;
+        }
+        
+        #avatarMenu button:hover::after {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        /* === Popup xem ảnh đại diện lớn === */
+        
+        #avatarViewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 150;
+        }
+        
+        #avatarViewer .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            cursor: pointer;
+        }
+        
+        #avatarViewer .viewer-content {
+            position: relative;
+            z-index: 151;
+            background: #111;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px #000;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #avatarViewer img {
+            max-width: 80vw;
+            max-height: 80vh;
+            border-radius: 10px;
+            object-fit: contain;
+        }
+        
+        #avatarViewer button {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background-color: #000000;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        #avatarViewer button:hover {
+            background-color: #000000;
+        }
+        /* === Môn học popup === */
+        
+        #subjectMenu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #000000;
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 200;
+            display: none;
+            width: 300px;
+            max-width: 90%;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.568);
+        }
+        
+        #subjectMenu h2 {
+            color: #ff5959;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .subject-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .subject-btn {
+            padding: 10px;
+            background: rgba(62, 56, 62, 0.2);
+            border: 1px solid #ff2c2c;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .subject-btn:hover {
+            background: rgba(249, 91, 91, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        #closeSubjectMenu {
+            display: block;
+            margin: 15px auto 0;
+            padding: 8px 20px;
+            background-color: #ff0000;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+        
+        #closeSubjectMenu:hover {
+            background-color: #ff5858;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 199;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="logo">
+            <img src="5.jpg" alt="Icon" class="logo-icon"> NT
+        </div>
+        <nav class="navbar">
+            <nav class="navbar">
+                <a href="#"><i class="fas fa-home"></i> Trang chủ</a>
+                <a href="#"><i class="fas fa-tools"></i> Tiện ích</a>
+                <a href="#"><i class="fas fa-envelope"></i> Liên hệ</a>
+            </nav>
+    </header>
+
+    <aside class="sidebar">
+        <a href="bai tap.html">Bài Tập Về Nhà</a>
+        <a href="bangdiem.html">Bảng Điểm</a>
+        <a href="#">Bài Giảng</a>
+    </aside>
+
+    <div id="welcome"></div>
+
+    <div class="streak-box">
+        🔥 Streak: <span id="streak-count">0</span> ngày
+    </div>
+
+    <button id="logoutBtn">Đăng xuất</button>
+
+    <!-- Avatar và menu -->
+    <input type="file" id="upload" accept="image/*" style="display:none" />
+    <img id="avatar" src="default-avatar.png" alt="Avatar" />
+
+    <div id="avatarMenu">
+        <button id="viewAvatar">Xem ảnh đại diện</button>
+        <button id="changeAvatar">Đổi ảnh đại diện</button>
+        <button id="deleteAvatar">Xoá ảnh đại diện</button>
+    </div>
+
+    <!-- Popup xem ảnh đại diện lớn -->
+    <div id="avatarViewer">
+        <div class="overlay"></div>
+        <div class="viewer-content">
+            <img id="avatarLarge" src="" alt="Ảnh đại diện lớn" />
+            <button id="closeViewer">Đóng</button>
+        </div>
+    </div>
+
+    <!-- Popup chọn môn học -->
+    <div class="overlay" id="subjectOverlay"></div>
+    <div id="subjectMenu">
+
+
+
+        <script>
+            // === Phần logout & user welcome ===
+            async function loadUser() {
+                try {
+                    const res = await fetch('/me', {
+                        credentials: 'include'
+                    });
+                    // Xử lý response nếu cần
+                } catch (error) {
+                    window.location.href = '1.html';
+                }
+            }
+            loadUser();
+
+            document.getElementById('logoutBtn').addEventListener('click', async() => {
+                await fetch('/logout', {
+                    credentials: 'include'
+                });
+                window.location.href = '1.html';
+            });
+
+            // === Phần Avatar và menu ===
+            const avatar = document.getElementById('avatar');
+            const upload = document.getElementById('upload');
+            const avatarMenu = document.getElementById('avatarMenu');
+            const viewBtn = document.getElementById('viewAvatar');
+            const changeBtn = document.getElementById('changeAvatar');
+            const deleteBtn = document.getElementById('deleteAvatar');
+            const defaultAvatar = 'default-avatar.png';
+
+            // Popup xem avatar lớn
+            const avatarViewer = document.getElementById('avatarViewer');
+            const avatarLarge = document.getElementById('avatarLarge');
+            const closeViewer = document.getElementById('closeViewer');
+
+            // Hiện menu khi click avatar
+            avatar.addEventListener('click', () => {
+                avatarMenu.style.display = avatarMenu.style.display === 'block' ? 'none' : 'block';
+            });
+
+            // Ẩn menu khi click ngoài
+            window.addEventListener('click', (e) => {
+                if (!avatar.contains(e.target) && !avatarMenu.contains(e.target)) {
+                    avatarMenu.style.display = 'none';
+                }
+            });
+
+            // Xem ảnh đại diện: hiện popup
+            viewBtn.addEventListener('click', () => {
+                avatarLarge.src = avatar.src;
+                avatarViewer.style.display = 'flex';
+                avatarMenu.style.display = 'none';
+            });
+
+            // Đóng popup xem avatar
+            closeViewer.addEventListener('click', () => {
+                avatarViewer.style.display = 'none';
+            });
+
+            avatarViewer.querySelector('.overlay').addEventListener('click', () => {
+                avatarViewer.style.display = 'none';
+            });
+
+            // Đổi ảnh đại diện: mở file dialog
+            changeBtn.addEventListener('click', () => {
+                upload.click();
+                avatarMenu.style.display = 'none';
+            });
+
+            // Xoá ảnh đại diện: về avatar mặc định
+            deleteBtn.addEventListener('click', () => {
+                avatar.src = defaultAvatar;
+                localStorage.removeItem('userAvatar');
+                avatarMenu.style.display = 'none';
+            });
+
+            // Khi user chọn ảnh mới
+            upload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                    avatar.src = reader.result;
+                    localStorage.setItem('userAvatar', reader.result);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // Load avatar khi mở trang
+            window.addEventListener('load', () => {
+                const savedAvatar = localStorage.getItem('userAvatar');
+                if (savedAvatar) {
+                    avatar.src = savedAvatar;
+                } else {
+                    avatar.src = defaultAvatar;
+                }
+            });
+
+            // === Phần Streak Counter ===
+            const streakKey = "loginStreak";
+            const lastLoginKey = "lastLoginDate";
+
+            let streak = parseInt(localStorage.getItem(streakKey)) || 0;
+            let lastLogin = localStorage.getItem(lastLoginKey);
+            const today = new Date().toDateString();
+
+            // Hàm tính số ngày cách nhau
+            function daysBetween(date1, date2) {
+                const d1 = new Date(date1);
+                const d2 = new Date(date2);
+                const diffTime = d2 - d1;
+                return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            }
+
+            if (lastLogin !== today) {
+                if (lastLogin) {
+                    const diffDays = daysBetween(lastLogin, today);
+
+                    if (diffDays === 1) {
+                        streak += 1; // đăng nhập liên tiếp
+                    } else if (diffDays > 1) {
+                        streak = 1; // bỏ qua => reset
+                    }
+                } else {
+                    streak = 1; // lần đầu
+                }
+
+                localStorage.setItem(streakKey, streak);
+                localStorage.setItem(lastLoginKey, today);
+            }
+
+            document.getElementById("streak-count").textContent = streak;
+
+            // === Phần Bài Tập Về Nhà ===
+            const homeworkBtn = document.getElementById('homeworkBtn');
+            const subjectMenu = document.getElementById('subjectMenu');
+            const subjectOverlay = document.getElementById('subjectOverlay');
+            const closeSubjectMenu = document.getElementById('closeSubjectMenu');
+            const subjectBtns = document.querySelectorAll('.subject-btn');
+
+            // Mở menu môn học
+            homeworkBtn.addEventListener('click', () => {
+                subjectMenu.style.display = 'block';
+                subjectOverlay.style.display = 'block';
+            });
+
+            // Đóng menu môn học
+            closeSubjectMenu.addEventListener('click', () => {
+                subjectMenu.style.display = 'none';
+                subjectOverlay.style.display = 'none';
+            });
+
+            subjectOverlay.addEventListener('click', () => {
+                subjectMenu.style.display = 'none';
+                subjectOverlay.style.display = 'none';
+            });
+
+            // Xử lý khi chọn môn học
+            subjectBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const subject = btn.textContent;
+
+                    // Ở đây bạn có thể thêm code để chuyển hướng hoặc hiển thị bài tập tương ứng
+                    subjectMenu.style.display = 'none';
+                    subjectOverlay.style.display = 'none';
+                });
+            });
+            // Gắn sự kiện click cho mỗi nút môn học
+            subjectBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const subject = btn.getAttribute('data-subject');
+                    if (subject) {
+                        window.location.href = `${subject}.html`;
+                    }
+                });
+            });
+        </script>
+
+</body>
+
+</html>

@@ -1,5 +1,29 @@
+<!DOCTYPE html>
+<html lang="vi">
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const isLoggedIn = localStorage.getItem('isLoggedIn');
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    
+    // Nếu chưa đăng nhập hoặc role không khớp
+    if (!isLoggedIn || (window.location.pathname.includes('student') && userData.role !== 'student') || 
+        (window.location.pathname.includes('teacher') && userData.role !== 'teacher')) {
+        window.location.href = '1.html';
+    }
+    if (!userData || userData.role !== 'student') {
+    alert('Bạn không có quyền truy cập trang này');
+    window.location.href = 'giaovien.html';
+}
+    // Hiển thị thông tin người dùng
+    if (userData.username) {
+        document.getElementById('welcome-message').textContent = `Xin chào, ${userData.username}!`;
+    }
+});
+</script>
 <head>
-    <title>Chat với AI - Tuan</title>
+
+    <title>Web hoc tap Tuan van Minh </title>
+    
     <style>
         /* Giao diện được cải tiến */
         #chat-container {
@@ -267,8 +291,8 @@
             addMessage(aiResponse, 'ai');
         } catch (error) {
             hideTypingIndicator();
-            addMessage("Xin lỗi, có lỗi xảy ra khi kết nối với Gemini API. Vui lòng thử lại sau.", 'ai');
-            console.error("Lỗi gọi Gemini API:", error);
+            addMessage("Xin lỗi, có lỗi xảy ra khi kết nối với AI. Vui lòng thử lại sau.", 'ai');
+            console.error("Lỗi gọi API:", error);
         } finally {
             sendButton.disabled = false;
             userInput.focus();
@@ -277,7 +301,7 @@
 
     // Hàm gọi Gemini API
     async function getGeminiResponse(message) {
-    const apiKey = "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"; // ← Thay bằng API key Groq của bạn
+    const apiKey = "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"; // ← Thay bằng API key Groq của bạn
     const url = "https://api.groq.com/openai/v1/chat/completions";
 
     const response = await fetch(url, {
@@ -330,10 +354,10 @@
     }
 </script>
 </body>
-</html>
 <head>
     <meta charset="UTF-8" />
     <title>Trang chính với Avatar và Menu</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <style>
         /* === Reset & font === */
@@ -345,23 +369,8 @@
             font-family: 'Poppins', sans-serif;
         }
         
-        .streak-box {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            z-index: 1000;
-            padding: 12px 20px;
-            border: 2px solid #ff00ee;
-            border-radius: 10px;
-            background-color: rgba(255, 0, 238, 0.1);
-            font-size: 18px;
-            font-weight: bold;
-            color: #ff00ee;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        }
-        
         body {
-            background: url('1.jpg') no-repeat center center fixed;
+            background: url('4.jpg') no-repeat center center fixed;
             background-size: cover;
             color: white;
             min-height: 100vh;
@@ -383,31 +392,25 @@
         }
         
         .logo {
-            font-weight: 700;
-            font-size: 20px;
-            color: #e4e4e4;
-        }
-        
-        .logo {
             display: flex;
             align-items: center;
+            font-size: 1.5rem;
             font-weight: 700;
-            font-size: 20px;
-            color: #e4e4e4;
-            gap: 8px;
-            /* khoảng cách giữa icon và chữ */
+            color: white;
+            gap: 10px;
+            text-decoration: none;
         }
         
-        .logo-icon {
-            width: 24px;
-            height: 24px;
+        .logo img {
+            width: 30px;
+            height: 30px;
             object-fit: contain;
         }
         
         .navbar a {
             position: relative;
             font-size: 16px;
-            color: #e4e4e4;
+            color: #ffffff;
             text-decoration: none;
             font-weight: 500;
             margin-left: 30px;
@@ -420,7 +423,7 @@
             bottom: -6px;
             width: 100%;
             height: 2px;
-            background: #e4e4e4;
+            background: #ffffff;
             border-radius: 5px;
             opacity: 0;
             transform: translateY(5px);
@@ -454,6 +457,7 @@
             text-decoration: none;
             font-weight: 500;
             font-size: 16px;
+            cursor: pointer;
         }
         
         .sidebar a::after {
@@ -487,6 +491,25 @@
             font-weight: 600;
             z-index: 110;
         }
+        /* === Streak counter === */
+        
+        .streak-box {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1000;
+            padding: 12px 20px;
+            border: 1px solid #ff5500;
+            border-radius: 10px;
+            background-color: rgb(75, 0, 0);
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
         /* === Logout button === */
         
         #logoutBtn {
@@ -494,7 +517,7 @@
             left: 20px;
             bottom: 20px;
             padding: 15px 25px;
-            background-color: rgb(0, 0, 0);
+            background-color: rgb(78, 74, 74);
             border: none;
             border-radius: 10px;
             color: white;
@@ -506,7 +529,7 @@
         #logoutBtn:hover {
             background-color: rgb(66, 62, 65);
         }
-        /* === Upload form (hidden in this example) === */
+        /* === Upload form === */
         
         #uploadForm {
             position: fixed;
@@ -663,7 +686,7 @@
         #avatarViewer button {
             margin-top: 10px;
             padding: 8px 16px;
-            background-color: #ff00ee;
+            background-color: #000000;
             border: none;
             border-radius: 6px;
             color: white;
@@ -672,7 +695,78 @@
         }
         
         #avatarViewer button:hover {
-            background-color: #f700ff;
+            background-color: #000000;
+        }
+        /* === Môn học popup === */
+        
+        #subjectMenu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #000000;
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 200;
+            display: none;
+            width: 300px;
+            max-width: 90%;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.568);
+        }
+        
+        #subjectMenu h2 {
+            color: #ff5959;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .subject-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .subject-btn {
+            padding: 10px;
+            background: rgba(62, 56, 62, 0.2);
+            border: 1px solid #ff2c2c;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .subject-btn:hover {
+            background: rgba(249, 91, 91, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        #closeSubjectMenu {
+            display: block;
+            margin: 15px auto 0;
+            padding: 8px 20px;
+            background-color: #ff0000;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+        
+        #closeSubjectMenu:hover {
+            background-color: #ff5858;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 199;
+            display: none;
         }
     </style>
 </head>
@@ -684,20 +778,24 @@
             <img src="5.jpg" alt="Icon" class="logo-icon"> NT
         </div>
         <nav class="navbar">
-            <a href="#">Trang chủ</a>
-            <a href="#">Tiện ích</a>
-            <a href="#">Liên hệ</a>
-        </nav>
+            <nav class="navbar">
+                <a href="#"><i class="fas fa-home"></i> Trang chủ</a>
+                <a href="#"><i class="fas fa-tools"></i> Tiện ích</a>
+                <a href="#"><i class="fas fa-envelope"></i> Liên hệ</a>
+            </nav>
     </header>
 
     <aside class="sidebar">
-        <a href="bai tap.html">Bài Tập Về Nhà</a>
+        <a id="homeworkBtn">Bài Tập Về Nhà</a>
         <a href="bangdiem.html">Bảng Điểm</a>
         <a href="#">Bài Giảng</a>
-
     </aside>
 
+    <div id="welcome"></div>
 
+    <div class="streak-box">
+        🔥 Streak: <span id="streak-count">0</span> ngày
+    </div>
 
     <button id="logoutBtn">Đăng xuất</button>
 
@@ -720,32 +818,53 @@
         </div>
     </div>
 
+    <!-- Popup chọn môn học -->
+    <div class="overlay" id="subjectOverlay"></div>
+    <div id="subjectMenu">
+        <h2>Chọn Môn Học</h2>
+        <div class="subject-list">
+            <button class="subject-btn" data-subject="toan.html">Toán</button>
+            <button class="subject-btn" data-subject="vat-ly.html">Vật Lý</button>
+            <button class="subject-btn" data-subject="hoa-hoc.html">Hóa Học</button>
+            <button class="subject-btn" data-subject="sinh-hoc.html">Sinh Học</button>
+            <button class="subject-btn" data-subject="lich-su.html">Lịch Sử</button>
+            <button class="subject-btn" data-subject="ngu-van.html">Ngữ Văn</button>
+            <button class="subject-btn" data-subject="dia-ly.html">Địa Lý</button>
+            <button class="subject-btn" data-subject="tieng-anh.html">Tiếng Anh</button>
+        </div>
+
+        <button id="closeSubjectMenu">Đóng</button>
+    </div>
+    <!-- Overlay nền xám mờ -->
+    <div class="overlay" id="subjectOverlay"></div>
+
+    <!-- Popup chọn môn học -->
+    <div id="subjectMenu">
+        <h2>Chọn Môn Học</h2>
+        <div class="subject-list">
+            <button class="subject-btn" data-subject="toan.html">Toán</button>
+            <button class="subject-btn" data-subject="vat-ly.html">Vật Lý</button>
+            <button class="subject-btn" data-subject="hoa-hoc.html">Hóa Học</button>
+            <button class="subject-btn" data-subject="sinh-hoc.html">Sinh Học</button>
+            <button class="subject-btn" data-subject="lich-su.html">Lịch Sử</button>
+            <button class="subject-btn" data-subject="ngu-van.html">Ngữ Văn</button>
+            <button class="subject-btn" data-subject="dia-ly.html">Địa Lý</button>
+            <button class="subject-btn" data-subject="tieng-anh.html">Tiếng Anh</button>
+        </div>
+        <button id="closeSubjectMenu">Đóng</button>
+    </div>
+
     <script>
-        // === Phần logout & user welcome (giữ nguyên) ===
-         async function loadUser() {
-    try {
-        const res = await fetch('/me', {
-            credentials: 'include'
-        });
-        
-        if (!res.ok) {
-            throw new Error('Unauthorized');
-        }
-        
-        const data = await res.json();
-        
-        // Hiển thị lời chào
-        const welcomeElement = document.getElementById('welcome');
-        if (welcomeElement) {
-            welcomeElement.innerText = "Bạn đang đăng nhập với tên: " + (data.username || 'Khách');
-        }
-        
-        return true;
-    } catch (error) {
-        console.error('Lỗi xác thực:', error);
-        window.location.href = '1.html';
-        return false;
-    }
+        // === Phần logout & user welcome ===
+        async function loadUser() {
+            try {
+                const res = await fetch('/me', {
+                    credentials: 'include'
+                });
+                // Xử lý response nếu cần
+            } catch (error) {
+                window.location.href = '1.html';
+            }
         }
         loadUser();
 
@@ -832,50 +951,14 @@
                 avatar.src = defaultAvatar;
             }
         });
-    </script>
 
-</body>
-
-</html>
-<!DOCTYPE html>
-<html lang="vi">
-
-<head>
-    <meta charset="UTF-8">
-    <title>Streak Đăng Nhập</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            text-align: center;
-            padding: 40px;
-        }
-        
-        .streak-box {
-            display: inline-block;
-            padding: 15px;
-            border: 2px solid #ff5500;
-            border-radius: 10px;
-            background-color: #5c5353;
-            font-size: 24px;
-            font-weight: bold;
-            color: #ff9100;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="streak-box">
-        🔥 Streak: <span id="streak-count">0</span> ngày
-    </div>
-
-    <script>
-        // Lấy dữ liệu streak từ localStorage
+        // === Phần Streak Counter ===
         const streakKey = "loginStreak";
         const lastLoginKey = "lastLoginDate";
 
         let streak = parseInt(localStorage.getItem(streakKey)) || 0;
         let lastLogin = localStorage.getItem(lastLoginKey);
-        const today = new Date().toDateString(); // đơn giản: chỉ ngày tháng
+        const today = new Date().toDateString();
 
         // Hàm tính số ngày cách nhau
         function daysBetween(date1, date2) {
@@ -891,7 +974,7 @@
 
                 if (diffDays === 1) {
                     streak += 1; // đăng nhập liên tiếp
-                } else {
+                } else if (diffDays > 1) {
                     streak = 1; // bỏ qua => reset
                 }
             } else {
@@ -903,6 +986,50 @@
         }
 
         document.getElementById("streak-count").textContent = streak;
+
+        // === Phần Bài Tập Về Nhà ===
+        const homeworkBtn = document.getElementById('homeworkBtn');
+        const subjectMenu = document.getElementById('subjectMenu');
+        const subjectOverlay = document.getElementById('subjectOverlay');
+        const closeSubjectMenu = document.getElementById('closeSubjectMenu');
+        const subjectBtns = document.querySelectorAll('.subject-btn');
+
+        // Mở menu môn học
+        homeworkBtn.addEventListener('click', () => {
+            subjectMenu.style.display = 'block';
+            subjectOverlay.style.display = 'block';
+        });
+
+        // Đóng menu môn học
+        closeSubjectMenu.addEventListener('click', () => {
+            subjectMenu.style.display = 'none';
+            subjectOverlay.style.display = 'none';
+        });
+
+        subjectOverlay.addEventListener('click', () => {
+            subjectMenu.style.display = 'none';
+            subjectOverlay.style.display = 'none';
+        });
+
+        // Xử lý khi chọn môn học
+        subjectBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const subject = btn.textContent;
+
+                // Ở đây bạn có thể thêm code để chuyển hướng hoặc hiển thị bài tập tương ứng
+                subjectMenu.style.display = 'none';
+                subjectOverlay.style.display = 'none';
+            });
+        });
+        // Gắn sự kiện click cho mỗi nút môn học
+        subjectBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const subject = btn.getAttribute('data-subject');
+                if (subject) {
+                    window.location.href = `${subject}.html`;
+                }
+            });
+        });
     </script>
 
 </body>

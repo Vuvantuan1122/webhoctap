@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ảnh đã nộp</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #eee;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 30px;
+    }
+    .gallery {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+    }
+    .card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      padding: 10px;
+      width: 200px;
+      transition: 0.3s;
+    }
+    .card img {
+      width: 100%;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .timestamp {
+      font-size: 0.85em;
+      color: #555;
+      margin-top: 5px;
+    }
+
+    /* Lightbox popup */
+    #lightbox {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.85);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    #lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 10px;
+      box-shadow: 0 0 20px #000;
+    }
+  </style>
+</head>
+<body>
+  <h1>Ảnh đã nộp</h1>
+  <div class="gallery" id="gallery"></div>
+
+  <!-- Lightbox -->
+  <div id="lightbox">
+    <img id="lightbox-img" src="" />
+  </div>
+
+  <script>
+    async function loadImages() {
+      const res = await fetch('/api/images');
+      const images = await res.json();
+      const gallery = document.getElementById('gallery');
+
+      if (!images.length) {
+        gallery.innerHTML = "<p>Chưa có ảnh nào được nộp.</p>";
+        return;
+      }
+
+      images.reverse().forEach(img => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const image = document.createElement('img');
+        image.src = img.url;
+        image.alt = "Bài đã nộp";
+        image.onclick = () => showFullImage(img.url);
+
+        const time = document.createElement('div');
+        time.className = 'timestamp';
+        const date = new Date(img.timestamp);
+        time.textContent = date.toLocaleTimeString() + " " + date.toLocaleDateString();
+
+        card.appendChild(image);
+        card.appendChild(time);
+        gallery.appendChild(card);
+      });
+    }
+
+    function showFullImage(src) {
+      const lightbox = document.getElementById("lightbox");
+      const lightboxImg = document.getElementById("lightbox-img");
+      lightboxImg.src = src;
+      lightbox.style.display = "flex";
+    }
+
+    document.getElementById("lightbox").addEventListener("click", function () {
+      this.style.display = "none";
+    });
+
+    window.onload = loadImages;
+  </script>
+</body>
+</html>

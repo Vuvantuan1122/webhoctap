@@ -1,19 +1,690 @@
-<h3>Danh sách bài nộp:</h3>
-<ul id="fileList"></ul>
-
+<!DOCTYPE html>
+<html lang="vi">
 <script>
-  async function loadFiles() {
-    const res = await fetch('/files', { credentials: 'include' });
-    const files = await res.json();
-
-    const list = document.getElementById('fileList');
-    list.innerHTML = '';
-    files.forEach(file => {
-      const li = document.createElement('li');
-      li.innerHTML = `<a href="/uploads/${file}" target="_blank">${file}</a>`;
-      list.appendChild(li);
-    });
-  }
-
-  loadFiles();
+    document.addEventListener('DOMContentLoaded', function() {
+    const isLoggedIn = localStorage.getItem('isLoggedIn');
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    
+    // Nếu chưa đăng nhập hoặc role không khớp
+    if (!isLoggedIn || (window.location.pathname.includes('teacher') && userData.role !== 'teacher') || 
+        (window.location.pathname.includes('student') && userData.role !== 'student')) {
+        window.location.href = '1.html';
+    }
+    if (!userData || userData.role !== 'teacher') {
+    alert('Bạn không có quyền truy cập trang này');
+    window.location.href = 'index.html';
+}
+    // Hiển thị thông tin người dùng
+    if (userData.username) {
+        document.getElementById('welcome-message').textContent = `Xin chào, ${userData.username}!`;
+    }
+});
 </script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giáo viên - Quản lý học sinh</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        h1,
+        h2 {
+            color: #007bff;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .container {
+            
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            width: 90%;
+            max-width: 1200px;
+            
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: calc(100% - 20px);
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+        }
+        
+        .form-group textarea {
+            min-height: 120px;
+        }
+        
+        button {
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        th,
+        td {
+            border: 1px solid #e0e0e0;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        tbody tr:hover {
+            background-color: #e8f0fe;
+            transition: background-color 0.3s ease;
+        }
+        
+        .delete-btn {
+            background-color: #dc3545;
+        }
+        
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+        
+        .add-multiple-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .student-name-link {
+            color: #007bff;
+            cursor: pointer;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .student-name-link:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.6);
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal.show {
+            display: flex;
+            opacity: 1;
+        }
+        
+        .modal-content {
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 30px;
+            border: none;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 900px;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+            position: relative;
+            animation: slideDown 0.4s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .close-button {
+            color: #aaa;
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .close-button:hover,
+        .close-button:focus {
+            color: #333;
+            text-decoration: none;
+        }
+        
+        .score-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+        }
+        
+        .score-table th,
+        .score-table td {
+            border: 1px solid #e0e0e0;
+            padding: 10px 12px;
+            text-align: left;
+        }
+        
+        .score-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .score-table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .score-table tbody tr:hover {
+            background-color: #e8f0fe;
+            transition: background-color 0.3s ease;
+        }
+        
+        .score-input {
+            width: 70px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 15px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .score-input:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, .25);
+        }
+        
+        .modal-footer {
+            margin-top: 30px;
+            text-align: right;
+        }
+        
+        .modal-footer button {
+            margin-left: 10px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .edit-btn {
+            background-color: #28a745;
+        }
+        
+        .edit-btn:hover {
+            background-color: #218838;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Quản lý học sinh</h1>
+
+    <div class="container">
+        <div class="add-multiple-header">
+            <h2>Thêm học sinh mới</h2>
+            <button type="button" onclick="addRowForNewStudent()">Thêm dòng</button>
+        </div>
+        <form id="addStudentForm">
+            <table id="newStudentsTable">
+                <thead>
+                    <tr>
+                        <th>Tên đăng nhập</th>
+                        <th>Họ và tên</th>
+                        <th>Lớp</th>
+                        <th>Ngày sinh</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" name="username[]" placeholder="nguyen.van.a" required></td>
+                        <td><input type="text" name="fullname[]" placeholder="Nguyễn Văn A" required></td>
+                        <td>
+                            <select name="class[]" required>
+                                <option value="">Chọn lớp</option>
+                            </select>
+                        </td>
+                        <td><input type="date" name="dob[]" required></td>
+                        <td><button type="button" class="delete-btn" onclick="removeNewStudentRow(this)">Xóa</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div style="text-align: center; margin-top: 20px;">
+                <button type="submit">Thêm học sinh</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="container">
+        <h2>Danh sách học sinh</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+                <label for="classFilter">Lọc theo lớp: </label>
+                <select id="classFilter" onchange="loadStudents()">
+                    <option value="">Tất cả lớp</option>
+                </select>
+            </div>
+            <div>
+                <label for="searchInput">Tìm kiếm: </label>
+                <input type="text" id="searchInput" placeholder="Nhập tên hoặc username..." oninput="loadStudents()">
+            </div>
+        </div>
+<div style="margin-bottom: 20px;">
+    <label for="newClassInput"><strong>Thêm lớp mới:</strong></label>
+    <input type="text" id="newClassInput" placeholder="Ví dụ: 10A14" />
+    <button type="button" onclick="addNewClass()">Thêm lớp</button>
+</div>
+        <table id="studentsDataTable">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Họ và tên</th>
+                    <th>Lớp</th>
+                    <th>Ngày sinh</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="5" class="no-data">Đang tải dữ liệu...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="scoreModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeScoreModal()">&times;</span>
+            <h2 id="scoreModalTitle">Bảng điểm của học sinh: </h2>
+            <table class="score-table" id="studentScoreTable">
+                <thead>
+                    <tr>
+                        <th>Môn học</th>
+                        <th>Điểm 15p (Lần 1)</th>
+                        <th>Điểm 15p (Lần 2)</th>
+                        <th>Điểm 45p</th>
+                        <th>Điểm học kỳ I</th>
+                        <th>Điểm học kỳ II</th>
+                        <th>Điểm trung bình</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+            <div class="modal-footer">
+                <button type="button" onclick="closeScoreModal()">Hủy</button>
+                <button type="button" onclick="saveStudentScores()">Lưu điểm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+let allClasses = new Set();
+let currentStudentBeingEdited = null;
+const subjects = ["Toán", "Ngữ Văn", "Vật Lý", "Hóa Học", "Sinh Học", "Lịch Sử", "Địa Lí", "GDCD", "Tiếng Anh", "Tin Học", "Thể Dục"];
+
+// Cập nhật tất cả dropdown lớp
+function updateAllClassDropdowns() {
+    const options = generateClassOptions();
+    document.querySelectorAll('select[name="class[]"]').forEach(select => {
+        select.innerHTML = `<option value="">Chọn lớp</option>${options}`;
+    });
+    const filter = document.getElementById('classFilter');
+    if (filter) {
+        filter.innerHTML = `<option value="">Tất cả lớp</option>${options}`;
+    }
+}
+
+// Tạo HTML <option>
+function generateClassOptions() {
+    return Array.from(allClasses).sort().map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+// Khởi tạo lớp mặc định
+function initClassOptions() {
+    const defaultClasses = [];
+    for (let i = 1; i <= 13; i++) defaultClasses.push(`10A${i}`, `11A${i}`, `12A${i}`);
+    allClasses = new Set(defaultClasses);
+    updateAllClassDropdowns();
+}
+
+// Lưu / tải học sinh từ localStorage
+function saveStudentsToStorage() {
+    localStorage.setItem("students", JSON.stringify(students));
+}
+function loadStudentsFromStorage() {
+    const data = localStorage.getItem("students");
+    if (data) return JSON.parse(data);
+    return [];
+}
+
+// Hiển thị bảng điểm học sinh
+function showStudentScores(student) {
+    currentStudentBeingEdited = student;
+    document.getElementById("scoreModalTitle").textContent =
+        `Bảng điểm của học sinh: ${student.fullname} (${student.class})`;
+
+    const tbody = document.querySelector("#studentScoreTable tbody");
+    tbody.innerHTML = '';
+
+    subjects.forEach(subject => {
+        const score = student.scores[subject] || {};
+        const row = tbody.insertRow();
+
+        row.insertCell().textContent = subject;
+
+        const createInput = (field) => {
+            const input = document.createElement("input");
+            input.className = "score-input";
+            input.type = "number";
+            input.min = 0;
+            input.max = 10;
+            input.step = 0.1;
+            input.dataset.subject = subject;
+            input.dataset.field = field;
+            input.value = score[field] ?? '';
+            return input;
+        };
+
+        const fields = ["p15_1", "p15_2", "p45_1", "hki", "hkii"];
+        fields.forEach(field => {
+            const td = row.insertCell();
+            const input = createInput(field);
+            input.oninput = () => updateAverage(row);
+            td.appendChild(input);
+        });
+
+        const avgCell = row.insertCell();
+        avgCell.className = "average-score";
+        updateAverage(row);
+    });
+
+    document.getElementById("scoreModal").classList.add("show");
+}
+
+function updateAverage(row) {
+    const hki = parseFloat(row.querySelector('input[data-field="hki"]')?.value);
+    const hkii = parseFloat(row.querySelector('input[data-field="hkii"]')?.value);
+    const avg = (!isNaN(hki) && !isNaN(hkii)) ? ((hki + hkii * 2) / 3).toFixed(1) : '';
+    row.querySelector(".average-score").textContent = avg;
+}
+
+function saveStudentScores() {
+    if (!currentStudentBeingEdited) return;
+
+    const inputs = document.querySelectorAll("#studentScoreTable .score-input");
+    for (let input of inputs) {
+        const sub = input.dataset.subject;
+        const field = input.dataset.field;
+        const val = input.value.trim();
+        const num = parseFloat(val);
+
+        if (val !== '' && (isNaN(num) || num < 0 || num > 10)) {
+            alert(`Điểm "${field}" môn ${sub} không hợp lệ.`);
+            return;
+        }
+
+        if (!currentStudentBeingEdited.scores[sub]) currentStudentBeingEdited.scores[sub] = {};
+        currentStudentBeingEdited.scores[sub][field] = val === '' ? null : num;
+    }
+
+    saveStudentsToStorage();
+    alert("Đã lưu điểm.");
+    closeScoreModal();
+}
+
+function closeScoreModal() {
+    document.getElementById("scoreModal").classList.remove("show");
+    currentStudentBeingEdited = null;
+}
+
+window.onclick = e => {
+    if (e.target.id === "scoreModal") closeScoreModal();
+};
+
+// === Quản lý học sinh ===
+let students = loadStudentsFromStorage();
+
+function loadStudents() {
+    const classFilter = document.getElementById("classFilter").value;
+    const search = document.getElementById("searchInput").value.toLowerCase();
+    const tbody = document.querySelector("#studentsDataTable tbody");
+
+    const filtered = students.filter(s =>
+        (!classFilter || s.class === classFilter) &&
+        (s.fullname.toLowerCase().includes(search) || s.username.toLowerCase().includes(search))
+    );
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="no-data">Không có dữ liệu học sinh</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    filtered.forEach(student => {
+        const row = tbody.insertRow();
+        const unameCell = row.insertCell();
+        const unameLink = document.createElement("span");
+        unameLink.className = "student-name-link";
+        unameLink.textContent = student.username;
+        unameLink.onclick = () => showStudentScores(student);
+        unameCell.appendChild(unameLink);
+
+        row.insertCell().textContent = student.fullname;
+        row.insertCell().textContent = student.class;
+        row.insertCell().textContent = formatDate(student.dob);
+
+        const actions = row.insertCell();
+        actions.className = "action-buttons";
+
+        const viewBtn = document.createElement("button");
+        viewBtn.textContent = "Xem điểm";
+        viewBtn.className = "edit-btn";
+        viewBtn.onclick = () => showStudentScores(student);
+        actions.appendChild(viewBtn);
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Xóa";
+        delBtn.className = "delete-btn";
+        delBtn.onclick = () => {
+            if (confirm("Xóa học sinh này?")) {
+                students = students.filter(s => s.id !== student.id);
+                saveStudentsToStorage();
+                loadStudents();
+            }
+        };
+        actions.appendChild(delBtn);
+    });
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('vi-VN');
+}
+
+function addRowForNewStudent() {
+    const tbody = document.querySelector("#newStudentsTable tbody");
+    const row = tbody.insertRow();
+    row.innerHTML = `
+        <td><input type="text" name="username[]" required></td>
+        <td><input type="text" name="fullname[]" required></td>
+        <td><select name="class[]" required><option value="">Chọn lớp</option>${generateClassOptions()}</select></td>
+        <td><input type="date" name="dob[]" required></td>
+        <td><button type="button" class="delete-btn" onclick="removeNewStudentRow(this)">Xóa</button></td>
+    `;
+}
+
+function removeNewStudentRow(btn) {
+    const row = btn.closest("tr");
+    const tbody = document.querySelector("#newStudentsTable tbody");
+    if (tbody.rows.length > 1) row.remove();
+    else alert("Phải có ít nhất một dòng.");
+}
+
+function setupFormSubmit() {
+    document.getElementById("addStudentForm").addEventListener("submit", e => {
+        e.preventDefault();
+        addNewStudents();
+    });
+}
+
+function addNewStudents() {
+    const usernames = document.querySelectorAll('input[name="username[]"]');
+    const fullnames = document.querySelectorAll('input[name="fullname[]"]');
+    const classes = document.querySelectorAll('select[name="class[]"]');
+    const dobs = document.querySelectorAll('input[name="dob[]"]');
+
+    const newStudents = [];
+    for (let i = 0; i < usernames.length; i++) {
+        const username = usernames[i].value.trim();
+        const fullname = fullnames[i].value.trim();
+        const studentClass = classes[i].value;
+        const dob = dobs[i].value;
+
+        if (!username || !fullname || !studentClass || !dob) {
+            alert("Vui lòng nhập đầy đủ thông tin.");
+            return;
+        }
+
+        if (students.some(s => s.username === username)) {
+            alert(`Username ${username} đã tồn tại.`);
+            return;
+        }
+
+        newStudents.push({
+            id: generateNewId(),
+            username, fullname, class: studentClass, dob,
+            scores: createDefaultScores()
+        });
+    }
+
+    students.push(...newStudents);
+    saveStudentsToStorage();
+    alert(`Đã thêm ${newStudents.length} học sinh.`);
+    resetAddStudentForm();
+    loadStudents();
+}
+
+function generateNewId() {
+    return students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1;
+}
+
+function createDefaultScores() {
+    const obj = {};
+    subjects.forEach(sub => {
+        obj[sub] = { p15_1: null, p15_2: null, p45_1: null, hki: null, hkii: null };
+    });
+    return obj;
+}
+
+function resetAddStudentForm() {
+    document.querySelector("#newStudentsTable tbody").innerHTML = `
+        <tr>
+            <td><input type="text" name="username[]" required></td>
+            <td><input type="text" name="fullname[]" required></td>
+            <td><select name="class[]" required><option value="">Chọn lớp</option>${generateClassOptions()}</select></td>
+            <td><input type="date" name="dob[]" required></td>
+            <td><button type="button" class="delete-btn" onclick="removeNewStudentRow(this)">Xóa</button></td>
+        </tr>
+    `;
+}
+
+// Tải khi mở trang
+document.addEventListener("DOMContentLoaded", () => {
+    initClassOptions();
+    setupFormSubmit();
+    loadStudents();
+});
+</script>
+
+</body>
+
+</html>

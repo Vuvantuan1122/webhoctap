@@ -19,7 +19,7 @@
         }
         
         body {
-            background: url('1.jpg') no-repeat center center fixed;
+            background: url('1.gif') no-repeat center center fixed;
             background-size: cover;
             color: white;
         }
@@ -115,7 +115,7 @@
             position: relative;
             width: 75%;
             max-width: 1000px;
-            height: 560px;
+            height: 650px;
             background: rgba(0, 0, 0, 0.5);
             border-radius: 10px;
             display: flex;
@@ -195,7 +195,8 @@
             margin-bottom: 20px;
         }
         
-        .form-box input {
+        .form-box input,
+        .form-box select {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
@@ -203,6 +204,8 @@
             border: none;
             outline: none;
             font-size: 16px;
+            background: #222;
+            color: #eee;
         }
         
         .form-box button {
@@ -235,6 +238,16 @@
         
         .toggle-btn:hover {
             color: #fff;
+        }
+        
+        #roomResult {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #7fff7f;
+        }
+        
+        #roomResult.error {
+            color: #ff7f7f;
         }
     </style>
 </head>
@@ -271,27 +284,96 @@
                 <!-- Login form -->
                 <div id="loginForm" class="form-box active">
                     <h3>Login</h3>
-                    <input type="text" id="username" name="username" placeholder="Username" required />
-                    <input type="password" id="password" name="password" placeholder="Password" required />
-                    <button id="loginBtn">Login</button>
-                    <div id="loginError" style="color:red;"></div>
+                    <input type="text" placeholder="Username" />
+                    <input type="password" placeholder="Password" />
+                    <select id="loginRole" required>
+                        <option value="">-- Chọn vai trò --</option>
+                        <option value="student">Học sinh</option>
+                        <option value="teacher">Giáo viên</option>
+                    </select>
+                    <button>Login</button>
                     <button class="toggle-btn" id="showRegister">Create Account</button>
-            </div>
+                </div>
 
                 <!-- Registration form -->
                 <div id="registerForm" class="form-box">
                     <h3>Register</h3>
-                    <input type="text" id="regUsername" placeholder="Username" required />
-                    <input type="email" id="regEmail" placeholder="Email" required />
-                    <input type="password" id="regPassword" placeholder="Password" required />
-                    <input type="password" id="regConfirm" placeholder="Confirm Password" required />
-                    <select id="regRole" required>
-                    <option value="">-- Chọn vai trò --</option>
-                    <option value="student">Học sinh</option>
-                    <option value="teacher">Giáo viên</option>
-                   </select>
+                    <input type="text" placeholder="Username" />
+                    <input type="email" placeholder="Email" />
+                    <input type="password" placeholder="Password" />
+                    <input type="password" placeholder="Confirm Password" />
+                    <select id="registerRole" required>
+                        <option value="">-- Chọn vai trò --</option>
+                        <option value="student">Học sinh</option>
+                        <option value="teacher">Giáo viên</option>
+                    </select>
+                    <select id="registerProvince" required>
+                        <option value="">-- Chọn tỉnh thành --</option>
+                        <option value="An Giang">An Giang</option>
+                        <option value="Bà Rịa - Vũng Tàu">Bà Rịa - Vũng Tàu</option>
+                        <option value="Bắc Giang">Bắc Giang</option>
+                        <option value="Bắc Kạn">Bắc Kạn</option>
+                        <option value="Bạc Liêu">Bạc Liêu</option>
+                        <option value="Bắc Ninh">Bắc Ninh</option>
+                        <option value="Bến Tre">Bến Tre</option>
+                        <option value="Bình Định">Bình Định</option>
+                        <option value="Bình Dương">Bình Dương</option>
+                        <option value="Bình Phước">Bình Phước</option>
+                        <option value="Bình Thuận">Bình Thuận</option>
+                        <option value="Cà Mau">Cà Mau</option>
+                        <option value="Cao Bằng">Cao Bằng</option>
+                        <option value="Đắk Lắk">Đắk Lắk</option>
+                        <option value="Đắk Nông">Đắk Nông</option>
+                        <option value="Điện Biên">Điện Biên</option>
+                        <option value="Đồng Nai">Đồng Nai</option>
+                        <option value="Đồng Tháp">Đồng Tháp</option>
+                        <option value="Gia Lai">Gia Lai</option>
+                        <option value="Hà Giang">Hà Giang</option>
+                        <option value="Hà Nam">Hà Nam</option>
+                        <option value="Hà Tĩnh">Hà Tĩnh</option>
+                        <option value="Hải Dương">Hải Dương</option>
+                        <option value="Hậu Giang">Hậu Giang</option>
+                        <option value="Hòa Bình">Hòa Bình</option>
+                        <option value="Hưng Yên">Hưng Yên</option>
+                        <option value="Khánh Hòa">Khánh Hòa</option>
+                        <option value="Kiên Giang">Kiên Giang</option>
+                        <option value="Kon Tum">Kon Tum</option>
+                        <option value="Lai Châu">Lai Châu</option>
+                        <option value="Lâm Đồng">Lâm Đồng</option>
+                        <option value="Lạng Sơn">Lạng Sơn</option>
+                        <option value="Lào Cai">Lào Cai</option>
+                        <option value="Long An">Long An</option>
+                        <option value="Nam Định">Nam Định</option>
+                        <option value="Nghệ An">Nghệ An</option>
+                        <option value="Ninh Bình">Ninh Bình</option>
+                        <option value="Ninh Thuận">Ninh Thuận</option>
+                        <option value="Phú Thọ">Phú Thọ</option>
+                        <option value="Quảng Bình">Quảng Bình</option>
+                        <option value="Quảng Nam">Quảng Nam</option>
+                        <option value="Quảng Ngãi">Quảng Ngãi</option>
+                        <option value="Quảng Ninh">Quảng Ninh</option>
+                        <option value="Quảng Trị">Quảng Trị</option>
+                        <option value="Sóc Trăng">Sóc Trăng</option>
+                        <option value="Sơn La">Sơn La</option>
+                        <option value="Tây Ninh">Tây Ninh</option>
+                        <option value="Thái Bình">Thái Bình</option>
+                        <option value="Thái Nguyên">Thái Nguyên</option>
+                        <option value="Thanh Hóa">Thanh Hóa</option>
+                        <option value="Thừa Thiên Huế">Thừa Thiên Huế</option>
+                        <option value="Tiền Giang">Tiền Giang</option>
+                        <option value="Trà Vinh">Trà Vinh</option>
+                        <option value="Tuyên Quang">Tuyên Quang</option>
+                        <option value="Vĩnh Long">Vĩnh Long</option>
+                        <option value="Vĩnh Phúc">Vĩnh Phúc</option>
+                        <option value="Yên Bái">Yên Bái</option>
+                        <option value="Phú Yên">Phú Yên</option>
+                    </select>
+
+                    <!-- Trường và Lớp -->
+                    <input type="text" id="registerSchool" placeholder="Nhập trường (VD: THPT Nguyễn Thiện Thuật)" required />
+                    <input type="text" id="registerClass" placeholder="Nhập lớp (VD: 10A1)" required />
+
                     <button id="registerBtn">Register</button>
-                    <div id="registerError" style="color: red;"></div>
                     <button class="toggle-btn" id="showLogin">Back to Login</button>
                 </div>
             </div>
@@ -299,118 +381,127 @@
     </main>
 
     <script>
+        // Toggle login/register
         const loginForm = document.getElementById('loginForm');
         const registerForm = document.getElementById('registerForm');
-        const showRegisterBtn = document.getElementById('showRegister');
-        const showLoginBtn = document.getElementById('showLogin');
-
-        showRegisterBtn.addEventListener('click', (e) => {
+        document.getElementById('showRegister').addEventListener('click', e => {
             e.preventDefault();
             loginForm.classList.remove('active');
             registerForm.classList.add('active');
         });
-        const registerBtn = document.getElementById('registerBtn');
-
-registerBtn.addEventListener('click', async (e) => {
-  e.preventDefault();
-
-  const username = document.getElementById('regUsername').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const password = document.getElementById('regPassword').value.trim();
-  const confirm = document.getElementById('regConfirm').value.trim();
-  const role = document.getElementById('regRole').value;
-  const errorBox = document.getElementById('registerError');
-
-  if (!username || !email || !password || !confirm || !role) {
-    errorBox.innerText = 'Vui lòng điền đầy đủ thông tin.';
-    return;
-  }
-
-  if (password !== confirm) {
-    errorBox.innerText = 'Mật khẩu không khớp.';
-    return;
-  }
-
-  const res = await fetch('/register', {
-    method: 'POST',
-    body: new URLSearchParams({ username, email, password, role }),
-    credentials: 'include'
-  });
-
-  const msg = await res.text();
-  if (res.ok) {
-    alert('🎉 Đăng ký thành công, bạn có thể đăng nhập!');
-    // Chuyển sang form đăng nhập
-    document.getElementById('registerForm').classList.remove('active');
-    document.getElementById('loginForm').classList.add('active');
-  } else {
-    errorBox.innerText = msg;
-  }
-});
-
-registerBtn.addEventListener('click', async (e) => {
-  e.preventDefault();
-
-  const username = document.getElementById('regUsername').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const password = document.getElementById('regPassword').value.trim();
-  const confirm = document.getElementById('regConfirm').value.trim();
-  const errorBox = document.getElementById('registerError');
-
-  if (!username || !email || !password || !confirm) {
-    errorBox.innerText = 'Vui lòng điền đầy đủ thông tin.';
-    return;
-  }
-
-  if (password !== confirm) {
-    errorBox.innerText = 'Mật khẩu không khớp.';
-    return;
-  }
-
-  const res = await fetch('/register', {
-    method: 'POST',
-    body: new URLSearchParams({ username, email, password }),
-    credentials: 'include'
-  });
-
-  const msg = await res.text();
-  if (res.ok) {
-    alert('🎉 Đăng ký thành công, bạn có thể đăng nhập!');
-    // Chuyển sang form đăng nhập
-    document.getElementById('registerForm').classList.remove('active');
-    document.getElementById('loginForm').classList.add('active');
-  } else {
-    errorBox.innerText = msg;
-  }
-});
-
-        showLoginBtn.addEventListener('click', (e) => {
+        document.getElementById('showLogin').addEventListener('click', e => {
             e.preventDefault();
             registerForm.classList.remove('active');
             loginForm.classList.add('active');
         });
-        const loginBtn = document.getElementById('loginBtn');
-loginBtn.addEventListener('click', async (e) => {
-  e.preventDefault();
 
-  const username = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value.trim();
+        // Phân phòng dựa trên trường và lớp
+        const roomMap = {
+            "THPT Nguyễn Thiện Thuật_10A1": "Phòng 301",
+            // Có thể thêm nhiều trường-lớp - phòng khác ở đây
+            "THPT ABC_11B2": "Phòng 202",
+            "THCS XYZ_9C1": "Phòng 105"
+        };
 
-  const res = await fetch('/login', {
-    method: 'POST',
-    body: new URLSearchParams({ username, password }),
-    credentials: 'include'
-  });
+        // Xử lý đăng nhập
+        loginForm.querySelector('button').addEventListener('click', async (e) => {
+    e.preventDefault();
+    const username = loginForm.querySelector('input[type=text]').value.trim();
+    const password = loginForm.querySelector('input[type=password]').value.trim();
+    const role = document.getElementById('loginRole').value;
 
-  const msg = await res.text();
-  if (res.ok) {
-    alert('✅ ' + msg);
-    window.location.href = 'index.html';
-  } else {
-    document.getElementById('loginError').innerText = msg;
-  }
+    if (!username || !password || !role) {
+        alert("Vui lòng nhập đầy đủ thông tin và chọn vai trò.");
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password, role }),
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userData', JSON.stringify({
+                username: data.username,
+                role: data.role
+            }));
+
+            // ✅ CHUYỂN THEO ROLE
+            if (data.role === 'teacher') {
+                window.location.href = 'giaovien.html';
+            } else if (data.role === 'student') {
+                window.location.href = 'index.html';
+            } else {
+                alert("Vai trò không hợp lệ.");
+            }
+        } else {
+            alert(data.message || "Đăng nhập thất bại");
+        }
+    } catch (error) {
+        console.error("Lỗi đăng nhập:", error);
+        alert("Có lỗi xảy ra khi đăng nhập");
+    }
 });
+
+        // Xử lý đăng ký
+        registerForm.querySelector('#registerBtn').addEventListener('click', async e => {
+    e.preventDefault();
+
+    const username = registerForm.querySelector('input[type=text]').value.trim();
+    const email = registerForm.querySelector('input[type=email]').value.trim();
+    const password = registerForm.querySelector('input[type=password]').value.trim();
+    const confirmPassword = registerForm.querySelectorAll('input[type=password]')[1].value.trim();
+    const role = document.getElementById('registerRole').value;
+    const province = document.getElementById('registerProvince').value;
+    const school = document.getElementById('registerSchool').value.trim();
+    const cls = document.getElementById('registerClass').value.trim();
+
+    if (!username || !email || !password || !confirmPassword || !role || !province || !school || !cls) {
+        alert("Vui lòng điền đầy đủ thông tin.");
+        return;
+    }
+    if (password !== confirmPassword) {
+        alert("Mật khẩu xác nhận không đúng.");
+        return;
+    }
+
+    // Gửi dữ liệu đăng ký lên backend
+    try {
+        const response = await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+    username,
+    email,
+    password,
+    role,
+    school,
+    class: cls
+})
+        });
+
+        const result = await response.json();
+alert(result.message);
+
+        registerForm.reset();
+        registerForm.classList.remove('active');
+        loginForm.classList.add('active');
+    } catch (error) {
+        console.error("Lỗi đăng ký:", error);
+        alert("Có lỗi xảy ra khi đăng ký");
+    }
+});
+
     </script>
+
 </body>
 
 </html>
