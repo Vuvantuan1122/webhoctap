@@ -1,4 +1,10 @@
+require('dotenv').config(); // đặt ở đầu file
 
+const mongoose = require('mongoose');
+
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('✅ Kết nối MongoDB thành công'))
+  .catch(err => console.error('❌ Lỗi kết nối MongoDB:', err));
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
