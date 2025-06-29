@@ -1,7 +1,4 @@
-const mongoose = require('mongoose');
-mongoose.connect('mongodb+srv://webadmin:tumatkhau123@cluster0.mongodb.net/webhoc?retryWrites=true&w=majority')
-  .then(() => console.log('✅ Kết nối MongoDB thành công'))
-  .catch(err => console.error('❌ Lỗi MongoDB:', err));
+
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
