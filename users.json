@@ -31,5 +31,29 @@
     "email": "giaovien1@mail.com",
     "password": "123456",
     "role": "teacher"
+  },
+  {
+    "username": "Tuantento112233",
+    "email": "tuanvuvan32312@gmail.com",
+    "password": "123123",
+    "role": "student",
+    "school": "ntt",
+    "class": "10a1"
+  },
+  {
+    "username": "VuDinhHuynh",
+    "email": "Huynhnhieutoc@gmail.com",
+    "password": "123123",
+    "role": "teacher",
+    "school": "Nguyễn Thiện Thuật",
+    "class": "10A1"
+  },
+  {
+    "username": "Huynhnhieutoc@gmail.com",
+    "email": "Huynhnhieutoc@gmail.com",
+    "password": "123123",
+    "role": "teacher",
+    "school": "Nguyễn Thiện Thuật",
+    "class": "10A1"
   }
 ]

@@ -1,31 +1,37 @@
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
-const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
+const cors = require('cors');
 
 const app = express();
 const PORT = 3000;
 
-// Tạo thư mục uploads nếu chưa có
-const uploadDir = 'uploads';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
-
-// Middleware
-app.use(express.static('public'));
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+// Session setup
 app.use(session({
-  secret: 'secret-key',
+  secret: 'your-secret-key',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 3600000 } // 1 giờ
+  cookie: { 
+    secure: false,
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000
+  }
 }));
 
-// Cấu hình multer để lưu file nộp
+// Middleware
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static('public'));
+
+
+// Multer for uploads
 const storage = multer.diskStorage({
   destination: 'uploads/',
   filename: (req, file, cb) => {
@@ -37,64 +43,135 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
-
-// Đăng ký tài khoản
-app.post('/register', (req, res) => {
-  const { username, email, password, role } = req.body;
+function readUsers() {
+  return fs.existsSync('users.json') 
+    ? JSON.parse(fs.readFileSync('users.json')) 
+    : [];
+}
+// Register
+app.post('/api/register', (req, res) => {
+  const { username, email, password, role, school, class: userClass } = req.body;
   if (!username || !email || !password || !role) {
-    return res.status(400).send('Thiếu thông tin.');
+    return res.status(400).json({ message: 'Thiếu thông tin.' });
   }
 
-  const users = fs.existsSync('users.json')
-    ? JSON.parse(fs.readFileSync('users.json'))
+  const users = fs.existsSync('users.json') 
+    ? JSON.parse(fs.readFileSync('users.json')) 
     : [];
 
   const exists = users.find(u => u.username === username);
   if (exists) {
-    return res.status(400).send('Tài khoản đã tồn tại.');
+    return res.status(400).json({ message: 'Tài khoản đã tồn tại.' });
   }
 
-  users.push({ username, email, password, role });
+  users.push({ username, email, password, role, school, class: userClass });
   fs.writeFileSync('users.json', JSON.stringify(users, null, 2));
-  res.send('Đăng ký thành công!');
+  res.json({ message: 'Đăng ký thành công!' });
 });
-
-// Đăng nhập
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  const users = fs.existsSync('users.json')
-    ? JSON.parse(fs.readFileSync('users.json'))
+// Login
+app.post('/api/login', (req, res) => {
+  const { username, password, role } = req.body;
+  const users = fs.existsSync('users.json') 
+    ? JSON.parse(fs.readFileSync('users.json')) 
     : [];
 
-  const user = users.find(u => u.username === username && u.password === password);
-  if (user) {
-    req.session.user = { username: user.username, role: user.role };
-    res.send('Đăng nhập thành công');
-  } else {
-    res.status(401).send('Sai tài khoản hoặc mật khẩu');
+  const user = users.find(u => u.username === username && u.password === password && u.role === role);
+  if (!user) {
+    return res.status(401).json({ message: 'Sai tài khoản hoặc mật khẩu.' });
   }
+
+  req.session.user = { username: user.username, role: user.role };
+
+  res.json({
+    message: 'Đăng nhập thành công',
+    username: user.username,
+    role: user.role
+  });
 });
 
-// Kiểm tra đăng nhập
+// Logout
+app.post('/api/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) return res.status(500).json({ success: false });
+    res.clearCookie('connect.sid');
+    res.json({ success: true });
+  });
+});
+
+// Kiểm tra phiên
 app.get('/me', (req, res) => {
   if (req.session.user) {
     return res.json(req.session.user);
   }
-  res.status(401).send('Chưa đăng nhập');
+  res.status(401).json({ message: 'Chưa đăng nhập' });
 });
 
-// Đăng xuất
-app.get('/logout', (req, res) => {
-  req.session.destroy();
-  res.send('Đã đăng xuất');
+// Upload bài
+app.post('/upload', upload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ message: 'Chưa có ảnh nào được gửi lên' });
+
+  const imageUrl = `/uploads/${req.file.filename}`;
+
+  const imagesFile = 'images.json';
+  const images = fs.existsSync(imagesFile) ? JSON.parse(fs.readFileSync(imagesFile)) : [];
+
+  images.push({ id: Date.now(), url: imageUrl, timestamp: Date.now() });
+  app.get('/api/images', (req, res) => {
+  const images = fs.existsSync('images.json') ? JSON.parse(fs.readFileSync('images.json')) : [];
+  res.json(images);
+});
+app.delete('/api/images/:id', (req, res) => {
+  const id = Number(req.params.id);
+  let images = fs.existsSync('images.json') ? JSON.parse(fs.readFileSync('images.json')) : [];
+
+  const image = images.find(img => img.id === id);
+  if (!image) return res.status(404).json({ message: 'Không tìm thấy ảnh' });
+
+  const filepath = path.join(__dirname, image.url);
+  fs.unlink(filepath, (err) => {
+    if (err) console.error("Xoá file lỗi:", err);
+  });
+
+  images = images.filter(img => img.id !== id);
+  fs.writeFileSync('images.json', JSON.stringify(images, null, 2));
+  res.json({ message: 'Đã xoá ảnh' });
 });
 
-// Upload bài tập
-app.post('/upload', upload.single('homework'), (req, res) => {
-  res.send('📝 Đã nhận bài nộp thành công!');
-});
 
-// Khởi chạy server
+  fs.writeFileSync(imagesFile, JSON.stringify(images, null, 2));
+  res.json({ message: 'Tải lên thành công', imageUrl });
+});
+app.get('/api/images', (req, res) => {
+  const images = fs.existsSync('images.json') ? JSON.parse(fs.readFileSync('images.json')) : [];
+  res.json(images);
+});
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.get("/api/students", (req, res) => {
+  const { className } = req.query;
+  const users = readUsers();
+  const students = users.filter(u => u.role === "student");
+
+  if (className) {
+    return res.json(students.filter(s => s.class === className));
+  }
+
+  res.json(students);
+});
+// Start server
 app.listen(PORT, () => {
-  console.log(`✅ Server chạy tại http://localhost:${PORT}`);
+  console.log(`✅ Server đang chạy tại http://localhost:${PORT}`);
+});
+app.delete('/api/images/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(__dirname, 'uploads', filename);
+
+  fs.unlink(filePath, (err) => {
+    if (err) return res.status(500).json({ success: false });
+
+    let images = fs.existsSync('images.json') ? JSON.parse(fs.readFileSync('images.json')) : [];
+    images = images.filter(img => !img.url.includes(filename));
+    fs.writeFileSync('images.json', JSON.stringify(images, null, 2));
+
+    res.json({ success: true });
+  });
 });
