@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const mongoose = require('mongoose');
+const User = require('./models/User');
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
@@ -11,7 +12,6 @@ const cors = require('cors');
 
 const app = express(); // ✅ Đảm bảo khai báo app trước
 
-app.use(cors()); // ✅ Sau app = express()
 
 const PORT = process.env.PORT || 3000;
 
@@ -135,22 +135,7 @@ app.post('/upload', upload.single('image'), (req, res) => {
   const images = fs.existsSync('images.json') ? JSON.parse(fs.readFileSync('images.json')) : [];
   res.json(images);
 });
-app.delete('/api/images/:id', (req, res) => {
-  const id = Number(req.params.id);
-  let images = fs.existsSync('images.json') ? JSON.parse(fs.readFileSync('images.json')) : [];
 
-  const image = images.find(img => img.id === id);
-  if (!image) return res.status(404).json({ message: 'Không tìm thấy ảnh' });
-
-  const filepath = path.join(__dirname, image.url);
-  fs.unlink(filepath, (err) => {
-    if (err) console.error("Xoá file lỗi:", err);
-  });
-
-  images = images.filter(img => img.id !== id);
-  fs.writeFileSync('images.json', JSON.stringify(images, null, 2));
-  res.json({ message: 'Đã xoá ảnh' });
-});
 
 
   fs.writeFileSync(imagesFile, JSON.stringify(images, null, 2));
@@ -174,7 +159,7 @@ app.get("/api/students", (req, res) => {
 });
 // Start server
 app.listen(PORT, () => {
-  console.log(`✅ Server đang chạy tại http://localhost:${PORT}`);
+  console.log(`✅ Server đang chạy tại cổng: ${PORT}`);
 });
 app.delete('/api/images/:filename', (req, res) => {
   const filename = req.params.filename;

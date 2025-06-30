@@ -1,15 +1,12 @@
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
-const User = require('./models/User');
+const User = require('./models/user');
 
 const users = JSON.parse(fs.readFileSync(path.join(__dirname, 'users.json')));
 
 // Kết nối MongoDB Atlas
-mongoose.connect('mongodb+srv://Vuvantuan1122:<Tuan2009>@webhoctap.x8detll.mongodb.net/webhoctap?retryWrites=true&w=majority&appName=webhoctap', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(async () => {
+mongoose.connect('mongodb+srv://tuantento2009:tuan2009@webhoctap.ts6ia7t.mongodb.net/?retryWrites=true&w=majority&appName=webhoctap').then(async () => {
   console.log('✅ Đã kết nối MongoDB');
 
   // Xoá toàn bộ dữ liệu cũ nếu cần

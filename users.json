@@ -1,20 +1,5 @@
 [
   {
-    "username": "hocsinh1",
-    "email": "abc@example.com",
-    "password": "123456"
-  },
-  {
-    "username": "nguyenvana",
-    "email": "test@gmail.com",
-    "password": "abc123"
-  },
-  {
-    "username": "tuantento",
-    "email": "tuanvuvan12@hotmail.com",
-    "password": "123456"
-  },
-  {
     "username": "tuantento1",
     "email": "tuanvuvan12@hotmail.com",
     "password": "123456",
