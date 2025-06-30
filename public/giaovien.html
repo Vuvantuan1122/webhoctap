@@ -1,25 +1,40 @@
 <!DOCTYPE html>
 <html lang="vi">
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
+document.addEventListener('DOMContentLoaded', function () {
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-    
-    // Nếu chưa đăng nhập hoặc role không khớp
-    if (!isLoggedIn || (window.location.pathname.includes('teacher') && userData.role !== 'teacher') || 
-        (window.location.pathname.includes('student') && userData.role !== 'student')) {
+    const path = window.location.pathname;
+
+    // Nếu chưa đăng nhập hoặc thiếu role
+    if (!isLoggedIn || !userData.username || !userData.role) {
+        alert('Vui lòng đăng nhập để sử dụng!');
         window.location.href = '1.html';
+        return;
     }
-    if (!userData || userData.role !== 'student') {
-    alert('Đăng nhập để sử dụng');
-    window.location.href = '1.html';
-}
-    // Hiển thị thông tin người dùng
-    if (userData.username) {
-        document.getElementById('welcome-message').textContent = `Xin chào, ${userData.username}!`;
+
+    // Nếu đường dẫn yêu cầu giáo viên mà không phải giáo viên
+    if (path.includes('teacher') && userData.role !== 'teacher') {
+        alert('Bạn không có quyền truy cập trang giáo viên!');
+        window.location.href = '1.html';
+        return;
+    }
+
+    // Nếu đường dẫn yêu cầu học sinh mà không phải học sinh
+    if (path.includes('student') && userData.role !== 'student') {
+        alert('Bạn không có quyền truy cập trang học sinh!');
+        window.location.href = '1.html';
+        return;
+    }
+
+    // Gắn thông báo chào mừng
+    const welcomeBox = document.getElementById('welcome-message');
+    if (welcomeBox && userData.username) {
+        welcomeBox.textContent = `Xin chào, ${userData.username}!`;
     }
 });
 </script>
+
 <head>
     <meta charset="UTF-8" />
     <title>Trang chính với Avatar và Menu</title>
@@ -438,7 +453,7 @@
 </head>
 
 <body>
-
+            
     <header class="header">
         <div class="logo">
             <img src="5.jpg" alt="Icon" class="logo-icon"> NT
@@ -457,7 +472,7 @@
         <a href="#">Bài Giảng</a>
     </aside>
 
-    <div id="welcome"></div>
+    <div id="welcome-message"></div>
 
     <div class="streak-box">
         🔥 Streak: <span id="streak-count">0</span> ngày
