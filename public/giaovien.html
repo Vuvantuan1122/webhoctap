@@ -1,6 +1,25 @@
 <!DOCTYPE html>
 <html lang="vi">
-
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const isLoggedIn = localStorage.getItem('isLoggedIn');
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    
+    // Nếu chưa đăng nhập hoặc role không khớp
+    if (!isLoggedIn || (window.location.pathname.includes('teacher') && userData.role !== 'teacher') || 
+        (window.location.pathname.includes('student') && userData.role !== 'student')) {
+        window.location.href = '1.html';
+    }
+    if (!userData || userData.role !== 'student') {
+    alert('Đăng nhập để sử dụng');
+    window.location.href = '1.html';
+}
+    // Hiển thị thông tin người dùng
+    if (userData.username) {
+        document.getElementById('welcome-message').textContent = `Xin chào, ${userData.username}!`;
+    }
+});
+</script>
 <head>
     <meta charset="UTF-8" />
     <title>Trang chính với Avatar và Menu</title>
