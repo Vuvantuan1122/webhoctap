@@ -1,12 +1,6 @@
-require('dotenv').config(); // Đảm bảo dòng này ở đầu file để tải biến môi trường
+require('dotenv').config();
 
 const mongoose = require('mongoose');
-
-const mongoURI = process.env.MONGODB_URI;
-
-mongoose.connect(mongoURI)
-    .then(() => console.log('Kết nối MongoDB thành công!'))
-    .catch(err => console.error('Lỗi kết nối MongoDB:', err));
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
@@ -15,9 +9,15 @@ const path = require('path');
 const multer = require('multer');
 const cors = require('cors');
 
-const app = express();
-const PORT = 3000;
+const app = express(); // ✅ Đảm bảo khai báo app trước
 
+app.use(cors()); // ✅ Sau app = express()
+
+const PORT = process.env.PORT || 3000;
+
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('✅ Kết nối MongoDB thành công!'))
+  .catch(err => console.error('❌ Lỗi kết nối MongoDB:', err));
 // Session setup
 app.use(session({
   secret: 'your-secret-key',
