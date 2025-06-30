@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const mongoose = require('mongoose');
-const User = require('./models/User');
+const User = require('./models/user');
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
