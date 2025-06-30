@@ -1,10 +1,12 @@
-require('dotenv').config(); // đặt ở đầu file
+require('dotenv').config(); // Đảm bảo dòng này ở đầu file để tải biến môi trường
 
 const mongoose = require('mongoose');
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ Kết nối MongoDB thành công'))
-  .catch(err => console.error('❌ Lỗi kết nối MongoDB:', err));
+const mongoURI = process.env.MONGODB_URI;
+
+mongoose.connect(mongoURI)
+    .then(() => console.log('Kết nối MongoDB thành công!'))
+    .catch(err => console.error('Lỗi kết nối MongoDB:', err));
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
@@ -56,44 +58,50 @@ function readUsers() {
     : [];
 }
 // Register
-app.post('/api/register', (req, res) => {
+app.post('/api/register', async (req, res) => {
   const { username, email, password, role, school, class: userClass } = req.body;
+
   if (!username || !email || !password || !role) {
     return res.status(400).json({ message: 'Thiếu thông tin.' });
   }
 
-  const users = fs.existsSync('users.json') 
-    ? JSON.parse(fs.readFileSync('users.json')) 
-    : [];
+  try {
+    const existing = await User.findOne({ username });
+    if (existing) {
+      return res.status(400).json({ message: 'Tài khoản đã tồn tại.' });
+    }
 
-  const exists = users.find(u => u.username === username);
-  if (exists) {
-    return res.status(400).json({ message: 'Tài khoản đã tồn tại.' });
+    const newUser = new User({ username, email, password, role, school, class: userClass });
+    await newUser.save();
+
+    res.json({ message: 'Đăng ký thành công!' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Lỗi máy chủ.' });
   }
-
-  users.push({ username, email, password, role, school, class: userClass });
-  fs.writeFileSync('users.json', JSON.stringify(users, null, 2));
-  res.json({ message: 'Đăng ký thành công!' });
 });
+
 // Login
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
   const { username, password, role } = req.body;
-  const users = fs.existsSync('users.json') 
-    ? JSON.parse(fs.readFileSync('users.json')) 
-    : [];
 
-  const user = users.find(u => u.username === username && u.password === password && u.role === role);
-  if (!user) {
-    return res.status(401).json({ message: 'Sai tài khoản hoặc mật khẩu.' });
+  try {
+    const user = await User.findOne({ username, password, role });
+    if (!user) {
+      return res.status(401).json({ message: 'Sai tài khoản hoặc mật khẩu.' });
+    }
+
+    req.session.user = { username: user.username, role: user.role };
+
+    res.json({
+      message: 'Đăng nhập thành công',
+      username: user.username,
+      role: user.role
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Lỗi máy chủ.' });
   }
-
-  req.session.user = { username: user.username, role: user.role };
-
-  res.json({
-    message: 'Đăng nhập thành công',
-    username: user.username,
-    role: user.role
-  });
 });
 
 // Logout
