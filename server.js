@@ -1,4 +1,5 @@
 require('dotenv').config();
+const Student = require('./models/student');
 
 const mongoose = require('mongoose');
 const User = require('./models/user');
@@ -146,17 +147,7 @@ app.get('/api/images', (req, res) => {
   res.json(images);
 });
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.get("/api/students", (req, res) => {
-  const { className } = req.query;
-  const users = readUsers();
-  const students = users.filter(u => u.role === "student");
 
-  if (className) {
-    return res.json(students.filter(s => s.class === className));
-  }
-
-  res.json(students);
-});
 // Start server
 app.listen(PORT, () => {
   console.log(`✅ Server đang chạy tại cổng: ${PORT}`);
@@ -174,4 +165,62 @@ app.delete('/api/images/:filename', (req, res) => {
 
     res.json({ success: true });
   });
+});
+app.get('/api/users', async (req, res) => {
+  const user = req.session.user;
+  if (!user || user.username !== 'Vuvantaun1122') {
+    return res.status(403).json({ message: 'Không có quyền truy cập' });
+  }
+
+  try {
+    const users = await User.find({}, '-password'); // bỏ mật khẩu
+    res.json(users);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Lỗi máy chủ' });
+  }
+});
+app.post('/api/students', async (req, res) => {
+  try {
+    const { username, fullname, class: studentClass, dob, scores } = req.body;
+    const existing = await Student.findOne({ username });
+    if (existing) return res.status(400).json({ message: 'Học sinh đã tồn tại.' });
+
+    const student = new Student({ username, fullname, class: studentClass, dob, scores });
+    await student.save();
+    res.json({ message: 'Đã thêm học sinh.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Lỗi máy chủ.' });
+  }
+});
+app.get('/api/students', async (req, res) => {
+  try {
+    const className = req.query.class;
+    const students = className
+      ? await Student.find({ class: className })
+      : await Student.find();
+
+    res.json(students);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Lỗi máy chủ.' });
+  }
+});
+app.delete('/api/students/:id', async (req, res) => {
+  try {
+    await Student.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Đã xóa học sinh.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi máy chủ.' });
+  }
+});
+app.put('/api/students/:id/scores', async (req, res) => {
+  try {
+    const { scores } = req.body;
+    await Student.findByIdAndUpdate(req.params.id, { scores });
+    res.json({ message: 'Đã cập nhật điểm.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi máy chủ.' });
+  }
 });
