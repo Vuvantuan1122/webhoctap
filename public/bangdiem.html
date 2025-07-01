@@ -1,690 +1,1212 @@
+
+
 <!DOCTYPE html>
 <html lang="vi">
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-    
-    // Nếu chưa đăng nhập hoặc role không khớp
-    if (!isLoggedIn || (window.location.pathname.includes('teacher') && userData.role !== 'teacher') || 
-        (window.location.pathname.includes('student') && userData.role !== 'student')) {
-        window.location.href = '1.html';
-    }
-    if (!userData || userData.role !== 'teacher') {
-    alert('Bạn không có quyền truy cập trang này');
-    window.location.href = 'index.html';
-}
-    // Hiển thị thông tin người dùng
-    if (userData.username) {
-        document.getElementById('welcome-message').textContent = `Xin chào, ${userData.username}!`;
-    }
-});
-</script>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giáo viên - Quản lý học sinh</title>
+    <title>Hệ thống Quản lý Học sinh | Trang Giáo viên</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+         :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --border-radius: 6px;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            background-color: #f4f7f6;
-            color: #333;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
             line-height: 1.6;
-            display: flex;
-            flex-direction: column;
+            color: #333;
+            background-color: #f5f7fa;
             min-height: 100vh;
         }
         
-        h1,
-        h2 {
-            color: #007bff;
-            text-align: center;
-            margin-bottom: 20px;
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
         }
         
-        .container {
-            
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-            margin: 20px auto;
-            width: 90%;
-            max-width: 1200px;
-            
+        .header {
+            background-color: white;
+            box-shadow: var(--box-shadow);
+            padding: 15px 0;
+            margin-bottom: 30px;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--dark-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo i {
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-info span {
+            margin-right: 15px;
+            font-weight: 500;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: var(--border-radius);
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-warning {
+            background-color: var(--warning-color);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background-color: #e67e22;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .card-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--dark-color);
         }
         
         .form-group {
             margin-bottom: 20px;
         }
         
-        .form-group label {
+        .form-label {
             display: block;
             margin-bottom: 8px;
-            font-weight: bold;
+            font-weight: 500;
             color: #555;
         }
         
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: calc(100% - 20px);
+        .form-control {
+            width: 100%;
             padding: 12px;
             border: 1px solid #ddd;
-            border-radius: 6px;
-            box-sizing: border-box;
+            border-radius: var(--border-radius);
             font-size: 16px;
-            transition: border-color 0.3s ease;
+            transition: var(--transition);
         }
         
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            border-color: #007bff;
+        .form-control:focus {
+            border-color: var(--primary-color);
             outline: none;
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
         }
         
-        .form-group textarea {
-            min-height: 120px;
+        .table-responsive {
+            overflow-x: auto;
         }
         
-        button {
-            padding: 12px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-        }
-        
-        button:hover {
-            background-color: #0056b3;
-        }
-        
-        table {
+        .table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 30px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-            border-radius: 8px;
-            overflow: hidden;
+            margin-top: 20px;
         }
         
-        th,
-        td {
-            border: 1px solid #e0e0e0;
+        .table th,
+        .table td {
             padding: 12px 15px;
             text-align: left;
+            border-bottom: 1px solid #eee;
         }
         
-        th {
-            background-color: #f0f0f0;
-            font-weight: bold;
-            color: #333;
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px 5%;
+            background: linear-gradient(to right, #2f2f2f, #f75a5a);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
         }
         
-        tbody tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        
-        tbody tr:hover {
-            background-color: #e8f0fe;
-            transition: background-color 0.3s ease;
-        }
-        
-        .delete-btn {
-            background-color: #dc3545;
-        }
-        
-        .delete-btn:hover {
-            background-color: #c82333;
-        }
-        
-        .add-multiple-header {
+        .logo {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            gap: 10px;
+            text-decoration: none;
+        }
+        
+        .logo img {
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
+        }
+        
+        .navbar {
+            display: flex;
+            gap: 25px;
+        }
+        
+        .navbar a {
+            position: relative;
+            font-size: 1rem;
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        
+        .navbar a:hover {
+            color: #ffffff;
+        }
+        
+        .navbar a::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -5px;
+            width: 0;
+            height: 2px;
+            background: #ffffff;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        
+        .navbar a:hover::after {
+            width: 100%;
+        }
+        
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+        
+        .table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge-primary {
+            background-color: #d4e6f7;
+            color: var(--primary-color);
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-muted {
+            color: #6c757d;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: var(--border-radius);
             margin-bottom: 20px;
         }
         
-        .student-name-link {
-            color: #007bff;
-            cursor: pointer;
-            text-decoration: none;
-            transition: color 0.3s ease;
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
         
-        .student-name-link:hover {
-            color: #0056b3;
-            text-decoration: underline;
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
         
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
-            left: 0;
             top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.6);
-            justify-content: center;
-            align-items: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1050;
+            overflow-y: auto;
             opacity: 0;
             transition: opacity 0.3s ease;
         }
         
         .modal.show {
-            display: flex;
+            display: block;
             opacity: 1;
         }
         
-        .modal-content {
-            background-color: #fff;
-            margin: 15% auto;
-            padding: 30px;
-            border: none;
-            border-radius: 12px;
-            width: 90%;
+        .modal-dialog {
             max-width: 900px;
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+            margin: 30px auto;
             position: relative;
-            animation: slideDown 0.4s ease-out;
         }
         
-        @keyframes slideDown {
+        .modal-content {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            animation: modalFadeIn 0.3s ease-out;
+        }
+        
+        @keyframes modalFadeIn {
             from {
-                transform: translateY(-30px);
                 opacity: 0;
+                transform: translateY(-20px);
             }
             to {
-                transform: translateY(0);
                 opacity: 1;
+                transform: translateY(0);
             }
         }
         
-        .close-button {
-            color: #aaa;
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            font-size: 30px;
-            font-weight: bold;
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
             cursor: pointer;
-            transition: color 0.3s ease;
+            color: #6c757d;
+            transition: var(--transition);
         }
         
-        .close-button:hover,
-        .close-button:focus {
-            color: #333;
-            text-decoration: none;
+        .modal-close:hover {
+            color: var(--dark-color);
         }
         
-        .score-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+        .modal-body {
+            padding: 20px;
         }
         
-        .score-table th,
-        .score-table td {
-            border: 1px solid #e0e0e0;
-            padding: 10px 12px;
-            text-align: left;
-        }
-        
-        .score-table th {
-            background-color: #f0f0f0;
-            font-weight: bold;
-            color: #333;
-        }
-        
-        .score-table tbody tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        
-        .score-table tbody tr:hover {
-            background-color: #e8f0fe;
-            transition: background-color 0.3s ease;
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #eee;
+            text-align: right;
         }
         
         .score-input {
             width: 70px;
             padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-size: 15px;
-            transition: border-color 0.3s ease;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            text-align: center;
         }
         
         .score-input:focus {
-            border-color: #007bff;
+            border-color: var(--primary-color);
             outline: none;
-            box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, .25);
-        }
-        
-        .modal-footer {
-            margin-top: 30px;
-            text-align: right;
-        }
-        
-        .modal-footer button {
-            margin-left: 10px;
         }
         
         .action-buttons {
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
         
-        .edit-btn {
-            background-color: #28a745;
+        .student-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
         }
         
-        .edit-btn:hover {
-            background-color: #218838;
+        .student-link:hover {
+            text-decoration: underline;
+            color: var(--secondary-color);
+        }
+        
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
         
         .no-data {
+            padding: 30px;
             text-align: center;
-            padding: 20px;
             color: #6c757d;
-            font-style: italic;
+        }
+        
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            color: var(--dark-color);
+            font-weight: 600;
+        }
+        
+        .student-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .user-info {
+                margin-top: 15px;
+            }
+            .filters {
+                flex-direction: column;
+            }
+            .action-buttons {
+                flex-direction: column;
+                gap: 5px;
+            }
+            .btn {
+                width: 100%;
+            }
+        }
+        
+        main.container {
+            padding-top: 90px;
         }
     </style>
 </head>
 
 <body>
-    <h1>Quản lý học sinh</h1>
+    <header class="header">
+        <a href="trang chu giao vien.html" class="logo">
+            <img src="5.jpg" alt="Logo NT">
+            <span>NT</span>
+        </a>
 
-    <div class="container">
-        <div class="add-multiple-header">
-            <h2>Thêm học sinh mới</h2>
-            <button type="button" onclick="addRowForNewStudent()">Thêm dòng</button>
+        <nav class="navbar">
+            <a href="#"><i class="fas fa-home"></i> Trang chủ</a>
+            <a href="#"><i class="fas fa-tools"></i> Tiện ích</a>
+            <a href="#"><i class="fas fa-envelope"></i> Liên hệ</a>
+        </nav>
+    </header>
+
+
+    <main class="container">
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-user-plus"></i> Thêm học sinh mới
+                </h2>
+                <button type="button" class="btn btn-primary" id="addRowBtn">
+                    <i class="fas fa-plus"></i> Thêm dòng
+                </button>
+            </div>
+            <form id="addStudentForm">
+                <div class="table-responsive">
+                    <table class="table" id="newStudentsTable">
+                        <thead>
+                            <tr>
+                                <th>Tên đăng nhập</th>
+                                <th>Họ và tên</th>
+                                <th>Lớp</th>
+                                <th>Ngày sinh</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <input type="text" class="form-control" name="username[]" placeholder="nguyen.van.a" required>
+                                </td>
+                                <td>
+                                    <input type="text" class="form-control" name="fullname[]" placeholder="Nguyễn Văn A" required>
+                                </td>
+                                <td>
+                                    <select class="form-control" name="class[]" required>
+                                        <option value="">Chọn lớp</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="date" class="form-control" name="dob[]" required>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="removeNewStudentRow(this)">
+                                        <i class="fas fa-trash"></i> Xóa
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center" style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Lưu học sinh
+                    </button>
+                </div>
+            </form>
         </div>
-        <form id="addStudentForm">
-            <table id="newStudentsTable">
-                <thead>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-users"></i> Danh sách học sinh
+                </h2>
+            </div>
+
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="classFilter" class="form-label">Lọc theo lớp</label>
+                    <select class="form-control" id="classFilter" onchange="loadStudents()">
+                        <option value="">Tất cả lớp</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="searchInput" class="form-label">Tìm kiếm</label>
+                    <input type="text" class="form-control" id="searchInput" placeholder="Nhập tên, username..." oninput="loadStudents()">
+                </div>
+                <div class="filter-group">
+                    <label for="newClassInput" class="form-label">Thêm lớp mới</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" class="form-control" id="newClassInput" placeholder="Ví dụ: 10A1">
+                        <button type="button" class="btn btn-primary" onclick="addNewClass()">
+                            <i class="fas fa-plus"></i> Thêm
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table" id="studentsDataTable">
+                    <thead>
+                        <tr>
+                            <th>Học sinh</th>
+                            <th>Lớp</th>
+                            <th>Ngày sinh</th>
+                            <th>Trạng thái</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" class="no-data">
+                                <div class="loading"></div> Đang tải dữ liệu...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div id="scoreModal" class="modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    
+                    <h3 class="modal-title" id="scoreModalTitle">
+                        <i class="fas fa-chart-line"></i> Bảng điểm học sinh
+                    </h3>
+                    <button type="button" class="modal-close" onclick="closeScoreModal()">
+                        &times;
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="student-info" style="margin-bottom: 20px;">
+                        <div class="avatar" id="studentAvatar">HS</div>
+                        <div>
+                            <h4 id="studentName">Nguyễn Văn A</h4>
+                            <div>
+                                <span class="badge badge-primary" id="studentClass">10A1</span>
+                                <span class="text-muted" id="studentDob">Ngày sinh: 01/01/2006</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table" id="studentScoreTable">
+                            <thead>
+                                <tr>
+                                    <th>Môn học</th>
+                                    <th>15p L1</th>
+                                    <th>15p L2</th>
+                                    <th>45p</th>
+                                    <th>HK I</th>
+                                    <th>HK II</th>
+                                    <th>TB</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Thêm lựa chọn hạnh kiểm -->
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label for="conductSelect" class="form-label">Hạnh kiểm</label>
+                        <select id="conductSelect" class="form-control">
+            <option value="">-- Chọn hạnh kiểm --</option>
+            <option value="Tốt">Tốt</option>
+            <option value="Khá">Khá</option>
+            <option value="Trung bình">Trung bình</option>
+            <option value="Yếu">Yếu</option>
+        </select>
+                    </div>
+
+                    <!-- Thêm lời phê -->
+                    <div class="form-group">
+                        <label for="commentText" class="form-label">Lời phê</label>
+                        <textarea id="commentText" class="form-control" rows="3" placeholder="Nhập lời phê của giáo viên..."></textarea>
+                    </div>
+                </div>
+<div class="modal-footer">
+    <button class="btn btn-success" onclick="scoreManager.saveStudentScores()">
+        <i class="fas fa-save"></i> Lưu điểm
+    </button>
+</div>
+
+                
+<script>
+                    // System Configuration
+                    const config = {
+                        subjects: ["Toán", "Ngữ Văn", "Vật Lý", "Hóa Học", "Sinh Học", "Lịch Sử", "Địa Lí", "GDQP", "Tiếng Anh", "Tin Học", "Thể Dục", "GDĐP"],
+                        defaultClasses: []
+                    };
+
+                    // Generate default classes (10A1-12A12)
+                    for (let grade = 10; grade <= 12; grade++) {
+                        for (let c = 1; c <= 12; c++) {
+                            config.defaultClasses.push(`${grade}A${c}`);
+                        }
+                    }
+
+                    // State Management
+                    const state = {
+                        currentStudent: null,
+                        students: [],
+                        classes: new Set(config.defaultClasses)
+                    };
+
+                    // DOM Elements
+                    const elements = {
+                        welcomeMessage: document.getElementById('welcome-message'),
+                        addStudentForm: document.getElementById('addStudentForm'),
+                        newStudentsTable: document.getElementById('newStudentsTable'),
+                        studentsDataTable: document.getElementById('studentsDataTable'),
+                        classFilter: document.getElementById('classFilter'),
+                        searchInput: document.getElementById('searchInput'),
+                        newClassInput: document.getElementById('newClassInput'),
+                        scoreModal: document.getElementById('scoreModal'),
+                        scoreModalTitle: document.getElementById('scoreModalTitle'),
+                        studentScoreTable: document.getElementById('studentScoreTable'),
+                        studentAvatar: document.getElementById('studentAvatar'),
+                        studentName: document.getElementById('studentName'),
+                        studentClass: document.getElementById('studentClass'),
+                        studentDob: document.getElementById('studentDob'),
+                        addRowBtn: document.getElementById('addRowBtn')
+                    };
+
+                    // Utility Functions
+                    const utils = {
+                        formatDate: (dateStr) => {
+                            if (!dateStr) return '';
+                            const date = new Date(dateStr);
+                            return date.toLocaleDateString('vi-VN');
+                        },
+
+                        getInitials: (name) => {
+                            return name.split(' ')
+                                .filter((word, index, arr) => index === 0 || index === arr.length - 1)
+                                .map(word => word[0])
+                                .join('')
+                                .toUpperCase();
+                        },
+
+                        calculateAverage: (scores) => {
+                            const hk1 = parseFloat(scores.hki);
+                            const hk2 = parseFloat(scores.hkii);
+
+                            if (isNaN(hk1) || isNaN(hk2)) return '';
+
+                            return ((hk1 + hk2 * 2) / 3).toFixed(1);
+                        },
+
+                        generateId: () => {
+                            return state.students.length > 0 ?
+                                Math.max(...state.students.map(s => s.id)) + 1 :
+                                1;
+                        },
+
+                        showAlert: (message, type = 'success') => {
+                            const alert = document.createElement('div');
+                            alert.className = `alert alert-${type}`;
+                            alert.innerHTML = `
+                    <span>${message}</span>
+                    <button style="float:right;background:none;border:none;cursor:pointer;" 
+                            onclick="this.parentElement.remove()">
+                        &times;
+                    </button>
+                `;
+
+                            document.querySelector('.container').prepend(alert);
+                            setTimeout(() => alert.remove(), 5000);
+                        }
+                    };
+
+                    // Class Management
+                    const classManager = {
+                        updateClassDropdowns: () => {
+                            const options = Array.from(state.classes)
+                                .sort()
+                                .map(c => `<option value="${c}">${c}</option>`)
+                                .join('');
+
+                            document.querySelectorAll('select[name="class[]"]').forEach(select => {
+                                select.innerHTML = `<option value="">Chọn lớp</option>${options}`;
+                            });
+
+                            if (elements.classFilter) {
+                                elements.classFilter.innerHTML = `<option value="">Tất cả lớp</option>${options}`;
+                            }
+                        },
+
+                        addNewClass: () => {
+                            const className = elements.newClassInput.value.trim();
+
+                            if (!className) {
+                                utils.showAlert('Vui lòng nhập tên lớp', 'danger');
+                                return;
+                            }
+
+                            if (state.classes.has(className)) {
+                                utils.showAlert('Lớp này đã tồn tại', 'danger');
+                                return;
+                            }
+
+                            state.classes.add(className);
+                            console.log("✅ Danh sách lớp học:", Array.from(state.classes));
+    classManager.updateClassDropdowns();
+                            
+                            elements.newClassInput.value = '';
+                            utils.showAlert(`Đã thêm lớp ${className} thành công`);
+                        }
+                    };
+
+                    // Student Management
+                    const studentManager = {
+                        loadStudents: () => {
+                            const classFilter = elements.classFilter.value;
+                            const search = elements.searchInput.value.toLowerCase();
+
+                            const filtered = state.students.filter(s =>
+                                (!classFilter || s.class === classFilter) &&
+                                (s.fullname.toLowerCase().includes(search) ||
+                                    s.username.toLowerCase().includes(search))
+                            );
+
+                            const tbody = elements.studentsDataTable.querySelector('tbody');
+
+                            if (filtered.length === 0) {
+                                tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="no-data">
+                                <i class="fas fa-info-circle"></i> Không tìm thấy học sinh nào
+                            </td>
+                        </tr>
+                    `;
+                                return;
+                            }
+
+                            tbody.innerHTML = '';
+                            filtered.forEach(student => {
+                                const row = tbody.insertRow();
+
+                                // Student Info Cell
+                                const studentCell = row.insertCell();
+                                studentCell.innerHTML = `
+                        <div class="student-info">
+                            <div class="avatar">${utils.getInitials(student.fullname)}</div>
+                            <div>
+                                <a href="#" class="student-link" onclick="event.preventDefault();scoreManager.showStudentScores(${student.id})">
+                                    ${student.fullname}
+                                </a>
+                                <div class="text-muted" style="font-size:13px;">
+                                    @${student.username}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                                // Class Cell
+                                const classCell = row.insertCell();
+                                classCell.innerHTML = `<span class="badge badge-primary">${student.class}</span>`;
+
+                                // DOB Cell
+                                const dobCell = row.insertCell();
+                                dobCell.textContent = utils.formatDate(student.dob);
+
+                                // Status Cell
+                                const statusCell = row.insertCell();
+                                const hasScores = config.subjects.some(sub =>
+                                    student.scores[sub].hki !== null ||
+                                    student.scores[sub].hkii !== null
+                                );
+                                statusCell.innerHTML = hasScores ?
+                                    '<span style="color:var(--success-color);"><i class="fas fa-check-circle"></i> Đã nhập điểm</span>' :
+                                    '<span class="text-muted"><i class="fas fa-clock"></i> Chưa nhập điểm</span>';
+
+                                // Actions Cell
+                                const actionsCell = row.insertCell();
+                                actionsCell.className = "action-buttons";
+                                actionsCell.innerHTML = `
+                        <button class="btn btn-primary btn-sm" 
+                                onclick="scoreManager.showStudentScores(${student.id})">
+                            <i class="fas fa-edit"></i> Điểm
+                        </button>
+                        <button class="btn btn-danger btn-sm" 
+                                onclick="studentManager.deleteStudent(${student.id})">
+                            <i class="fas fa-trash"></i> Xóa
+                        </button>
+                    `;
+                            });
+                        },
+
+                        addNewStudents: () => {
+                            const usernames = document.querySelectorAll('input[name="username[]"]');
+                            const fullnames = document.querySelectorAll('input[name="fullname[]"]');
+                            const classes = document.querySelectorAll('select[name="class[]"]');
+                            const dobs = document.querySelectorAll('input[name="dob[]"]');
+
+                            const newStudents = [];
+                            const errors = [];
+
+                            for (let i = 0; i < usernames.length; i++) {
+                                const username = usernames[i].value.trim();
+                                const fullname = fullnames[i].value.trim();
+                                const studentClass = classes[i].value;
+                                const dob = dobs[i].value;
+
+                                // Validation
+                                if (!username || !fullname || !studentClass || !dob) {
+                                    errors.push(`Dòng ${i+1}: Vui lòng nhập đầy đủ thông tin`);
+                                    continue;
+                                }
+
+                                if (state.students.some(s => s.username === username)) {
+                                    errors.push(`Dòng ${i+1}: Username ${username} đã tồn tại`);
+                                    continue;
+                                }
+
+                                newStudents.push({
+                                    id: utils.generateId(),
+                                    username,
+                                    fullname,
+                                    class: studentClass,
+                                    dob,
+                                    scores: studentManager.createDefaultScores()
+                                });
+                            }
+
+                            if (errors.length > 0) {
+                                utils.showAlert(errors.join('<br>'), 'danger');
+                                return;
+                            }
+
+                            if (newStudents.length === 0) {
+                                utils.showAlert('Không có học sinh nào để thêm', 'danger');
+                                return;
+                            }
+
+                            Promise.all(newStudents.map(student =>
+  fetch('/api/students', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(student)
+  })
+)).then(() => {
+  alert(`Đã thêm ${newStudents.length} học sinh.`);
+  resetAddStudentForm();
+  fetch("/api/students")
+    .then(res => res.json())
+    .then(data => {
+      state.students = data;
+      state.classes = new Set();
+      data.forEach(s => s.class && state.classes.add(s.class));
+      updateAllClassDropdowns();
+      loadStudents();
+    });
+});
+                            studentManager.resetAddStudentForm();
+                            studentManager.loadStudents();
+                        },
+
+                        deleteStudent: (id) => {
+                            if (!confirm('Bạn có chắc chắn muốn xóa học sinh này?')) return;
+
+                            state.students = state.students.filter(s => s.id !== id);
+                            
+                            utils.showAlert('Đã xóa học sinh thành công');
+                            studentManager.loadStudents();
+                        },
+
+                        createDefaultScores: () => {
+                            const scores = {};
+                            config.subjects.forEach(sub => {
+                                scores[sub] = {
+                                    p15_1: null,
+                                    p15_2: null,
+                                    p45_1: null,
+                                    hki: null,
+                                    hkii: null
+                                };
+                            });
+                            return scores;
+                        },
+
+                        resetAddStudentForm: () => {
+                            const tbody = elements.newStudentsTable.querySelector('tbody');
+                            tbody.innerHTML = `
                     <tr>
-                        <th>Tên đăng nhập</th>
-                        <th>Họ và tên</th>
-                        <th>Lớp</th>
-                        <th>Ngày sinh</th>
-                        <th>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><input type="text" name="username[]" placeholder="nguyen.van.a" required></td>
-                        <td><input type="text" name="fullname[]" placeholder="Nguyễn Văn A" required></td>
+                        <td><input type="text" class="form-control" name="username[]" required></td>
+                        <td><input type="text" class="form-control" name="fullname[]" required></td>
                         <td>
-                            <select name="class[]" required>
+                            <select class="form-control" name="class[]" required>
                                 <option value="">Chọn lớp</option>
                             </select>
                         </td>
-                        <td><input type="date" name="dob[]" required></td>
-                        <td><button type="button" class="delete-btn" onclick="removeNewStudentRow(this)">Xóa</button></td>
+                        <td><input type="date" class="form-control" name="dob[]" required></td>
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm" 
+                                    onclick="removeNewStudentRow(this)">
+                                <i class="fas fa-trash"></i> Xóa
+                            </button>
+                        </td>
                     </tr>
-                </tbody>
-            </table>
-            <div style="text-align: center; margin-top: 20px;">
-                <button type="submit">Thêm học sinh</button>
-            </div>
-        </form>
-    </div>
+                `;
+                            console.log("✅ Danh sách lớp học:", Array.from(state.classes));
+    classManager.updateClassDropdowns();
+                        },
 
-    <div class="container">
-        <h2>Danh sách học sinh</h2>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <div>
-                <label for="classFilter">Lọc theo lớp: </label>
-                <select id="classFilter" onchange="loadStudents()">
-                    <option value="">Tất cả lớp</option>
-                </select>
-            </div>
-            <div>
-                <label for="searchInput">Tìm kiếm: </label>
-                <input type="text" id="searchInput" placeholder="Nhập tên hoặc username..." oninput="loadStudents()">
-            </div>
-        </div>
-<div style="margin-bottom: 20px;">
-    <label for="newClassInput"><strong>Thêm lớp mới:</strong></label>
-    <input type="text" id="newClassInput" placeholder="Ví dụ: 10A14" />
-    <button type="button" onclick="addNewClass()">Thêm lớp</button>
-</div>
-        <table id="studentsDataTable">
-            <thead>
-                <tr>
-                    <th>Username</th>
-                    <th>Họ và tên</th>
-                    <th>Lớp</th>
-                    <th>Ngày sinh</th>
-                    <th>Hành động</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td colspan="5" class="no-data">Đang tải dữ liệu...</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+                        addRowForNewStudent: () => {
+                            const tbody = elements.newStudentsTable.querySelector('tbody');
+                            const row = tbody.insertRow();
+                            row.innerHTML = `
+                    <td><input type="text" class="form-control" name="username[]" required></td>
+                    <td><input type="text" class="form-control" name="fullname[]" required></td>
+                    <td>
+                        <select class="form-control" name="class[]" required>
+                            <option value="">Chọn lớp</option>
+                        </select>
+                    </td>
+                    <td><input type="date" class="form-control" name="dob[]" required></td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm" 
+                                onclick="removeNewStudentRow(this)">
+                            <i class="fas fa-trash"></i> Xóa
+                        </button>
+                    </td>
+                `;
+                            console.log("✅ Danh sách lớp học:", Array.from(state.classes));
+    classManager.updateClassDropdowns();
+                        }
+                    };
 
-    <div id="scoreModal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" onclick="closeScoreModal()">&times;</span>
-            <h2 id="scoreModalTitle">Bảng điểm của học sinh: </h2>
-            <table class="score-table" id="studentScoreTable">
-                <thead>
-                    <tr>
-                        <th>Môn học</th>
-                        <th>Điểm 15p (Lần 1)</th>
-                        <th>Điểm 15p (Lần 2)</th>
-                        <th>Điểm 45p</th>
-                        <th>Điểm học kỳ I</th>
-                        <th>Điểm học kỳ II</th>
-                        <th>Điểm trung bình</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-            <div class="modal-footer">
-                <button type="button" onclick="closeScoreModal()">Hủy</button>
-                <button type="button" onclick="saveStudentScores()">Lưu điểm</button>
-            </div>
-        </div>
-    </div>
+                    // Score Management
+                    const scoreManager = {
+                        showStudentScores: (studentId) => {
+                            const student = state.students.find(s => s.id === studentId);
+                            if (!student) return;
 
-    <script>
-let allClasses = new Set();
-let currentStudentBeingEdited = null;
-const subjects = ["Toán", "Ngữ Văn", "Vật Lý", "Hóa Học", "Sinh Học", "Lịch Sử", "Địa Lí", "GDCD", "Tiếng Anh", "Tin Học", "Thể Dục"];
+                            state.currentStudent = student;
 
-// Cập nhật tất cả dropdown lớp
-function updateAllClassDropdowns() {
-    const options = generateClassOptions();
-    document.querySelectorAll('select[name="class[]"]').forEach(select => {
-        select.innerHTML = `<option value="">Chọn lớp</option>${options}`;
-    });
-    const filter = document.getElementById('classFilter');
-    if (filter) {
-        filter.innerHTML = `<option value="">Tất cả lớp</option>${options}`;
-    }
-}
+                            // Update modal header
+                            elements.studentAvatar.textContent = utils.getInitials(student.fullname);
+                            elements.studentName.textContent = student.fullname;
+                            elements.studentClass.textContent = student.class;
+                            elements.studentDob.textContent = `Ngày sinh: ${utils.formatDate(student.dob)}`;
 
-// Tạo HTML <option>
-function generateClassOptions() {
-    return Array.from(allClasses).sort().map(c => `<option value="${c}">${c}</option>`).join('');
-}
+                            // Populate scores table
+                            const tbody = elements.studentScoreTable.querySelector('tbody');
+                            tbody.innerHTML = '';
 
-// Khởi tạo lớp mặc định
-function initClassOptions() {
-    const defaultClasses = [];
-    for (let i = 1; i <= 13; i++) defaultClasses.push(`10A${i}`, `11A${i}`, `12A${i}`);
-    allClasses = new Set(defaultClasses);
-    updateAllClassDropdowns();
-}
+                            config.subjects.forEach(subject => {
+                                const score = student.scores[subject] || {};
+                                const row = tbody.insertRow();
 
-// Lưu / tải học sinh từ localStorage
-function saveStudentsToStorage() {
-    localStorage.setItem("students", JSON.stringify(students));
-}
-function loadStudentsFromStorage() {
-    const data = localStorage.getItem("students");
-    if (data) return JSON.parse(data);
-    return [];
-}
+                                // Subject name
+                                row.insertCell().textContent = subject;
 
-// Hiển thị bảng điểm học sinh
-function showStudentScores(student) {
-    currentStudentBeingEdited = student;
-    document.getElementById("scoreModalTitle").textContent =
-        `Bảng điểm của học sinh: ${student.fullname} (${student.class})`;
+                                // Score inputs
+                                ['p15_1', 'p15_2', 'p45_1', 'hki', 'hkii'].forEach(field => {
+                                    const cell = row.insertCell();
+                                    const input = document.createElement('input');
+                                    input.className = 'score-input';
+                                    input.type = 'number';
+                                    input.min = 0;
+                                    input.max = 10;
+                                    input.step = 0.1;
+                                    input.dataset.subject = subject;
+                                    input.dataset.field = field;
+                                    input.value = score[field] !== null ? score[field] : '';
 
-    const tbody = document.querySelector("#studentScoreTable tbody");
-    tbody.innerHTML = '';
+                                    input.addEventListener('input', () => {
+                                        scoreManager.updateAverage(row);
+                                    });
 
-    subjects.forEach(subject => {
-        const score = student.scores[subject] || {};
-        const row = tbody.insertRow();
+                                    cell.appendChild(input);
+                                });
 
-        row.insertCell().textContent = subject;
+                                // Average cell
+                                const avgCell = row.insertCell();
+                                avgCell.className = 'average-cell';
+                                scoreManager.updateAverage(row);
+                            });
 
-        const createInput = (field) => {
-            const input = document.createElement("input");
-            input.className = "score-input";
-            input.type = "number";
-            input.min = 0;
-            input.max = 10;
-            input.step = 0.1;
-            input.dataset.subject = subject;
-            input.dataset.field = field;
-            input.value = score[field] ?? '';
-            return input;
-        };
+                            // Show modal
+                            elements.scoreModal.classList.add('show');
+                        },
 
-        const fields = ["p15_1", "p15_2", "p45_1", "hki", "hkii"];
-        fields.forEach(field => {
-            const td = row.insertCell();
-            const input = createInput(field);
-            input.oninput = () => updateAverage(row);
-            td.appendChild(input);
-        });
+                        updateAverage: (row) => {
+                            const hkiInput = row.querySelector('input[data-field="hki"]');
+                            const hkiiInput = row.querySelector('input[data-field="hkii"]');
 
-        const avgCell = row.insertCell();
-        avgCell.className = "average-score";
-        updateAverage(row);
-    });
+                            const hki = parseFloat(hkiInput.value);
+                            const hkii = parseFloat(hkiiInput.value);
 
-    document.getElementById("scoreModal").classList.add("show");
-}
+                            const avgCell = row.querySelector('.average-cell');
+                            avgCell.textContent = utils.calculateAverage({
+                                hki: isNaN(hki) ? null : hki,
+                                hkii: isNaN(hkii) ? null : hkii
+                            });
+                        },
 
-function updateAverage(row) {
-    const hki = parseFloat(row.querySelector('input[data-field="hki"]')?.value);
-    const hkii = parseFloat(row.querySelector('input[data-field="hkii"]')?.value);
-    const avg = (!isNaN(hki) && !isNaN(hkii)) ? ((hki + hkii * 2) / 3).toFixed(1) : '';
-    row.querySelector(".average-score").textContent = avg;
-}
+                        saveStudentScores: () => {
+                            if (!state.currentStudent) return;
 
-function saveStudentScores() {
-    if (!currentStudentBeingEdited) return;
+                            const inputs = elements.studentScoreTable.querySelectorAll('.score-input');
+                            let hasError = false;
 
-    const inputs = document.querySelectorAll("#studentScoreTable .score-input");
-    for (let input of inputs) {
-        const sub = input.dataset.subject;
-        const field = input.dataset.field;
-        const val = input.value.trim();
-        const num = parseFloat(val);
+                            for (let input of inputs) {
+                                const subject = input.dataset.subject;
+                                const field = input.dataset.field;
+                                const value = input.value.trim();
+                                const num = parseFloat(value);
 
-        if (val !== '' && (isNaN(num) || num < 0 || num > 10)) {
-            alert(`Điểm "${field}" môn ${sub} không hợp lệ.`);
-            return;
-        }
+                                if (value !== '' && (isNaN(num) || num < 0 || num > 10)) {
+                                    utils.showAlert(`Điểm ${field} môn ${subject} không hợp lệ`, 'danger');
+                                    input.focus();
+                                    hasError = true;
+                                    break;
+                                }
 
-        if (!currentStudentBeingEdited.scores[sub]) currentStudentBeingEdited.scores[sub] = {};
-        currentStudentBeingEdited.scores[sub][field] = val === '' ? null : num;
-    }
+                                if (!state.currentStudent.scores[subject]) {
+                                    state.currentStudent.scores[subject] = {};
+                                }
 
-    saveStudentsToStorage();
-    alert("Đã lưu điểm.");
-    closeScoreModal();
-}
+                                state.currentStudent.scores[subject][field] = value === '' ? null : num;
+                            }
 
-function closeScoreModal() {
-    document.getElementById("scoreModal").classList.remove("show");
-    currentStudentBeingEdited = null;
-}
+                            if (hasError) return;
 
-window.onclick = e => {
-    if (e.target.id === "scoreModal") closeScoreModal();
-};
+                            
+                            utils.showAlert('Đã lưu điểm thành công');
+                            studentManager.loadStudents();
+                            closeScoreModal();
+                        }
+                    };
 
-// === Quản lý học sinh ===
-let students = loadStudentsFromStorage();
+                    // Storage Management
+                    const storageManager = {};
 
-function loadStudents() {
-    const classFilter = document.getElementById("classFilter").value;
-    const search = document.getElementById("searchInput").value.toLowerCase();
-    const tbody = document.querySelector("#studentsDataTable tbody");
 
-    const filtered = students.filter(s =>
-        (!classFilter || s.class === classFilter) &&
-        (s.fullname.toLowerCase().includes(search) || s.username.toLowerCase().includes(search))
-    );
+                    // Event Handlers
+                    function removeNewStudentRow(btn) {
+                        const row = btn.closest('tr');
+                        const tbody = elements.newStudentsTable.querySelector('tbody');
 
-    if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="no-data">Không có dữ liệu học sinh</td></tr>`;
+                        if (tbody.rows.length > 1) {
+                            row.remove();
+                        } else {
+                            utils.showAlert('Phải có ít nhất một dòng để thêm học sinh', 'danger');
+                        }
+                    }
+
+                    function closeScoreModal() {
+                        elements.scoreModal.classList.remove('show');
+                        state.currentStudent = null;
+                    }
+
+                    function addNewClass() {
+                        classManager.addNewClass();
+                    }
+
+                    // Initialize Application
+                    document.addEventListener('DOMContentLoaded', () => {
+                        // Setup event listeners
+                        elements.addStudentForm.addEventListener('submit', (e) => {
+                            e.preventDefault();
+                            studentManager.addNewStudents();
+                        });
+
+                        elements.addRowBtn.addEventListener('click', () => {
+                            studentManager.addRowForNewStudent();
+                        });
+
+                        // Load initial data
+                        
+                    });
+
+                    // Make functions available globally
+                    window.removeNewStudentRow = removeNewStudentRow;
+                    window.closeScoreModal = closeScoreModal;
+                    window.addNewClass = addNewClass;
+                    window.studentManager = studentManager;
+                    window.scoreManager = scoreManager;
+                </script>
+</body>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    fetch("/api/students")
+      .then(res => res.json())
+      .then(data => {
+    if (!Array.isArray(data)) {
+        console.error("❌ Server trả về không phải mảng:", data);
+        alert("Không tải được danh sách học sinh từ server.");
         return;
     }
 
-    tbody.innerHTML = '';
-    filtered.forEach(student => {
-        const row = tbody.insertRow();
-        const unameCell = row.insertCell();
-        const unameLink = document.createElement("span");
-        unameLink.className = "student-name-link";
-        unameLink.textContent = student.username;
-        unameLink.onclick = () => showStudentScores(student);
-        unameCell.appendChild(unameLink);
-
-        row.insertCell().textContent = student.fullname;
-        row.insertCell().textContent = student.class;
-        row.insertCell().textContent = formatDate(student.dob);
-
-        const actions = row.insertCell();
-        actions.className = "action-buttons";
-
-        const viewBtn = document.createElement("button");
-        viewBtn.textContent = "Xem điểm";
-        viewBtn.className = "edit-btn";
-        viewBtn.onclick = () => showStudentScores(student);
-        actions.appendChild(viewBtn);
-
-        const delBtn = document.createElement("button");
-        delBtn.textContent = "Xóa";
-        delBtn.className = "delete-btn";
-        delBtn.onclick = () => {
-            if (confirm("Xóa học sinh này?")) {
-                students = students.filter(s => s.id !== student.id);
-                saveStudentsToStorage();
-                loadStudents();
-            }
-        };
-        actions.appendChild(delBtn);
+    state.students = data;
+    data.forEach(s => {
+        if (s.class) state.classes.add(s.class);
     });
-}
+    classManager.updateClassDropdowns();
+    studentManager.loadStudents();
+})
 
-function formatDate(dateStr) {
-    if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('vi-VN');
-}
-
-function addRowForNewStudent() {
-    const tbody = document.querySelector("#newStudentsTable tbody");
-    const row = tbody.insertRow();
-    row.innerHTML = `
-        <td><input type="text" name="username[]" required></td>
-        <td><input type="text" name="fullname[]" required></td>
-        <td><select name="class[]" required><option value="">Chọn lớp</option>${generateClassOptions()}</select></td>
-        <td><input type="date" name="dob[]" required></td>
-        <td><button type="button" class="delete-btn" onclick="removeNewStudentRow(this)">Xóa</button></td>
-    `;
-}
-
-function removeNewStudentRow(btn) {
-    const row = btn.closest("tr");
-    const tbody = document.querySelector("#newStudentsTable tbody");
-    if (tbody.rows.length > 1) row.remove();
-    else alert("Phải có ít nhất một dòng.");
-}
-
-function setupFormSubmit() {
-    document.getElementById("addStudentForm").addEventListener("submit", e => {
-        e.preventDefault();
-        addNewStudents();
-    });
-}
-
-function addNewStudents() {
-    const usernames = document.querySelectorAll('input[name="username[]"]');
-    const fullnames = document.querySelectorAll('input[name="fullname[]"]');
-    const classes = document.querySelectorAll('select[name="class[]"]');
-    const dobs = document.querySelectorAll('input[name="dob[]"]');
-
-    const newStudents = [];
-    for (let i = 0; i < usernames.length; i++) {
-        const username = usernames[i].value.trim();
-        const fullname = fullnames[i].value.trim();
-        const studentClass = classes[i].value;
-        const dob = dobs[i].value;
-
-        if (!username || !fullname || !studentClass || !dob) {
-            alert("Vui lòng nhập đầy đủ thông tin.");
-            return;
-        }
-
-        if (students.some(s => s.username === username)) {
-            alert(`Username ${username} đã tồn tại.`);
-            return;
-        }
-
-        newStudents.push({
-            id: generateNewId(),
-            username, fullname, class: studentClass, dob,
-            scores: createDefaultScores()
-        });
-    }
-
-    students.push(...newStudents);
-    saveStudentsToStorage();
-    alert(`Đã thêm ${newStudents.length} học sinh.`);
-    resetAddStudentForm();
-    loadStudents();
-}
-
-function generateNewId() {
-    return students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1;
-}
-
-function createDefaultScores() {
-    const obj = {};
-    subjects.forEach(sub => {
-        obj[sub] = { p15_1: null, p15_2: null, p45_1: null, hki: null, hkii: null };
-    });
-    return obj;
-}
-
-function resetAddStudentForm() {
-    document.querySelector("#newStudentsTable tbody").innerHTML = `
-        <tr>
-            <td><input type="text" name="username[]" required></td>
-            <td><input type="text" name="fullname[]" required></td>
-            <td><select name="class[]" required><option value="">Chọn lớp</option>${generateClassOptions()}</select></td>
-            <td><input type="date" name="dob[]" required></td>
-            <td><button type="button" class="delete-btn" onclick="removeNewStudentRow(this)">Xóa</button></td>
-        </tr>
-    `;
-}
-
-// Tải khi mở trang
-document.addEventListener("DOMContentLoaded", () => {
-    initClassOptions();
-    setupFormSubmit();
-    loadStudents();
-});
+        console.log("✅ Danh sách lớp học:", Array.from(state.classes));
+        classManager.updateClassDropdowns();
+        studentManager.loadStudents();
+      });
 </script>
-
-</body>
-
 </html>
