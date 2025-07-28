@@ -7,11 +7,24 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const cors = require('cors');
+// --- CHAT ---: Thêm 2 thư viện http và socket.io
+const http = require('http');
+const { Server } = require('socket.io');
 
 const User = require('./models/user');
 const Student = require('./models/student');
 
 const app = express();
+// --- CHAT ---: Tạo server http từ app của Express
+const server = http.createServer(app);
+// --- CHAT ---: Khởi tạo socket.io
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000", // Cho phép client kết nối từ địa chỉ này
+    methods: ["GET", "POST"]
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 
 // ✅ Tạo thư mục uploads nếu chưa có
@@ -49,16 +62,15 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 // Cấu hình Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,      // 👈 lấy từ .env hoặc Dashboard
+  cloud_name: process.env.CLOUD_NAME,
   api_key: process.env.CLOUD_API_KEY,
   api_secret: process.env.CLOUD_API_SECRET
 });
 
-// Dùng Cloudinary làm nơi lưu ảnh
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: 'bai_tap_hoc_sinh', // thư mục trong Cloudinary
+    folder: 'bai_tap_hoc_sinh',
     allowed_formats: ['jpg', 'png', 'jpeg']
   }
 });
@@ -220,9 +232,35 @@ app.put('/api/students/:id/scores', async (req, res) => {
   }
 });
 
+io.on('connection', (socket) => {
+    console.log('✅ Một người dùng đã kết nối vào chat');
+
+    // Tạo một tên ẩn danh ngẫu nhiên cho người dùng
+    const anonymousName = `Người Dùng #${Math.floor(Math.random() * 1000)}`;
+
+    // Gửi thông báo cho client là họ đã vào phòng
+    socket.emit('serverMessage', `Chào mừng bạn! Tên ẩn danh của bạn là: ${anonymousName}`);
+    
+    // Gửi thông báo cho các client khác là có người mới vào
+    socket.broadcast.emit('serverMessage', `${anonymousName} đã tham gia cuộc trò chuyện.`);
+
+    // Lắng nghe sự kiện 'chatMessage' từ client
+    socket.on('chatMessage', (msg) => {
+        // Gửi tin nhắn đến tất cả mọi người (bao gồm cả người gửi)
+        io.emit('chatMessage', { user: anonymousName, message: msg });
+    });
+
+    // Khi client ngắt kết nối
+    socket.on('disconnect', () => {
+        console.log('❌ Người dùng đã ngắt kết nối');
+        io.emit('serverMessage', `${anonymousName} đã rời khỏi cuộc trò chuyện.`);
+    });
+});
+
 // =======================
 // ✅ Khởi động server
 // =======================
-app.listen(PORT, () => {
+// --- CHAT ---: Thay app.listen bằng server.listen
+server.listen(PORT, () => {
   console.log(`✅ Server đang chạy tại http://localhost:${PORT}`);
 });
