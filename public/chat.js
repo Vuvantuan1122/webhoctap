@@ -1,5 +1,5 @@
 // Kết nối tới server Socket.IO
-const socket = io("http://localhost:3000");
+const socket = io("https://webhoctap-fixq.onrender.com");
 
 
 const messages = document.getElementById('messages');
