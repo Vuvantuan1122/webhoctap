@@ -20,7 +20,7 @@ const server = http.createServer(app);
 // --- CHAT ---: Khởi tạo socket.io
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // Cho phép client kết nối từ địa chỉ này
+    origin: ["http://localhost:3000", "https://webhoctap-fixq.onrender.com"], // Thêm URL frontend của bạn
     methods: ["GET", "POST"]
   }
 });
