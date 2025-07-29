@@ -1,27 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trò Chuyện Ẩn Danh</title>
-    <style>
-        body { margin: 0; padding-bottom: 3rem; font-family: sans-serif; }
-        #messages { list-style-type: none; margin: 0; padding: 0; }
-        #messages > li { padding: 0.5rem 1rem; }
-        #messages > li:nth-child(odd) { background: #efefef; }
-        .server-message { color: gray; font-style: italic; text-align: center; }
-        #form { background: rgba(0, 0, 0, 0.1); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; }
-        #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
-        #input:focus { outline: none; }
-        #form > button { background: #333; color: white; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Trò Chuyện Ẩn Danh 💬</h1>
-    <ul id="messages"></ul>
-    <form id="form">
-        <input id="input" autocomplete="off" placeholder="Nhập tin nhắn..." />
-        <button>Gửi</button>
-    </form>
+    <div class="chat-container">
+        <header class="chat-header">
+            <h1>Trò Chuyện Ẩn Danh 💬</h1>
+        </header>
+        <main class="chat-main">
+            <ul class="message-list" id="messages">
+                </ul>
+        </main>
+        <footer class="chat-footer">
+            <input type="text" id="message-input" placeholder="Nhập tin nhắn..." autocomplete="off">
+            <button id="send-button">Gửi</button>
+        </footer>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
-    <script src="chat.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
