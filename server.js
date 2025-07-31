@@ -20,7 +20,7 @@ const server = http.createServer(app);
 // --- CHAT ---: Khởi tạo socket.io
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "https://webhoctap-fixq.onrender.com"], // Thêm URL frontend của bạn
+    origin: "http://localhost:3000", // Cho phép client kết nối từ địa chỉ này
     methods: ["GET", "POST"]
   }
 });
@@ -232,8 +232,15 @@ app.put('/api/students/:id/scores', async (req, res) => {
   }
 });
 
+// Thêm biến để đếm số người online
+let onlineUsers = 0;
+
 io.on('connection', (socket) => {
     console.log('✅ Một người dùng đã kết nối vào chat');
+
+    // Tăng số người online và gửi cập nhật
+    onlineUsers++;
+    io.emit('onlineUsers', onlineUsers);
 
     // Tạo một tên ẩn danh ngẫu nhiên cho người dùng
     const anonymousName = `Người Dùng #${Math.floor(Math.random() * 1000)}`;
@@ -253,6 +260,11 @@ io.on('connection', (socket) => {
     // Khi client ngắt kết nối
     socket.on('disconnect', () => {
         console.log('❌ Người dùng đã ngắt kết nối');
+        
+        // Giảm số người online và gửi cập nhật
+        onlineUsers--;
+        io.emit('onlineUsers', onlineUsers);
+
         io.emit('serverMessage', `${anonymousName} đã rời khỏi cuộc trò chuyện.`);
     });
 });
