@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Trò Chuyện Ẩn Danh</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -180,11 +181,73 @@
     #file-input {
       display: none;
     }
+
+    /* === MEDIA QUERIES cho điện thoại === */
+    @media screen and (max-width: 768px) {
+      .header-container {
+        flex-direction: column;
+        align-items: center;
+        padding: 10px;
+      }
+
+      .logo-section {
+        align-items: center;
+      }
+
+      .logo {
+        font-size: 1.2rem;
+        gap: 5px;
+      }
+
+      .logo img {
+        width: 25px;
+        height: 25px;
+      }
+
+      .chat-title {
+        margin-top: 5px;
+        font-size: 0.9rem;
+        padding: 3px 10px;
+        border: 1px solid white;
+      }
+      
+      .navbar {
+        display: none; /* Ẩn navbar trên điện thoại để tiết kiệm không gian */
+      }
+
+      #messages {
+        margin: 6rem auto 1rem;
+        padding: 0 10px;
+        max-width: 95%; /* Sử dụng phần trăm để phù hợp với mọi màn hình */
+      }
+
+      #messages > li {
+        padding: 0.6rem 1rem;
+        font-size: 0.95rem;
+      }
+
+      #form {
+        padding: 0.25rem;
+        gap: 0.15rem;
+      }
+
+      #input {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+      }
+
+      .icon-btn {
+        padding: 0.4rem;
+      }
+
+      .icon-btn i {
+        font-size: 18px;
+      }
+    }
   </style>
 </head>
 <body>
 
-  <!-- HEADER -->
   <header class="header">
     <div class="header-container">
       <div class="logo-section">
@@ -201,11 +264,9 @@
     </div>
   </header>
 
-  <!-- MESSAGES -->
   <ul id="messages"></ul>
   <input type="file" id="file-input">
 
-  <!-- CHAT INPUT FORM -->
   <form id="form">
     <button type="button" class="icon-btn icon-file" id="attach-file" title="Đính kèm tệp">
       <i class="fas fa-paperclip"></i>
