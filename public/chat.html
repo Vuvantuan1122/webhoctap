@@ -48,6 +48,8 @@
       display: flex;
       flex-direction: column;
       align-items: flex-start;
+      /* Căn giữa theo chiều dọc nếu có online-count */
+      justify-content: center;
     }
 
     .logo {
@@ -64,6 +66,19 @@
       width: 30px;
       height: 30px;
       object-fit: contain;
+    }
+    
+    .online-count {
+      margin-top: 5px;
+      font-size: 0.9rem;
+      color: #00ff00;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .online-count i {
+        color: #00ff00;
     }
 
     .chat-title {
@@ -204,6 +219,11 @@
         height: 25px;
       }
 
+      .online-count {
+          margin-top: 5px;
+          font-size: 0.8rem;
+      }
+
       .chat-title {
         margin-top: 5px;
         font-size: 0.9rem;
@@ -212,13 +232,13 @@
       }
       
       .navbar {
-        display: none; /* Ẩn navbar trên điện thoại để tiết kiệm không gian */
+        display: none;
       }
 
       #messages {
         margin: 6rem auto 1rem;
         padding: 0 10px;
-        max-width: 95%; /* Sử dụng phần trăm để phù hợp với mọi màn hình */
+        max-width: 95%;
       }
 
       #messages > li {
@@ -254,8 +274,9 @@
         <a href="trang chu hoc sinh.html" class="logo">
           <img src="5.jpg" alt="Icon"> NT
         </a>
-        <div class="chat-title">CHAT ẨN DANH</div>
+        <span class="online-count"><i class="fas fa-circle"></i> <span id="online-users">0</span> đang online</span>
       </div>
+      <div class="chat-title">CHAT ẨN DANH</div>
       <nav class="navbar">
         <a href="#"><i class="fas fa-home"></i> Trang chủ</a>
         <a href="#"><i class="fas fa-tools"></i> Tiện ích</a>
@@ -299,6 +320,14 @@
     attachFileBtn.addEventListener('click', () => openFilePicker('*/*'));
     attachImageBtn.addEventListener('click', () => openFilePicker('image/*'));
     attachVideoBtn.addEventListener('click', () => openFilePicker('video/*'));
+
+    // Bắt đầu cập nhật số người online
+    const socket = io();
+    const onlineUsersElement = document.getElementById('online-users');
+
+    socket.on('onlineUsers', (count) => {
+      onlineUsersElement.textContent = count;
+    });
   </script>
 </body>
 </html>
