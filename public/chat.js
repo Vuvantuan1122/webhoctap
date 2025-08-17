@@ -1,5 +1,19 @@
-const socket = io("http://localhost:3000");
+const socket = io(window.location.origin);
+async function uploadFile(file) {
+  const formData = new FormData();
+  formData.append('file', file);
 
+  try {
+    const res = await fetch(`${window.location.origin}/chat-upload`, {
+      method: 'POST',
+      body: formData
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('Upload thất bại:', err);
+    return null;
+  }
+}
 const messages = document.getElementById('messages');
 const form = document.getElementById('form');
 const input = document.getElementById('input');
