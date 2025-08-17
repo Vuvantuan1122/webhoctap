@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const cors = require('cors');
-// --- CHAT ---: Thêm 2 thư viện http và socket.io
+// --- CHAT ---
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -15,22 +15,19 @@ const User = require('./models/user');
 const Student = require('./models/student');
 
 const app = express();
-// --- CHAT ---: Tạo server http từ app của Express
 const server = http.createServer(app);
-// --- CHAT ---: Khởi tạo socket.io
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // Cho phép client kết nối từ địa chỉ này
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"]
   }
 });
 
 const PORT = process.env.PORT || 3000;
 
-// ✅ Tạo thư mục uploads nếu chưa có
-if (!fs.existsSync('uploads')) {
-  fs.mkdirSync('uploads');
-}
+// ✅ Tạo thư mục uploads local (dự phòng, không dùng Cloudinary vẫn chạy)
+if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
+if (!fs.existsSync('uploads/chat')) fs.mkdirSync('uploads/chat');
 
 // ✅ Kết nối MongoDB
 mongoose.connect(process.env.MONGODB_URI)
@@ -56,25 +53,35 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ✅ Multer setup
+// ✅ Cloudinary cấu hình
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Cấu hình Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
   api_key: process.env.CLOUD_API_KEY,
   api_secret: process.env.CLOUD_API_SECRET
 });
 
-const storage = new CloudinaryStorage({
+// ==== Upload bài tập (Cloudinary) ====
+const baiTapStorage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: 'bai_tap_hoc_sinh',
-    allowed_formats: ['jpg', 'png', 'jpeg']
+    folder: "bai_tap_hoc_sinh",
+    allowed_formats: ["jpg", "png", "jpeg"]
   }
 });
-const upload = multer({ storage });
+const baiTapUpload = multer({ storage: baiTapStorage });
+
+// ==== Upload chat (Cloudinary) ====
+const chatStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "chat_uploads",
+    resource_type: "auto" // auto: ảnh, video, pdf...
+  }
+});
+const chatUpload = multer({ storage: chatStorage });
 
 // =======================
 // ✅ API: Đăng ký tài khoản
@@ -132,12 +139,12 @@ app.get('/me', (req, res) => {
 });
 
 // =======================
-// ✅ API: Upload ảnh bài tập
+// ✅ API: Upload ảnh bài tập (Cloudinary)
 // =======================
-app.post('/upload', upload.single('image'), (req, res) => {
-  if (!req.file) return res.status(400).json({ message: 'Chưa có ảnh nào được gửi lên' });
+app.post('/upload', baiTapUpload.single('image'), (req, res) => {
+  if (!req.file || !req.file.path) return res.status(400).json({ message: 'Chưa có ảnh nào được gửi lên' });
 
-  const imageUrl = req.file.path; // link CDN vĩnh viễn
+  const imageUrl = req.file.path;
 
   const imagesFile = 'images.json';
   const images = fs.existsSync(imagesFile) ? JSON.parse(fs.readFileSync(imagesFile)) : [];
@@ -147,6 +154,7 @@ app.post('/upload', upload.single('image'), (req, res) => {
 
   res.json({ message: 'Tải lên thành công', imageUrl });
 });
+
 app.get('/api/images', (req, res) => {
   const images = fs.existsSync('images.json') ? JSON.parse(fs.readFileSync('images.json')) : [];
   res.json(images);
@@ -154,17 +162,10 @@ app.get('/api/images', (req, res) => {
 
 app.delete('/api/images/:filename', (req, res) => {
   const filename = req.params.filename;
-  const filePath = path.join(__dirname, 'uploads', filename);
-
-  fs.unlink(filePath, (err) => {
-    if (err) return res.status(500).json({ success: false });
-
-    let images = fs.existsSync('images.json') ? JSON.parse(fs.readFileSync('images.json')) : [];
-    images = images.filter(img => !img.url.includes(filename));
-    fs.writeFileSync('images.json', JSON.stringify(images, null, 2));
-
-    res.json({ success: true });
-  });
+  let images = fs.existsSync('images.json') ? JSON.parse(fs.readFileSync('images.json')) : [];
+  images = images.filter(img => !img.url.includes(filename));
+  fs.writeFileSync('images.json', JSON.stringify(images, null, 2));
+  res.json({ success: true });
 });
 
 // =======================
@@ -177,7 +178,7 @@ app.get('/api/users', async (req, res) => {
   }
 
   try {
-    const users = await User.find({}, '-password'); // ẩn mật khẩu
+    const users = await User.find({}, '-password');
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: 'Lỗi máy chủ' });
@@ -232,47 +233,47 @@ app.put('/api/students/:id/scores', async (req, res) => {
   }
 });
 
-// Thêm biến để đếm số người online
+// =======================
+// ✅ API: Upload file chat (ảnh/tệp/video - Cloudinary)
+// =======================
+app.post('/chat-upload', chatUpload.single('file'), (req, res) => {
+  if (!req.file || !req.file.path) {
+    return res.status(400).json({ error: "Upload thất bại" });
+  }
+  res.json({ url: req.file.path }); // Cloudinary trả về URL
+});
+
+// =======================
+// ✅ SOCKET.IO CHAT
+// =======================
 let onlineUsers = 0;
 
 io.on('connection', (socket) => {
-    console.log('✅ Một người dùng đã kết nối vào chat');
+  console.log('✅ Một người dùng đã kết nối vào chat');
 
-    // Tăng số người online và gửi cập nhật
-    onlineUsers++;
+  onlineUsers++;
+  io.emit('onlineUsers', onlineUsers);
+
+  const anonymousName = `Người Dùng #${Math.floor(Math.random() * 1000)}`;
+
+  socket.emit('serverMessage', `Chào mừng bạn! Tên ẩn danh của bạn là: ${anonymousName}`);
+  socket.broadcast.emit('serverMessage', `${anonymousName} đã tham gia cuộc trò chuyện.`);
+
+  socket.on('chatMessage', (msg) => {
+    io.emit('chatMessage', { user: anonymousName, message: msg });
+  });
+
+  socket.on('disconnect', () => {
+    console.log('❌ Người dùng đã ngắt kết nối');
+    onlineUsers--;
     io.emit('onlineUsers', onlineUsers);
-
-    // Tạo một tên ẩn danh ngẫu nhiên cho người dùng
-    const anonymousName = `Người Dùng #${Math.floor(Math.random() * 1000)}`;
-
-    // Gửi thông báo cho client là họ đã vào phòng
-    socket.emit('serverMessage', `Chào mừng bạn! Tên ẩn danh của bạn là: ${anonymousName}`);
-    
-    // Gửi thông báo cho các client khác là có người mới vào
-    socket.broadcast.emit('serverMessage', `${anonymousName} đã tham gia cuộc trò chuyện.`);
-
-    // Lắng nghe sự kiện 'chatMessage' từ client
-    socket.on('chatMessage', (msg) => {
-        // Gửi tin nhắn đến tất cả mọi người (bao gồm cả người gửi)
-        io.emit('chatMessage', { user: anonymousName, message: msg });
-    });
-
-    // Khi client ngắt kết nối
-    socket.on('disconnect', () => {
-        console.log('❌ Người dùng đã ngắt kết nối');
-        
-        // Giảm số người online và gửi cập nhật
-        onlineUsers--;
-        io.emit('onlineUsers', onlineUsers);
-
-        io.emit('serverMessage', `${anonymousName} đã rời khỏi cuộc trò chuyện.`);
-    });
+    io.emit('serverMessage', `${anonymousName} đã rời khỏi cuộc trò chuyện.`);
+  });
 });
 
 // =======================
 // ✅ Khởi động server
 // =======================
-// --- CHAT ---: Thay app.listen bằng server.listen
 server.listen(PORT, () => {
   console.log(`✅ Server đang chạy tại http://localhost:${PORT}`);
 });
