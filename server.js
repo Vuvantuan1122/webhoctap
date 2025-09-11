@@ -18,6 +18,7 @@ const Student = require('./models/student');
 
 const app = express();
 const server = http.createServer(app);
+app.set('trust proxy', true);
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -197,11 +198,11 @@ app.post('/api/login', async (req, res) => {
     const user = await User.findOne({ username, password, role });
     if (!user) return res.status(401).json({ message: 'Sai tài khoản hoặc mật khẩu.' });
 
-    // 📌 Lưu thông tin vào session
+    // 📌 Lưu session
     req.session.user = { username: user.username, role: user.role };
 
-    // 📌 Lấy IP người dùng và lưu vào lịch sử
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+    // 📌 Lưu IP vào lịch sử đăng nhập
+    const ip = getClientIp(req);
     user.loginHistory = user.loginHistory || [];
     user.loginHistory.push({ ip });
     await user.save();
