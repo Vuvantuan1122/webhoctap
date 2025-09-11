@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Góc hỏi đáp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      margin: 0;
+    }
+    h2, h3 { color: #f0f0f0; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 15px; }
+
+    /* HEADER */
+    .header {
+      position: fixed; top: 0; left: 0; width: 100%;
+      background: #1a1a1a; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+    }
+    .header-container {
+      max-width: 1200px; margin: 0 auto;
+      padding: 12px 15px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+    }
+    .logo { display: flex; align-items: center; font-size: 1.2rem; font-weight: 700; color: white; text-decoration: none; gap: 8px; }
+    .logo img { width: 28px; height: 28px; }
+    .chat-title { font-size: 1rem; font-weight: bold; border: 2px solid white; padding: 2px 10px; border-radius: 6px; margin-left: 10px; }
+    .navbar { display: flex; gap: 15px; flex-wrap: wrap; }
+    .navbar a { font-size: 15px; color: #fff; text-decoration: none; }
+
+    /* MAIN */
+    main { padding-top: 100px; padding-bottom: 20px; }
+
+    .post-box {
+      background: #282828; padding: 15px; margin-bottom: 15px;
+      border-radius: 10px; box-shadow: 0 3px 6px rgba(0,0,0,0.3); border: 1px solid #333;
+    }
+    textarea[name="caption"] {
+      width: 100%; border: none; background: #3a3a3a; color: #e0e0e0;
+      border-radius: 10px; padding: 10px; outline: none; resize: vertical;
+      min-height: 60px; font-size: 15px;
+    }
+
+    .post-form-controls { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; }
+    .control-button {
+      flex: 1; text-align: center; background: #444; border: none;
+      color: #fff; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 14px;
+    }
+    .control-button.submit { background: #4CAF50; }
+    .control-button.submit:hover { background: #45a049; }
+
+    .image-preview-container img { max-width: 100%; border-radius: 6px; margin-top: 8px; }
+
+    .comment-form { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+    .comment-form input[type="text"] {
+      flex: 1; border: 1px solid #444; background: #3a3a3a; color: #e0e0e0;
+      border-radius: 6px; padding: 8px; min-width: 120px;
+    }
+    .comment-form button {
+      background: #4CAF50; border: none; border-radius: 6px;
+      color: white; padding: 0 12px; cursor: pointer;
+    }
+    .comment-form label { cursor: pointer; font-size: 18px; padding: 0 5px; }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .post-form-controls { flex-direction: column; }
+      .control-button { width: 100%; }
+      .comment-form { flex-direction: column; }
+      .comment-form input[type="text"], .comment-form button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-container">
+      <a href="trang chu hoc sinh.html" class="logo">
+        <img src="5.jpg" alt="Icon"> NT
+      </a>
+      <div class="chat-title">GÓC HỎI ĐÁP</div>
+      <nav class="navbar">
+        <a href="#"><i class="fas fa-home"></i> Trang chủ</a>
+        <a href="#"><i class="fas fa-tools"></i> Tiện ích</a>
+        <a href="#"><i class="fas fa-envelope"></i> Liên hệ</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <!-- Form đăng bài -->
+      <div class="post-box">
+        <form id="postForm" enctype="multipart/form-data">
+          <textarea name="caption" placeholder="Bạn cần gì..." required></textarea>
+          <div class="image-preview-container" id="imagePreview"></div>
+          <div class="post-form-controls">
+            <label class="control-button">
+              <i class="fas fa-paperclip"></i> Đính kèm
+              <input type="file" id="imageUpload" name="image" accept="image/*" style="display:none" required>
+            </label>
+            <button type="submit" class="control-button submit">
+              <i class="fas fa-paper-plane"></i> Đăng bài
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Danh sách bài đăng -->
+      <div id="posts"></div>
+    </div>
+  </main>
+
+  <script>
+    let currentUser = null;
+
+    async function getCurrentUser() {
+      try {
+        const res = await fetch('/me', { credentials: 'include' });
+        if (res.ok) {
+          currentUser = await res.json();
+          window.currentUser = currentUser;
+        }
+      } catch {}
+    }
+
+    const imageUploadInput = document.getElementById('imageUpload');
+    const imagePreviewContainer = document.getElementById('imagePreview');
+
+    imageUploadInput.addEventListener('change', event => {
+      const file = event.target.files[0];
+      if (file) {
+        const objectURL = URL.createObjectURL(file);
+        imagePreviewContainer.innerHTML = `<img src="${objectURL}" alt="Ảnh xem trước">`;
+      }
+    });
+
+    async function loadPosts() {
+      const res = await fetch('/api/posts', { credentials: 'include' });
+      const posts = await res.json();
+      const postsDiv = document.getElementById('posts');
+      postsDiv.innerHTML = '';
+
+      for (const post of posts) {
+        const div = document.createElement('div');
+        div.className = 'post-box';
+        div.innerHTML = `
+          <p>
+            <b>${post.author || "Ẩn danh"}</b> - ${new Date(post.createdAt).toLocaleString()}
+            ${currentUser?.username === "Vuvantuan1122" ? 
+              `<button onclick="deletePost('${post._id}')" style="float:right; background:#e74c3c; border:none; color:white; padding:4px 8px; border-radius:4px; cursor:pointer;">Xoá</button>` 
+              : ""}
+          </p>
+          <p>${post.caption}</p>
+          ${post.imageUrl ? `<img src="${post.imageUrl}" alt="Ảnh">` : ""}
+          <div class="comments" id="comments-${post._id}">
+            <b>Bình luận:</b>
+            <div class="comment-list"></div>
+            <form class="comment-form" data-id="${post._id}" enctype="multipart/form-data">
+              <label for="comment-image-${post._id}">📎</label>
+              <input type="file" name="image" accept="image/*" id="comment-image-${post._id}" style="display:none">
+              <input type="text" name="content" placeholder="Viết bình luận...">
+              <button type="submit">➢</button>
+            </form>
+          </div>
+        `;
+        postsDiv.appendChild(div);
+        loadComments(post._id);
+      }
+    }
+
+    async function loadComments(postId) {
+      const res = await fetch(`/api/posts/${postId}/comments`, { credentials: 'include' });
+      const comments = await res.json();
+      const list = document.querySelector(`#comments-${postId} .comment-list`);
+      list.innerHTML = '';
+      comments.forEach(c => {
+  const div = document.createElement('div');
+  div.className = 'comment';
+
+  div.innerHTML = `
+    <b>${c.author}:</b> ${c.content || ''}
+    <small style="color:#888;">(IP: ${c.ip || 'ẩn'})</small>
+    <button class="delete-comment" data-post="${postId}" data-id="${c._id}" style="margin-left:10px;">🗑</button>
+  `;
+
+  if (c.imageUrl) {
+    div.innerHTML += `<br><img src="${c.imageUrl}" style="max-width:200px; border-radius:4px; margin-top:5px;">`;
+  }
+
+  list.appendChild(div);
+});
+    }
+
+    async function deletePost(postId) {
+      if (!confirm("Bạn có chắc chắn muốn xoá bài này?")) return;
+      const res = await fetch(`/api/posts/${postId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const result = await res.json();
+      if (result.success) {
+        alert("Đã xoá bài!");
+        loadPosts();
+      } else {
+        alert(result.message || "Không xoá được bài");
+      }
+    }
+
+    document.getElementById('postForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      if (!formData.get('image').size) {
+        alert('Vui lòng chọn một hình ảnh để đăng!');
+        return;
+      }
+      await fetch('/api/posts', { method: 'POST', body: formData, credentials: 'include' });
+      e.target.reset();
+      imagePreviewContainer.innerHTML = '';
+      await loadPosts();
+    });
+
+    document.addEventListener('submit', async e => {
+      if (e.target.classList.contains('comment-form')) {
+        e.preventDefault();
+        const postId = e.target.dataset.id;
+        const formData = new FormData(e.target);
+        await fetch(`/api/posts/${postId}/comments`, {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+        e.target.reset();
+        loadComments(postId);
+      }
+    });
+
+    // ✅ Khởi động
+    getCurrentUser().then(loadPosts);
+  </script>
+</body>
+</html>

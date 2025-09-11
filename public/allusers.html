@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Quản lý tài khoản</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    th {
+      background-color: #333;
+      color: white;
+    }
+    tr:hover {
+      background-color: #f9f9f9;
+    }
+    .delete-btn {
+      padding: 5px 10px;
+      background-color: red;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .delete-btn:hover {
+      background-color: darkred;
+    }
+  </style>
+</head>
+<body>
+  <h1>Danh sách tài khoản người dùng</h1>
+  <table id="userTable">
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Vai trò</th>
+        <th>Trường</th>
+        <th>Lớp</th>
+        <th>IP đăng nhập</th>
+        <th>Xoá</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/users');
+        const users = await res.json();
+        const tbody = document.querySelector('#userTable tbody');
+        tbody.innerHTML = '';
+
+        users.forEach(user => {
+          const row = document.createElement('tr');
+          const ipList = (user.loginHistory || [])
+  .map(h => `${h.ip} (${new Date(h.time).toLocaleString()})`)
+  .join('<br>') || 'Chưa đăng nhập';
+
+row.innerHTML = `
+  <td>${user.username}</td>
+  <td>${user.email}</td>
+  <td>${user.role || ''}</td>
+  <td>${user.school || ''}</td>
+  <td>${user.class || ''}</td>
+  <td>${ipList}</td>
+  <td><button class="delete-btn" onclick="deleteUser('${user._id}')">Xoá</button></td>
+`;
+
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        alert('Không tải được danh sách người dùng');
+        console.error(err);
+      }
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('Bạn có chắc muốn xoá tài khoản này không?')) return;
+      try {
+        const res = await fetch(`/api/users/${id}`, {
+          method: 'DELETE',
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Xoá thành công!');
+          loadUsers(); // Tải lại danh sách sau khi xoá
+        } else {
+          alert('Không xoá được người dùng.');
+        }
+      } catch (err) {
+        alert('Lỗi khi xoá người dùng');
+        console.error(err);
+      }
+    }
+
+    // Tải dữ liệu khi mở trang
+    loadUsers();
+  </script>
+  
+</body>
+</html>
