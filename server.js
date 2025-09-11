@@ -7,6 +7,8 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const cors = require('cors');
+const Post = require("./models/Post");
+const Comment = require("./models/Comment");
 // --- CHAT ---
 const http = require('http');
 const { Server } = require('socket.io');
@@ -18,17 +20,17 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",   // tạm thời cho tất cả (hoặc thay bằng domain Render của bạn)
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
 
-
 const PORT = process.env.PORT || 3000;
 
-// ✅ Tạo thư mục uploads local (dự phòng, không dùng Cloudinary vẫn chạy)
+// ✅ Tạo thư mục uploads local
 if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
 if (!fs.existsSync('uploads/chat')) fs.mkdirSync('uploads/chat');
+if (!fs.existsSync('public/uploads')) fs.mkdirSync('public/uploads');
 
 // ✅ Kết nối MongoDB
 mongoose.connect(process.env.MONGODB_URI)
@@ -36,7 +38,9 @@ mongoose.connect(process.env.MONGODB_URI)
   .catch(err => console.error('❌ Lỗi kết nối MongoDB:', err));
 
 // ✅ Session setup
-app.use(session({
+const sharedsession = require("express-socket.io-session");
+
+const sessionMiddleware = session({
   secret: 'your-secret-key',
   resave: false,
   saveUninitialized: false,
@@ -45,14 +49,16 @@ app.use(session({
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000
   }
-}));
+});
 
+app.use(sessionMiddleware);
+io.use(sharedsession(sessionMiddleware, { autoSave:true }));
 // ✅ Middleware
 app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // ✅ Cloudinary cấu hình
 const cloudinary = require('cloudinary').v2;
@@ -79,10 +85,84 @@ const chatStorage = new CloudinaryStorage({
   cloudinary,
   params: {
     folder: "chat_uploads",
-    resource_type: "auto" // auto: ảnh, video, pdf...
+    resource_type: "auto"
   }
 });
 const chatUpload = multer({ storage: chatStorage });
+
+// ==== Upload forum (Local) ====
+const forumUpload = multer({
+  storage: multer.diskStorage({
+    destination: "public/uploads/",
+    filename: (req, file, cb) => {
+      cb(null, Date.now() + path.extname(file.originalname));
+    },
+  }),
+});
+
+// ==== Upload comment (Cloudinary) ====
+const commentStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "comment_uploads",
+    allowed_formats: ["jpg", "png", "jpeg", "gif"]
+  }
+});
+const commentUpload = multer({ storage: commentStorage });
+function getClientIp(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+}
+
+// 📌 Load posts từ file
+function loadPosts() {
+  return JSON.parse(fs.readFileSync('posts.json', 'utf-8'));
+}
+function savePosts(posts) {
+  fs.writeFileSync('posts.json', JSON.stringify(posts, null, 2));
+}
+
+// ✅ Tạo bài đăng
+app.post("/api/posts", forumUpload.single("image"), async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: "Bạn phải đăng nhập để đăng bài" });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ message: "Chưa có ảnh" });
+  }
+
+  const post = new Post({
+    author: req.session.user.username,  // ✅ luôn dùng tên tài khoản
+    caption: req.body.caption,
+    imageUrl: "/uploads/" + req.file.filename,
+  });
+
+  await post.save();
+  res.json(post);
+});
+// ✅ Lấy danh sách bài đăng
+app.get("/api/posts", async (req, res) => {
+  const posts = await Post.find().sort({ createdAt: -1 });
+  res.json(posts);
+});
+
+// ✅ Thêm bình luận (có thể kèm ảnh - Cloudinary)
+app.post("/api/posts/:id/comments", commentUpload.single("image"), async (req, res) => {
+  const comment = new Comment({
+    postId: req.params.id,
+    author: req.session?.user?.username || "Ẩn danh",
+    content: req.body.content,
+    imageUrl: req.file ? req.file.path : null   // URL Cloudinary
+  });
+  await comment.save();
+  res.json(comment);
+});
+
+// ✅ Lấy bình luận
+app.get("/api/posts/:id/comments", async (req, res) => {
+  const comments = await Comment.find({ postId: req.params.id }).sort({ createdAt: 1 });
+  res.json(comments);
+});
 
 // =======================
 // ✅ API: Đăng ký tài khoản
@@ -117,9 +197,18 @@ app.post('/api/login', async (req, res) => {
     const user = await User.findOne({ username, password, role });
     if (!user) return res.status(401).json({ message: 'Sai tài khoản hoặc mật khẩu.' });
 
+    // 📌 Lưu thông tin vào session
     req.session.user = { username: user.username, role: user.role };
+
+    // 📌 Lấy IP người dùng và lưu vào lịch sử
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+    user.loginHistory = user.loginHistory || [];
+    user.loginHistory.push({ ip });
+    await user.save();
+
     res.json({ message: 'Đăng nhập thành công', username: user.username, role: user.role });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Lỗi máy chủ.' });
   }
 });
@@ -174,15 +263,41 @@ app.delete('/api/images/:filename', (req, res) => {
 // =======================
 app.get('/api/users', async (req, res) => {
   const user = req.session.user;
-  if (!user || user.username !== 'Vuvantaun1122') {
+  if (!user || user.username !== 'Vuvantuan1122') {
     return res.status(403).json({ message: 'Không có quyền truy cập' });
   }
 
   try {
-    const users = await User.find({}, '-password');
+    const users = await User.find({}, '-password').lean();
+
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: 'Lỗi máy chủ' });
+  }
+});
+app.get('/api/admin/login-ips', async (req, res) => {
+  const admin = req.session.user;
+  if (!admin || admin.username !== 'Vuvantaun1122') {
+    return res.status(403).json({ message: 'Không có quyền truy cập' });
+  }
+
+  const users = await User.find({}, 'username loginHistory');
+  res.json(users);
+});
+
+// ✅ Xoá bài (chỉ admin mới được xoá)
+app.delete("/api/posts/:id", async (req, res) => {
+  const user = req.session.user;
+  if (!user || user.username !== "Vuvantuan1122") {
+    return res.status(403).json({ message: "Không có quyền xoá bài" });
+  }
+
+  try {
+    await Post.findByIdAndDelete(req.params.id);
+    await Comment.deleteMany({ postId: req.params.id }); // xoá luôn comment
+    res.json({ success: true, message: "Đã xoá bài" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Lỗi server" });
   }
 });
 
@@ -251,24 +366,24 @@ let onlineUsers = 0;
 
 io.on('connection', (socket) => {
   console.log('✅ Một người dùng đã kết nối vào chat');
-
   onlineUsers++;
   io.emit('onlineUsers', onlineUsers);
 
-  const anonymousName = `Người Dùng #${Math.floor(Math.random() * 1000)}`;
+  // ✅ Nếu có session user thì lấy username, không thì đặt ẩn danh
+  const username = socket.request.session?.user?.username || `Người Dùng #${Math.floor(Math.random() * 1000)}`;
 
-  socket.emit('serverMessage', `Chào mừng bạn! Tên ẩn danh của bạn là: ${anonymousName}`);
-  socket.broadcast.emit('serverMessage', `${anonymousName} đã tham gia cuộc trò chuyện.`);
+  socket.emit('serverMessage', `Chào mừng ${username}!`);
+  socket.broadcast.emit('serverMessage', `${username} đã tham gia cuộc trò chuyện.`);
 
   socket.on('chatMessage', (msg) => {
-    io.emit('chatMessage', { user: anonymousName, message: msg });
+    io.emit('chatMessage', { user: username, message: msg });
   });
 
   socket.on('disconnect', () => {
     console.log('❌ Người dùng đã ngắt kết nối');
     onlineUsers--;
     io.emit('onlineUsers', onlineUsers);
-    io.emit('serverMessage', `${anonymousName} đã rời khỏi cuộc trò chuyện.`);
+    io.emit('serverMessage', `${username} đã rời khỏi cuộc trò chuyện.`);
   });
 });
 
