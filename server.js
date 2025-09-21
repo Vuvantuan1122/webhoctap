@@ -9,6 +9,8 @@ const multer = require('multer');
 const cors = require('cors');
 const Post = require("./models/Post");
 const Comment = require("./models/Comment");
+const Report = require("./models/Report");
+
 // --- CHAT ---
 const http = require('http');
 const { Server } = require('socket.io');
@@ -55,10 +57,13 @@ const sessionMiddleware = session({
 app.use(sessionMiddleware);
 io.use(sharedsession(sessionMiddleware, { autoSave:true }));
 // ✅ Middleware
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(cors({ origin: "*", credentials: true }))
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
+app.get('/videocall', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/videocall.html'));
+});
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // ✅ Cloudinary cấu hình
@@ -301,7 +306,48 @@ app.delete("/api/posts/:id", async (req, res) => {
     res.status(500).json({ success: false, message: "Lỗi server" });
   }
 });
+app.post("/api/reports", async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ success: false, message: "Bạn phải đăng nhập" });
+    }
 
+    const { postId, reason } = req.body;
+    if (!postId || !reason) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin" });
+    }
+
+    const report = new Report({
+      postId,
+      reason,
+      reporter: req.session.user.username
+    });
+    await report.save();
+
+    // 🔔 Thông báo realtime cho admin
+    io.emit("newReport", { 
+      id: report._id,
+      postId,
+      reason,
+      reporter: report.reporter,
+      createdAt: report.createdAt
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Lỗi server" });
+  }
+});
+
+app.get("/api/reports", async (req, res) => {
+  if (!req.session.user || req.session.user.username !== "Vuvantuan1122") {
+    return res.status(403).json({ success: false, message: "Không có quyền" });
+  }
+
+  const reports = await Report.find().populate("postId").sort({ createdAt: -1 });
+  res.json(reports);
+});
 // =======================
 // ✅ API: Quản lý học sinh
 // =======================
@@ -365,28 +411,25 @@ app.post('/chat-upload', chatUpload.single('file'), (req, res) => {
 // =======================
 let onlineUsers = 0;
 
-io.on('connection', (socket) => {
-  console.log('✅ Một người dùng đã kết nối vào chat');
-  onlineUsers++;
-  io.emit('onlineUsers', onlineUsers);
+io.on("connection", (socket) => {
+  console.log("✅ Người dùng kết nối:", socket.id);
 
-  // ✅ Nếu có session user thì lấy username, không thì đặt ẩn danh
-  const username = socket.request.session?.user?.username || `Người Dùng #${Math.floor(Math.random() * 1000)}`;
-
-  socket.emit('serverMessage', `Chào mừng ${username}!`);
-  socket.broadcast.emit('serverMessage', `${username} đã tham gia cuộc trò chuyện.`);
-
-  socket.on('chatMessage', (msg) => {
-    io.emit('chatMessage', { user: username, message: msg });
+  // khi client gửi username
+  socket.on("join-call", (username) => {
+    socket.username = username;
+    socket.broadcast.emit("user-joined", { id: socket.id, username });
   });
 
-  socket.on('disconnect', () => {
-    console.log('❌ Người dùng đã ngắt kết nối');
-    onlineUsers--;
-    io.emit('onlineUsers', onlineUsers);
-    io.emit('serverMessage', `${username} đã rời khỏi cuộc trò chuyện.`);
+  socket.on("disconnect", () => {
+    io.emit("user-left", { id: socket.id, username: socket.username });
   });
+
+  // signaling cho WebRTC
+  socket.on("offer", (data) => socket.broadcast.emit("offer", { ...data, from: socket.id }));
+  socket.on("answer", (data) => socket.broadcast.emit("answer", { ...data, from: socket.id }));
+  socket.on("ice-candidate", (data) => socket.broadcast.emit("ice-candidate", { ...data, from: socket.id }));
 });
+
 
 // =======================
 // ✅ Khởi động server
