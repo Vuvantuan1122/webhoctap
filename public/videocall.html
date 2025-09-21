@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Video Call</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f0f0; text-align: center; }
+    .video-box { display: inline-block; margin: 10px; }
+    video { width: 300px; height: 200px; border: 2px solid #444; border-radius: 10px; }
+    .label { background: #222; color: #fff; padding: 2px 6px; border-radius: 5px; margin-top: 4px; display: inline-block; }
+    button { margin: 5px; padding: 10px 20px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h2>📹 Video Call WebRTC</h2>
+  <div id="username">Đang đăng nhập: ...</div>
+  <button id="startBtn">Bật Camera</button>
+  <button id="callBtn">Gọi</button>
+  <button id="endBtn">Tắt Gọi</button>
+  <div id="videos"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let localStream;
+    let peers = {}; // chứa danh sách peer connections
+    const videosDiv = document.getElementById("videos");
+    const usernameDiv = document.getElementById("username");
+    let myUsername = "Ẩn danh";
+
+    // 📌 Lấy tên đăng nhập
+    fetch("/me").then(res => res.json()).then(data => {
+      if (data.username) {
+        myUsername = data.username;
+        usernameDiv.textContent = "Đang đăng nhập: " + myUsername;
+        socket.emit("join-call", myUsername);
+      }
+    });
+
+    // Bật camera
+    document.getElementById("startBtn").onclick = async () => {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: { frameRate: 60 }, audio: true });
+      addVideo(localStream, myUsername + " (Bạn)", "local");
+    };
+
+    // Bắt đầu gọi
+    document.getElementById("callBtn").onclick = async () => {
+      startCall();
+    };
+
+    // Tắt gọi
+    document.getElementById("endBtn").onclick = () => {
+      Object.values(peers).forEach(peer => peer.close());
+      peers = {};
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      document.getElementById("videos").innerHTML = "";
+    };
+
+    function addVideo(stream, label, id) {
+      let box = document.createElement("div");
+      box.className = "video-box";
+      box.id = "box-" + id;
+      let video = document.createElement("video");
+      video.autoplay = true; video.playsinline = true;
+      if (id === "local") video.muted = true;
+      video.srcObject = stream;
+      let span = document.createElement("div");
+      span.className = "label";
+      span.textContent = label;
+      box.appendChild(video);
+      box.appendChild(span);
+      videosDiv.appendChild(box);
+    }
+
+    function startCall() {
+      // tạo peer mới
+      const peer = new RTCPeerConnection();
+      peers["host"] = peer;
+      localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
+
+      peer.onicecandidate = e => { if (e.candidate) socket.emit("ice-candidate", e.candidate); };
+      peer.ontrack = e => addVideo(e.streams[0], "Người gọi khác", "remote");
+
+      peer.createOffer().then(offer => {
+        peer.setLocalDescription(offer);
+        socket.emit("offer", offer);
+      });
+    }
+
+    // Nhận user mới
+    socket.on("user-joined", data => {
+      console.log("Người mới:", data.username);
+    });
+
+    // Signaling
+    socket.on("offer", async data => {
+      const peer = new RTCPeerConnection();
+      peers[data.from] = peer;
+      localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
+
+      peer.onicecandidate = e => { if (e.candidate) socket.emit("ice-candidate", { candidate: e.candidate, to: data.from }); };
+      peer.ontrack = e => addVideo(e.streams[0], data.username || "Người khác", data.from);
+
+      await peer.setRemoteDescription(new RTCSessionDescription(data));
+      const answer = await peer.createAnswer();
+      await peer.setLocalDescription(answer);
+      socket.emit("answer", { answer, to: data.from });
+    });
+
+    socket.on("answer", data => {
+      peers[data.from]?.setRemoteDescription(new RTCSessionDescription(data));
+    });
+
+    socket.on("ice-candidate", data => {
+      if (data.from && peers[data.from]) {
+        peers[data.from].addIceCandidate(new RTCIceCandidate(data));
+      }
+    });
+
+    socket.on("user-left", data => {
+      let box = document.getElementById("box-" + data.id);
+      if (box) box.remove();
+    });
+  </script>
+</body>
+</html>
