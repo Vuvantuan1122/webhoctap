@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Báo cáo bài đăng</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #eee; }
+    .report-box { background:#222; padding:10px; margin:10px; border-radius:8px; }
+    button { margin-left: 10px; padding: 5px 10px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <h2>Danh sách báo cáo</h2>
+  <div id="reports"></div>
+
+  <script>
+    async function loadReports() {
+      const res = await fetch("/api/reports", { credentials: "include" });
+      const reports = await res.json();
+      const container = document.getElementById("reports");
+      container.innerHTML = "";
+
+      reports.forEach(r => {
+        const div = document.createElement("div");
+        div.className = "report-box";
+        div.innerHTML = `
+          <p><b>Người báo cáo:</b> ${r.reporter}</p>
+          <p><b>Lý do:</b> ${r.reason}</p>
+          <p><b>Bài viết:</b> ${r.postId?.caption || "Đã xoá"}</p>
+          <small>${new Date(r.createdAt).toLocaleString()}</small>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    loadReports();
+  </script>
+</body>
+</html>

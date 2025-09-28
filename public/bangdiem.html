@@ -945,18 +945,23 @@
     body: JSON.stringify(student)
   })
 )).then(() => {
-  alert(`Đã thêm ${newStudents.length} học sinh.`);
-  resetAddStudentForm();
+  // Sau khi thêm xong thì mới fetch lại dữ liệu
   fetch("/api/students")
     .then(res => res.json())
     .then(data => {
       state.students = data;
       state.classes = new Set();
       data.forEach(s => s.class && state.classes.add(s.class));
-      updateAllClassDropdowns();
-      loadStudents();
+      classManager.updateClassDropdowns();
+      studentManager.loadStudents();
+      utils.showAlert(`Đã thêm ${newStudents.length} học sinh`, 'success');
+      studentManager.resetAddStudentForm();
+    }).catch(err => {
+      console.error("Lỗi khi fetch lại học sinh:", err);
+      utils.showAlert("Không thể tải lại danh sách học sinh", 'danger');
     });
 });
+
                             studentManager.resetAddStudentForm();
                             studentManager.loadStudents();
                         },

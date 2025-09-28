@@ -6,11 +6,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login & Registration | Noah & Tuantento</title>
 
-    <!-- Fonts + Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 
     <style>
+        :root {
+            --primary-color: #00aaff;
+            --white-color: #ffffff;
+            --text-color: #e4e4e4;
+            --bg-transparent: rgba(0, 0, 0, 0.3);
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --input-bg: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Đảm bảo cuộn mượt mà */
+        html {
+            scroll-behavior: smooth; 
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -19,9 +32,15 @@
         }
         
         body {
-            background: url('1.jpg') no-repeat center center fixed;
+            /* Thay thế ảnh nền ở đây */
+            background: url('https://images.unsplash.com/photo-1484589065579-248aad0d8b13?q=80&w=1959&auto=format&fit=crop') no-repeat center center fixed;
             background-size: cover;
-            color: white;
+            color: var(--white-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* Ngăn cuộn chính khi animation chạy */
         }
         
         .header {
@@ -29,21 +48,35 @@
             top: 0;
             left: 0;
             width: 100%;
-            padding: 20px 12.5%;
-            background: rgba(0, 0, 0, 0.5);
+            padding: 20px 10%;
+            background: var(--bg-transparent);
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 100;
+            backdrop-filter: blur(5px);
         }
         
+        .logo {
+            font-size: 25px;
+            color: var(--white-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
         .navbar a {
             position: relative;
             font-size: 16px;
-            color: #e4e4e4;
+            color: var(--text-color);
             text-decoration: none;
             font-weight: 500;
-            margin-right: 30px;
+            margin-left: 35px;
+            transition: color 0.3s ease;
+        }
+
+        .navbar a:hover,
+        .navbar a.active {
+            color: var(--white-color);
         }
         
         .navbar a::after {
@@ -53,95 +86,67 @@
             bottom: -6px;
             width: 100%;
             height: 2px;
-            background: #e4e4e4;
+            background: var(--primary-color);
             border-radius: 5px;
-            opacity: 0;
-            transform: translateY(5px);
-            transition: all 0.3s ease;
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
         }
         
         .navbar a:hover::after {
-            transform: translateY(0);
-            opacity: 1;
-        }
-        
-        .search-bar {
-            width: 250px;
-            height: 45px;
-            background: transparent;
-            border: 2px solid #e4e4e4;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-        }
-        
-        .search-bar input {
-            width: 100%;
-            background: transparent;
-            border: none;
-            outline: none;
-            font-size: 16px;
-            color: #e4e4e4;
-        }
-        
-        .search-bar input::placeholder {
-            color: #e4e4e4;
-        }
-        
-        .search-bar button {
-            width: 40px;
-            height: 100%;
-            background: transparent;
-            border: none;
-            outline: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            color: #e4e4e4;
-            font-size: 22px;
-        }
-        
-        main {
-            padding-top: 150px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            transform: scaleX(1);
         }
         
         .container {
             position: relative;
-            width: 75%;
-            max-width: 1000px;
-            height: 650px;
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 10px;
+            width: 90%;
+            max-width: 850px;
+            /* Chiều cao cố định cho desktop */
+            height: 650px; 
+            background: transparent;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
             display: flex;
-            overflow: hidden;
-            padding: 0;
-            margin: 0 auto;
+            align-items: center;
+            overflow: hidden; 
         }
         
         .content {
-            width: calc(100% - 320px);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50%;
+            height: 100%;
             padding: 60px;
             display: flex;
             flex-direction: column;
             justify-content: center;
+            transition: transform 0.6s ease, opacity 0.6s ease; 
+        }
+
+        /* Ẩn phần chữ khi container active */
+        .container.active .content {
+            transform: translateX(-50px); 
+            opacity: 0; 
+            pointer-events: none;
         }
         
         .content h2 {
             font-size: 40px;
-            margin-bottom: 20px;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .content h2 i {
+            margin-right: 10px;
+            vertical-align: middle;
         }
         
-        .content h2 span {
-            font-size: 25px;
-            display: block;
-            margin-top: 10px;
-            color: #ccc;
+        .content .welcome-text {
+            font-size: 18px;
+            margin: 20px 0;
+            color: var(--text-color);
         }
         
         .social-icon {
@@ -149,359 +154,483 @@
         }
         
         .social-icon a i {
-            font-size: 22px;
-            color: #e4e4e4;
-            margin-right: 10px;
-            transition: .3s ease;
+            font-size: 25px;
+            color: var(--text-color);
+            margin-right: 15px;
+            transition: 0.3s ease;
         }
         
         .social-icon a:hover i {
             transform: scale(1.2);
-            color: #fff;
+            color: var(--primary-color);
         }
         
         .logreg-box {
             position: absolute;
             top: 0;
             right: 0;
-            width: 320px;
+            width: 50%;
             height: 100%;
-            backdrop-filter: blur(20px);
-            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .form-box {
+            position: absolute;
             display: flex;
             justify-content: center;
             align-items: center;
-            border-top-right-radius: 10px;
-            border-bottom-right-radius: 10px;
-            padding: 30px 20px;
-            box-sizing: border-box;
-            color: #e4e4e4;
-        }
-        
-        .form-box {
             width: 100%;
-            text-align: center;
-            display: none;
-            /* Ẩn hết trước */
+            height: 100%;
+            background: transparent;
             flex-direction: column;
+            padding: 0 50px;
+            transition: transform 0.6s ease-in-out;
         }
         
-        .form-box.active {
-            display: flex;
+        .form-box.login {
+            transform: translateX(0);
+        }
+
+        .form-box.register {
+            /* THÊM CUỘN DESKTOP: Giới hạn chiều cao và cho phép cuộn */
+            max-height: 90%; 
+            overflow-y: auto; 
+            
+            align-items: center; 
+            padding: 20px 50px 10px 50px; 
+            transform: translateX(100%); 
+        }
+        
+        /* Hiệu ứng trượt form */
+        .container.active .form-box.login {
+            transform: translateX(-100%);
+        }
+
+        .container.active .form-box.register {
+            transform: translateX(0);
         }
         
         .form-box h3 {
             font-size: 28px;
-            margin-bottom: 20px;
+            text-align: center;
+            margin-bottom: 15px; 
+            font-weight: 600;
+        }
+
+        .input-box {
+            position: relative;
+            width: 100%;
+            height: 40px; 
+            margin: 8px 0; 
         }
         
-        .form-box input,
-        .form-box select {
+        .input-box input,
+        .input-box select {
             width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 6px;
+            height: 100%;
+            background: var(--input-bg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            outline: none;
+            border-radius: 10px;
+            font-size: 16px;
+            color: var(--white-color);
+            padding: 0 20px 0 40px;
+            transition: border-color 0.3s ease;
+        }
+
+        /* Tùy chỉnh mũi tên cho select */
+        .input-box select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23e4e4e4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 20px;
+            padding-right: 35px;
+        }
+
+        .input-box select option {
+            background: #2c3e50;
+            color: var(--white-color);
+        }
+
+        .input-box input:focus,
+        .input-box select:focus {
+            border-color: var(--primary-color);
+        }
+        
+        .input-box input::placeholder {
+            color: var(--text-color);
+        }
+
+        .input-box i {
+            position: absolute;
+            left: 10px; 
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px; 
+            color: var(--text-color);
+        }
+        
+        .btn {
+            width: 100%;
+            height: 40px; 
+            background: var(--primary-color);
             border: none;
             outline: none;
+            border-radius: 8px;
+            cursor: pointer;
             font-size: 16px;
-            background: #222;
-            color: #eee;
-        }
-        
-        .form-box button {
+            color: var(--white-color);
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(0, 170, 255, 0.3);
+            transition: all 0.3s ease;
             margin-top: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
-            border: none;
-            border-radius: 6px;
-            background: #fff;
-            color: #000;
-            cursor: pointer;
-            transition: 0.3s ease;
-            width: 100%;
         }
         
-        .form-box button:hover {
-            background: #ddd;
+        .btn:hover {
+            background: #0099e6;
+            box-shadow: 0 6px 20px rgba(0, 170, 255, 0.5);
+            transform: translateY(-2px);
         }
         
-        .toggle-btn {
-            margin-top: 15px;
-            background: transparent;
-            border: none;
-            color: #ddd;
-            cursor: pointer;
+        .login-register {
+            font-size: 14.5px;
+            text-align: center;
+            margin-top: 10px; 
+        }
+        
+        .login-register p a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .login-register p a:hover {
             text-decoration: underline;
-            font-size: 14px;
-            transition: color 0.3s ease;
         }
         
-        .toggle-btn:hover {
-            color: #fff;
-        }
-        
-        #roomResult {
-            margin-top: 15px;
-            font-weight: bold;
-            color: #7fff7f;
-        }
-        
-        #roomResult.error {
-            color: #ff7f7f;
+        /* ===================================== */
+        /* === MEDIA QUERY CHO MOBILE (<= 900px) === */
+        /* ===================================== */
+        @media (max-width: 900px) {
+            
+            /* Container chính */
+            .container {
+                flex-direction: column;
+                max-width: 450px;
+                height: auto; 
+                padding: 30px;
+            }
+            
+            /* Phần Nội dung (Chữ Noah) */
+            .content {
+                position: static;
+                width: 100%;
+                height: auto;
+                text-align: center;
+                padding: 20px 0;
+                transform: translateX(0) !important; 
+                opacity: 1 !important;
+                pointer-events: auto !important;
+            }
+            
+            /* Khung chứa 2 form (logreg-box) */
+            .logreg-box {
+                position: static;
+                width: 100%;
+                height: auto;
+                /* FIX LỖI TRÀN MOBILE: Giới hạn chiều cao và thanh cuộn */
+                max-height: 450px; 
+                overflow-y: auto; 
+                padding-top: 20px; 
+                background: rgba(0, 0, 0, 0.2); 
+                border-radius: 10px;
+            }
+            
+            /* Form Box */
+            .form-box {
+                position: static; 
+                padding: 0 10px;
+                height: auto; 
+                
+                /* Reset các thuộc tính cuộn của desktop */
+                max-height: initial; 
+                overflow-y: initial;
+            }
+            
+            /* Logic Ẩn/Hiện Form trên Mobile */
+            .form-box.register { display: none; }
+            .container.active .form-box.login { display: none; }
+            .container.active .form-box.register { display: flex; }
         }
     </style>
 </head>
 
 <body>
-
-    <header class="header">
-        <nav class="navbar">
-            <a href="#">Home</a>
-            <a href="#">About</a>
-            <a href="#">Services</a>
-            <a href="#">Contact</a>
-        </nav>
-
-        <form action="#" class="search-bar">
-            <input type="text" placeholder="Search..." />
-            <button type="submit"><i class='bx bx-search-alt'></i></button>
-        </form>
-    </header>
-
-    <main>
-        <div class="container">
-            <div class="content">
-                <h2><i class='bx bx-book'></i> Noah</h2>
-                <span>Welcome to our website!</span>
-                <div class="social-icon">
-                    <a href="#"><i class='bx bxl-facebook'></i></a>
-                    <a href="#"><i class='bx bxl-instagram'></i></a>
-                    <a href="#"><i class='bx bxl-twitter'></i></a>
-                </div>
-            </div>
-
-            <div class="logreg-box">
-                <!-- Login form -->
-                <div id="loginForm" class="form-box active">
-                    <h3>Login</h3>
-                    <input type="text" placeholder="Username" />
-                    <input type="password" placeholder="Password" />
-                    <select id="loginRole" required>
-                        <option value="">-- Chọn vai trò --</option>
-                        <option value="student">Học sinh</option>
-                        <option value="teacher">Giáo viên</option>
-                    </select>
-                    <button>Login</button>
-                    <button class="toggle-btn" id="showRegister">Create Account</button>
-                </div>
-
-                <!-- Registration form -->
-                <div id="registerForm" class="form-box">
-                    <h3>Register</h3>
-                    <input type="text" placeholder="Username" />
-                    <input type="email" placeholder="Email" />
-                    <input type="password" placeholder="Password" />
-                    <input type="password" placeholder="Confirm Password" />
-                    <select id="registerRole" required>
-                        <option value="">-- Chọn vai trò --</option>
-                        <option value="student">Học sinh</option>
-                        <option value="teacher">Giáo viên</option>
-                    </select>
-                    <select id="registerProvince" required>
-                        <option value="">-- Chọn tỉnh thành --</option>
-                        <option value="An Giang">An Giang</option>
-                        <option value="Bà Rịa - Vũng Tàu">Bà Rịa - Vũng Tàu</option>
-                        <option value="Bắc Giang">Bắc Giang</option>
-                        <option value="Bắc Kạn">Bắc Kạn</option>
-                        <option value="Bạc Liêu">Bạc Liêu</option>
-                        <option value="Bắc Ninh">Bắc Ninh</option>
-                        <option value="Bến Tre">Bến Tre</option>
-                        <option value="Bình Định">Bình Định</option>
-                        <option value="Bình Dương">Bình Dương</option>
-                        <option value="Bình Phước">Bình Phước</option>
-                        <option value="Bình Thuận">Bình Thuận</option>
-                        <option value="Cà Mau">Cà Mau</option>
-                        <option value="Cao Bằng">Cao Bằng</option>
-                        <option value="Đắk Lắk">Đắk Lắk</option>
-                        <option value="Đắk Nông">Đắk Nông</option>
-                        <option value="Điện Biên">Điện Biên</option>
-                        <option value="Đồng Nai">Đồng Nai</option>
-                        <option value="Đồng Tháp">Đồng Tháp</option>
-                        <option value="Gia Lai">Gia Lai</option>
-                        <option value="Hà Giang">Hà Giang</option>
-                        <option value="Hà Nam">Hà Nam</option>
-                        <option value="Hà Tĩnh">Hà Tĩnh</option>
-                        <option value="Hải Dương">Hải Dương</option>
-                        <option value="Hậu Giang">Hậu Giang</option>
-                        <option value="Hòa Bình">Hòa Bình</option>
-                        <option value="Hưng Yên">Hưng Yên</option>
-                        <option value="Khánh Hòa">Khánh Hòa</option>
-                        <option value="Kiên Giang">Kiên Giang</option>
-                        <option value="Kon Tum">Kon Tum</option>
-                        <option value="Lai Châu">Lai Châu</option>
-                        <option value="Lâm Đồng">Lâm Đồng</option>
-                        <option value="Lạng Sơn">Lạng Sơn</option>
-                        <option value="Lào Cai">Lào Cai</option>
-                        <option value="Long An">Long An</option>
-                        <option value="Nam Định">Nam Định</option>
-                        <option value="Nghệ An">Nghệ An</option>
-                        <option value="Ninh Bình">Ninh Bình</option>
-                        <option value="Ninh Thuận">Ninh Thuận</option>
-                        <option value="Phú Thọ">Phú Thọ</option>
-                        <option value="Quảng Bình">Quảng Bình</option>
-                        <option value="Quảng Nam">Quảng Nam</option>
-                        <option value="Quảng Ngãi">Quảng Ngãi</option>
-                        <option value="Quảng Ninh">Quảng Ninh</option>
-                        <option value="Quảng Trị">Quảng Trị</option>
-                        <option value="Sóc Trăng">Sóc Trăng</option>
-                        <option value="Sơn La">Sơn La</option>
-                        <option value="Tây Ninh">Tây Ninh</option>
-                        <option value="Thái Bình">Thái Bình</option>
-                        <option value="Thái Nguyên">Thái Nguyên</option>
-                        <option value="Thanh Hóa">Thanh Hóa</option>
-                        <option value="Thừa Thiên Huế">Thừa Thiên Huế</option>
-                        <option value="Tiền Giang">Tiền Giang</option>
-                        <option value="Trà Vinh">Trà Vinh</option>
-                        <option value="Tuyên Quang">Tuyên Quang</option>
-                        <option value="Vĩnh Long">Vĩnh Long</option>
-                        <option value="Vĩnh Phúc">Vĩnh Phúc</option>
-                        <option value="Yên Bái">Yên Bái</option>
-                        <option value="Phú Yên">Phú Yên</option>
-                    </select>
-
-                    <!-- Trường và Lớp -->
-                    <input type="text" id="registerSchool" placeholder="Nhập trường (VD: THPT Nguyễn Thiện Thuật)" required />
-                    <input type="text" id="registerClass" placeholder="Nhập lớp (VD: 10A1)" required />
-
-                    <button id="registerBtn">Register</button>
-                    <button class="toggle-btn" id="showLogin">Back to Login</button>
-                </div>
+    <div class="container">
+        <div class="content">
+            <h2><i class='bx bxs-book-bookmark'></i> Noah</h2>
+            <p class="welcome-text">Welcome to our website! Please log in or create an account to continue.</p>
+            <div class="social-icon">
+                <a href="#"><i class='bx bxl-facebook-circle'></i></a>
+                <a href="#"><i class='bx bxl-instagram-alt'></i></a>
+                <a href="#"><i class='bx bxl-twitter'></i></a>
+                <a href="#"><i class='bx bxl-github'></i></a>
             </div>
         </div>
-    </main>
+
+        <div class="logreg-box">
+            <div id="loginForm" class="form-box login">
+                <h3>Login</h3>
+                <form action="#">
+                    <div class="input-box">
+                        <i class='bx bxs-user'></i>
+                        <input type="text" placeholder="Username" required/>
+                    </div>
+                    <div class="input-box">
+                        <i class='bx bxs-lock-alt'></i>
+                        <input type="password" placeholder="Password" required/>
+                    </div>
+                    <div class="input-box">
+                         <i class='bx bxs-user-check'></i>
+                        <select id="loginRole" required>
+                            <option value="" disabled selected>-- Chọn vai trò --</option>
+                            <option value="student">Học sinh</option>
+                            <option value="teacher">Giáo viên</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn">Login</button>
+                    <div class="login-register">
+                        <p>Don't have an account? <a href="#" id="showRegister" class="register-link">Register</a></p>
+                    </div>
+                </form>
+            </div>
+
+            <div id="registerForm" class="form-box register">
+                <h3>Register</h3>
+                <form action="#">
+                    <div class="input-box">
+                        <i class='bx bxs-user'></i>
+                        <input type="text" placeholder="Username" required/>
+                    </div>
+                    <div class="input-box">
+                        <i class='bx bxs-envelope'></i>
+                        <input type="email" placeholder="Email" required/>
+                    </div>
+                    <div class="input-box">
+                        <i class='bx bxs-lock-alt'></i>
+                        <input type="password" placeholder="Password" required/>
+                    </div>
+                     <div class="input-box">
+                        <i class='bx bxs-lock-alt'></i>
+                        <input type="password" placeholder="Confirm Password" required/>
+                    </div>
+                    <div class="input-box">
+                        <i class='bx bxs-user-check'></i>
+                        <select id="registerRole" required>
+                            <option value="" disabled selected>-- Chọn vai trò --</option>
+                            <option value="student">Học sinh</option>
+                            <option value="teacher">Giáo viên</option>
+                        </select>
+                    </div>
+                    <div class="input-box">
+                        <i class='bx bxs-map'></i>
+                        <select id="registerProvince" required>
+                             <option value="" disabled selected>-- Chọn tỉnh thành --</option>
+                             <option value="An Giang">An Giang</option>
+                             <option value="Bà Rịa - Vũng Tàu">Bà Rịa - Vũng Tàu</option>
+                             <option value="Bắc Giang">Bắc Giang</option>
+                             <option value="Bắc Kạn">Bắc Kạn</option>
+                             <option value="Bạc Liêu">Bạc Liêu</option>
+                             <option value="Bắc Ninh">Bắc Ninh</option>
+                             <option value="Bến Tre">Bến Tre</option>
+                             <option value="Bình Định">Bình Định</option>
+                             <option value="Bình Dương">Bình Dương</option>
+                             <option value="Bình Phước">Bình Phước</option>
+                             <option value="Bình Thuận">Bình Thuận</option>
+                             <option value="Cà Mau">Cà Mau</option>
+                             <option value="Cao Bằng">Cao Bằng</option>
+                             <option value="Đắk Lắk">Đắk Lắk</option>
+                             <option value="Đắk Nông">Đắk Nông</option>
+                             <option value="Điện Biên">Điện Biên</option>
+                             <option value="Đồng Nai">Đồng Nai</option>
+                             <option value="Đồng Tháp">Đồng Tháp</option>
+                             <option value="Gia Lai">Gia Lai</option>
+                             <option value="Hà Giang">Hà Giang</option>
+                             <option value="Hà Nam">Hà Nam</option>
+                             <option value="Hà Tĩnh">Hà Tĩnh</option>
+                             <option value="Hải Dương">Hải Dương</option>
+                             <option value="Hậu Giang">Hậu Giang</option>
+                             <option value="Hòa Bình">Hòa Bình</option>
+                             <option value="Hưng Yên">Hưng Yên</option>
+                             <option value="Khánh Hòa">Khánh Hòa</option>
+                             <option value="Kiên Giang">Kiên Giang</option>
+                             <option value="Kon Tum">Kon Tum</option>
+                             <option value="Lai Châu">Lai Châu</option>
+                             <option value="Lâm Đồng">Lâm Đồng</option>
+                             <option value="Lạng Sơn">Lạng Sơn</option>
+                             <option value="Lào Cai">Lào Cai</option>
+                             <option value="Long An">Long An</option>
+                             <option value="Nam Định">Nam Định</option>
+                             <option value="Nghệ An">Nghệ An</option>
+                             <option value="Ninh Bình">Ninh Bình</option>
+                             <option value="Ninh Thuận">Ninh Thuận</option>
+                             <option value="Phú Thọ">Phú Thọ</option>
+                             <option value="Quảng Bình">Quảng Bình</option>
+                             <option value="Quảng Nam">Quảng Nam</option>
+                             <option value="Quảng Ngãi">Quảng Ngãi</option>
+                             <option value="Quảng Ninh">Quảng Ninh</option>
+                             <option value="Quảng Trị">Quảng Trị</option>
+                             <option value="Sóc Trăng">Sóc Trăng</option>
+                             <option value="Sơn La">Sơn La</option>
+                             <option value="Tây Ninh">Tây Ninh</option>
+                             <option value="Thái Bình">Thái Bình</option>
+                             <option value="Thái Nguyên">Thái Nguyên</option>
+                             <option value="Thanh Hóa">Thanh Hóa</option>
+                             <option value="Thừa Thiên Huế">Thừa Thiên Huế</option>
+                             <option value="Tiền Giang">Tiền Giang</option>
+                             <option value="Trà Vinh">Trà Vinh</option>
+                             <option value="Tuyên Quang">Tuyên Quang</option>
+                             <option value="Vĩnh Long">Vĩnh Long</option>
+                             <option value="Vĩnh Phúc">Vĩnh Phúc</option>
+                             <option value="Yên Bái">Yên Bái</option>
+                             <option value="Phú Yên">Phú Yên</option>
+                        </select>
+                    </div>
+                    <div class="input-box">
+                        <i class='bx bxs-school'></i>
+                        <input type="text" id="registerSchool" placeholder="Nhập trường (VD: THPT Nguyễn Thiện Thuật)" required />
+                    </div>
+                    <div class="input-box">
+                         <i class='bx bxs-chalkboard'></i>
+                        <input type="text" id="registerClass" placeholder="Nhập lớp (VD: 10A1)" required />
+                    </div>
+
+                    <button type="submit" id="registerBtn" class="btn">Register</button>
+                    <div class="login-register">
+                        <p>Already have an account? <a href="#" id="showLogin" class="login-link">Login</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // Toggle login/register
+        const container = document.querySelector('.container');
         const loginForm = document.getElementById('loginForm');
         const registerForm = document.getElementById('registerForm');
+
+        // Toggle login/register bằng cách thêm/xóa class 'active' vào container
         document.getElementById('showRegister').addEventListener('click', e => {
             e.preventDefault();
-            loginForm.classList.remove('active');
-            registerForm.classList.add('active');
-        });
-        document.getElementById('showLogin').addEventListener('click', e => {
-            e.preventDefault();
-            registerForm.classList.remove('active');
-            loginForm.classList.add('active');
+            container.classList.add('active');
         });
 
-        // Phân phòng dựa trên trường và lớp
-        const roomMap = {
-            "THPT Nguyễn Thiện Thuật_10A1": "Phòng 301",
-            // Có thể thêm nhiều trường-lớp - phòng khác ở đây
-            "THPT ABC_11B2": "Phòng 202",
-            "THCS XYZ_9C1": "Phòng 105"
-        };
+        document.getElementById('showLogin').addEventListener('click', e => {
+            e.preventDefault();
+            container.classList.remove('active');
+        });
+
+        // --- TÍNH NĂNG JAVASCRIPT ĐƯỢC GIỮ NGUYÊN ---
 
         // Xử lý đăng nhập
         loginForm.querySelector('button').addEventListener('click', async (e) => {
-    e.preventDefault();
-    const username = loginForm.querySelector('input[type=text]').value.trim();
-    const password = loginForm.querySelector('input[type=password]').value.trim();
-    const role = document.getElementById('loginRole').value;
+            e.preventDefault();
+            const username = loginForm.querySelector('input[type=text]').value.trim();
+            const password = loginForm.querySelector('input[type=password]').value.trim();
+            const role = document.getElementById('loginRole').value;
 
-    if (!username || !password || !role) {
-        alert("Vui lòng nhập đầy đủ thông tin và chọn vai trò.");
-        return;
-    }
-
-    try {
-        const response = await fetch('/api/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, password, role }),
-            credentials: 'include'
-        });
-
-        const data = await response.json();
-        
-        if (response.ok) {
-            localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('userData', JSON.stringify({
-                username: data.username,
-                role: data.role
-            }));
-
-            // ✅ CHUYỂN THEO ROLE
-            if (data.role === 'teacher') {
-                window.location.href = 'giaovien.html';
-            } else if (data.role === 'student') {
-                window.location.href = 'index.html';
-            } else {
-                alert("Vai trò không hợp lệ.");
+            if (!username || !password || !role) {
+                alert("Vui lòng nhập đầy đủ thông tin và chọn vai trò.");
+                return;
             }
-        } else {
-            alert(data.message || "Đăng nhập thất bại");
-        }
-    } catch (error) {
-        console.error("Lỗi đăng nhập:", error);
-        alert("Có lỗi xảy ra khi đăng nhập");
-    }
-});
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('userData', JSON.stringify({
+                        username: data.username,
+                        role: data.role
+                    }));
+
+                    // Chuyển hướng theo vai trò
+                    if (data.role === 'teacher') {
+                        window.location.href = 'giaovien.html';
+                    } else if (data.role === 'student') {
+                        window.location.href = 'index.html';
+                    } else {
+                        alert("Vai trò không hợp lệ.");
+                    }
+                } else {
+                    alert(data.message || "Đăng nhập thất bại");
+                }
+            } catch (error) {
+                console.error("Lỗi đăng nhập:", error);
+                alert("Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.");
+            }
+        });
 
         // Xử lý đăng ký
         registerForm.querySelector('#registerBtn').addEventListener('click', async e => {
-    e.preventDefault();
+            e.preventDefault();
 
-    const username = registerForm.querySelector('input[type=text]').value.trim();
-    const email = registerForm.querySelector('input[type=email]').value.trim();
-    const password = registerForm.querySelector('input[type=password]').value.trim();
-    const confirmPassword = registerForm.querySelectorAll('input[type=password]')[1].value.trim();
-    const role = document.getElementById('registerRole').value;
-    const province = document.getElementById('registerProvince').value;
-    const school = document.getElementById('registerSchool').value.trim();
-    const cls = document.getElementById('registerClass').value.trim();
+            const username = registerForm.querySelector('input[type=text]').value.trim();
+            const email = registerForm.querySelector('input[type=email]').value.trim();
+            const password = registerForm.querySelector('input[type=password]').value.trim();
+            const confirmPassword = registerForm.querySelectorAll('input[type=password]')[1].value.trim();
+            const role = document.getElementById('registerRole').value;
+            const province = document.getElementById('registerProvince').value;
+            const school = document.getElementById('registerSchool').value.trim();
+            const cls = document.getElementById('registerClass').value.trim();
 
-    if (!username || !email || !password || !confirmPassword || !role || !province || !school || !cls) {
-        alert("Vui lòng điền đầy đủ thông tin.");
-        return;
-    }
-    if (password !== confirmPassword) {
-        alert("Mật khẩu xác nhận không đúng.");
-        return;
-    }
+            if (!username || !email || !password || !confirmPassword || !role || !province || !school || !cls) {
+                alert("Vui lòng điền đầy đủ thông tin.");
+                return;
+            }
+            if (password !== confirmPassword) {
+                alert("Mật khẩu xác nhận không đúng.");
+                return;
+            }
 
-    // Gửi dữ liệu đăng ký lên backend
-    try {
-        const response = await fetch('/api/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-    username,
-    email,
-    password,
-    role,
-    school,
-    class: cls
-})
+            // Gửi dữ liệu đăng ký lên backend
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username,
+                        email,
+                        password,
+                        role,
+                        school,
+                        class: cls
+                    })
+                });
+
+                const result = await response.json();
+                alert(result.message);
+
+                if (response.ok) {
+                    registerForm.querySelector('form').reset();
+                    container.classList.remove('active'); // Chuyển về form đăng nhập
+                }
+                
+            } catch (error) {
+                console.error("Lỗi đăng ký:", error);
+                alert("Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.");
+            }
         });
 
-        const result = await response.json();
-alert(result.message);
-
-        registerForm.reset();
-        registerForm.classList.remove('active');
-        loginForm.classList.add('active');
-    } catch (error) {
-        console.error("Lỗi đăng ký:", error);
-        alert("Quay lại trang đăng nhập");
-    }
-});
-
     </script>
-
 </body>
-
 </html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Cá Nhân - Valorant Style</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      text-decoration: none;
+      border: none;
+      outline: none;
+    }
+
+    html {
+      font-size: 62.5%;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      width: 100%;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: url('1.png');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-attachment: fixed;
+      color: #ece8e1;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* ================= HEADER ================= */
+    .header {
+      width: 100%;
+      height: 7rem; /* cao hơn */
+      background: rgba(0,0,0,0.75);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 2.5rem;
+      border-bottom: 2px solid #ff4655;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .header .logo {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+      font-size: 2.4rem; /* chữ logo to hơn */
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .header .logo img {
+      width: 50px;  /* to hơn */
+      height: 50px;
+      border-radius: 50%;
+      border: 2px solid #ff4655;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      color: #fff;
+    }
+
+    .user-profile img {
+      width: 50px; /* avatar to hơn */
+      height: 50px;
+      border-radius: 50%;
+      border: 2px solid #ff4655;
+      cursor: pointer;
+    }
+
+    .streak-box {
+      font-size: 1.8rem; /* chữ to hơn */
+      font-weight: 600;
+      background: rgba(255,70,85,0.25);
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      border: 2px solid #ff4655;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+
+    /* Ô tiêu đề Người Thành Lập */
+    .founder-title {
+      margin-top: 10rem; /* tránh header đè */
+      text-align: center;
+    }
+
+    .founder-title h1 {
+      display: inline-block;
+      padding: 1rem 3rem;
+      font-size: 3.5rem;
+      font-weight: 700;
+      color: #fff;
+      border: 2px solid #ff4655;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      text-shadow: 0 0 10px #ff4655, 0 0 20px rgba(255, 70, 85, 0.7);
+      animation: glowSoft 2s infinite alternate;
+    }
+
+    @keyframes glowSoft {
+      from {
+        text-shadow: 0 0 8px #ff4655, 0 0 16px rgba(255, 70, 85, 0.7);
+      }
+      to {
+        text-shadow: 0 0 15px #ff4655, 0 0 30px rgba(255, 70, 85, 0.9);
+      }
+    }
+
+    /* Container */
+    .container {
+      margin-top: 6rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 10rem;
+      width: 100%;
+      padding: 0 5%;
+      flex-wrap: wrap;
+    }
+
+    .person-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      width: 40%;
+      min-width: 320px;
+      padding: 3rem;
+      transition: 0.3s ease-in-out;
+    }
+
+    .person-container::before,
+    .person-container::after {
+      content: '';
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border-color: #ff4655;
+      border-style: solid;
+      transition: all 0.3s ease;
+    }
+    .person-container::before {
+      top: 1.5rem;
+      left: 1.5rem;
+      border-width: 3px 0 0 3px;
+    }
+    .person-container::after {
+      bottom: 1.5rem;
+      right: 1.5rem;
+      border-width: 0 3px 3px 0;
+    }
+    .person-container:hover::before {
+      transform: translate(-5px, -5px);
+    }
+    .person-container:hover::after {
+      transform: translate(5px, 5px);
+    }
+
+    /* Avatar */
+    .home-img {
+      position: relative;
+      width: 20vw;
+      height: 20vw;
+      min-width: 200px;
+      min-height: 200px;
+      border-radius: 50%;
+      box-shadow: 0 0 35px rgba(255, 70, 85, 0.7);
+      cursor: pointer;
+      transition: 0.3s ease-in-out;
+      margin-bottom: 3rem;
+      overflow: hidden;
+      z-index: 2;
+    }
+
+    .home-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #ff4655;
+      z-index: 1;
+      position: relative;
+    }
+
+    /* Hiệu ứng target lock khi hover */
+    .home-img::before,
+    .home-img::after {
+      content: '';
+      position: absolute;
+      background-color: transparent;
+      border: 2px solid #ff4655;
+      opacity: 0;
+      transition: all 0.3s ease-in-out;
+      z-index: 0;
+    }
+
+    .home-img::before {
+      top: 50%; left: 50%;
+      width: 0%; height: 0%;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .home-img::after {
+      top: 50%; left: 50%;
+      width: 0%; height: 0%;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    @keyframes targetLockHorizontal {
+      0% { width: 0%; opacity: 0; }
+      50% { width: 100%; opacity: 1; }
+      100% { width: 100%; opacity: 0; }
+    }
+
+    @keyframes targetLockVertical {
+      0% { height: 0%; opacity: 0; }
+      50% { height: 100%; opacity: 1; }
+      100% { height: 100%; opacity: 0; }
+    }
+
+    .home-img:hover::before {
+      opacity: 1;
+      animation: targetLockHorizontal 0.7s forwards;
+      border-top-color: #ff4655;
+      border-bottom-color: #ff4655;
+      width: 100%;
+      height: 100%;
+    }
+
+    .home-img:hover::after {
+      opacity: 1;
+      animation: targetLockVertical 0.7s forwards;
+      border-left-color: #ff4655;
+      border-right-color: #ff4655;
+      width: 100%;
+      height: 100%;
+    }
+
+    .home-img:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 50px rgba(255, 70, 85, 0.9);
+    }
+
+    /* Nội dung */
+    .home-content h1 {
+      font-size: 3.2rem;
+      font-weight: 700;
+      line-height: 1.3;
+      color: #fff;
+    }
+
+    .home-content h3 {
+      font-size: 2rem;
+      margin: 0.8rem 0 2rem 0;
+      font-weight: 400;
+      color: #e0e0e0;
+    }
+
+    .bio {
+      font-size: 1.5rem;
+      line-height: 1.8;
+      max-width: 450px;
+      color: #dcdcdc;
+      font-weight: 300;
+    }
+
+    @media (max-width: 900px) {
+      .container {
+        flex-direction: column;
+        align-items: center;
+        gap: 8rem;
+      }
+      .person-container {
+        width: 80%;
+      }
+      .home-img {
+        width: 40vw;
+        height: 40vw;
+      }
+    }
+
+    /* ================================= */
+    /* === HIỆU ỨNG KHI TẢI TRANG === */
+    /* ================================= */
+
+    /* 1. Định nghĩa các chuyển động */
+    @keyframes slideDown {
+      from {
+        transform: translateY(-100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        transform: translateY(40px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    /* 2. Áp dụng chuyển động vào các thành phần */
+
+    /* Header sẽ trượt từ trên xuống */
+    .header {
+      animation: slideDown 0.7s ease-out forwards;
+    }
+
+    /* Tiêu đề sẽ mờ dần và trượt nhẹ lên */
+    .founder-title {
+      /* Bắt đầu sau header 0.3s */
+      animation: fadeInUp 0.8s ease-out 0.3s forwards;
+      /* Đặt trạng thái ban đầu để tránh bị giật */
+      opacity: 0;
+    }
+
+    /* Các container cá nhân cũng sẽ mờ dần và trượt lên */
+    .person-container {
+      animation: fadeInUp 0.8s ease-out forwards;
+      opacity: 0; /* Trạng thái ban đầu */
+    }
+
+    /* Tạo hiệu ứng xuất hiện nối tiếp nhau cho đẹp mắt */
+    .container .person-container:nth-child(1) {
+      animation-delay: 0.6s; /* Xuất hiện sau tiêu đề */
+    }
+
+    .container .person-container:nth-child(2) {
+      animation-delay: 0.9s; /* Xuất hiện sau người đầu tiên */
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-left">
+      <a href="#" class="logo">
+        <img src="5.jpg" alt="Icon">
+        <span>NT Education</span>
+      </a>
+    </div>
+
+    <div class="user-profile">
+      <div class="streak-box">🔥 3</div>
+      <img src="default-avatar.png" alt="Avatar" />
+    </div>
+  </header>
+
+  <div class="founder-title">
+    <h1>Nhà Sáng Lập</h1>
+  </div>
+
+  <div class="container">
+    <div class="person-container">
+      <div class="home-img">
+        <img src="tuan.png" alt="Văn Tuấn">
+      </div>
+      <div class="home-content">
+        <h1>Vũ Văn Tuấn</h1>
+        <h3>Học sinh trường THPT Nguyễn Thiện Thuật</h3>
+        <p class="bio">Vũ Văn Tuấn, sinh ngày 29/04/2009, hiện đang là học sinh khoá A1K48 tại trường THPT Nguyễn Thiện Thuật, Hưng Yên.</p>
+      </div>
+    </div>
+
+    <div class="person-container">
+      <div class="home-img">
+        <img src="tuanminh.png" alt="Tuấn Minh">
+      </div>
+      <div class="home-content">
+        <h1>Phạm Sỹ Tuấn Minh</h1>
+        <h3>Học sinh trường THPT Nguyễn Thiện Thuật</h3>
+        <p class="bio">Phạm Sỹ Tuấn Minh, sinh ngày 24/06/2009, hiện đang là học sinh khoá A1K48 tại trường THPT Nguyễn Thiện Thuật, Hưng Yên.</p>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

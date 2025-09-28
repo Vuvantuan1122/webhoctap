@@ -4,112 +4,352 @@
   <meta charset="UTF-8">
   <title>Góc hỏi đáp</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      background: #1a1a1a;
-      color: #e0e0e0;
-      margin: 0;
+    /* === Biến CSS và Thiết lập chung === */
+    :root {
+      --background-color: #121212;
+      --surface-color: #1e1e1e;
+      --primary-text-color: #e0e0e0;
+      --secondary-text-color: #b0b0b0;
+      --border-color: #333;
+      --primary-color: #3498db;
+      --primary-color-hover: #2980b9;
+      --danger-color: #e74c3c;
+      --warning-color: #f39c12;
+      --success-color: #2ecc71;
+      --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      --border-radius: 12px;
+      --box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
-    h2, h3 { color: #f0f0f0; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 0 15px; }
 
-    /* HEADER */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background: var(--background-color);
+      color: var(--primary-text-color);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 15px;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+    }
+
+    /* === Header === */
     .header {
-      position: fixed; top: 0; left: 0; width: 100%;
-      background: #1a1a1a; z-index: 100;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+      position: sticky;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(30, 30, 30, 0.85);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      border-bottom: 1px solid var(--border-color);
     }
     .header-container {
-      max-width: 1200px; margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       padding: 12px 15px;
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+      max-width: 1200px;
+      margin: 0 auto;
     }
-    .logo { display: flex; align-items: center; font-size: 1.2rem; font-weight: 700; color: white; text-decoration: none; gap: 8px; }
-    .logo img { width: 28px; height: 28px; }
-    .chat-title { font-size: 1rem; font-weight: bold; border: 2px solid white; padding: 2px 10px; border-radius: 6px; margin-left: 10px; }
-    .navbar { display: flex; gap: 15px; flex-wrap: wrap; }
-    .navbar a { font-size: 15px; color: #fff; text-decoration: none; }
-
-    /* MAIN */
-    main { padding-top: 100px; padding-bottom: 20px; }
-
-    .post-box {
-      background: #282828; padding: 15px; margin-bottom: 15px;
-      border-radius: 10px; box-shadow: 0 3px 6px rgba(0,0,0,0.3); border: 1px solid #333;
+    .logo {
+      display: flex;
+      align-items: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: white;
+      text-decoration: none;
+      gap: 10px;
     }
-    textarea[name="caption"] {
-      width: 100%; border: none; background: #3a3a3a; color: #e0e0e0;
-      border-radius: 10px; padding: 10px; outline: none; resize: vertical;
-      min-height: 60px; font-size: 15px;
+    .logo img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+    .chat-title {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--primary-color);
+      display: none; /* Ẩn trên mobile, hiện trên desktop */
+    }
+    .navbar {
+      display: flex;
+      gap: 20px;
+    }
+    .navbar a {
+      font-size: 1rem;
+      color: var(--secondary-text-color);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    .navbar a:hover, .navbar a.active {
+      color: var(--primary-color);
+    }
+    .navbar .nav-text {
+      display: none; /* Ẩn chữ, chỉ hiện icon trên mobile */
     }
 
-    .post-form-controls { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; }
-    .control-button {
-      flex: 1; text-align: center; background: #444; border: none;
-      color: #fff; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 14px;
+
+    /* === Main Content === */
+    main {
+      padding-top: 30px;
+      padding-bottom: 30px;
     }
-    .control-button.submit { background: #4CAF50; }
-    .control-button.submit:hover { background: #45a049; }
 
-    .image-preview-container img { max-width: 100%; border-radius: 6px; margin-top: 8px; }
+    .card {
+      background: var(--surface-color);
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      border: 1px solid var(--border-color);
+    }
 
-    .comment-form { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+    /* === Form Đăng bài === */
+    #postForm textarea {
+      width: 100%;
+      border: 1px solid var(--border-color);
+      background: var(--background-color);
+      color: var(--primary-text-color);
+      border-radius: 8px;
+      padding: 12px;
+      outline: none;
+      resize: vertical;
+      min-height: 80px;
+      font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #postForm textarea:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+    }
+    .post-form-controls {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      flex: 1;
+      text-align: center;
+      background: #444;
+      border: none;
+      color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      transition: background-color 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+    .btn.btn-primary {
+      background: var(--primary-color);
+    }
+    .btn.btn-primary:hover {
+      background: var(--primary-color-hover);
+    }
+    #imagePreview img {
+      margin-top: 15px;
+      max-height: 300px;
+      object-fit: cover;
+      width: 100%;
+    }
+
+    /* === Danh sách Bài đăng === */
+    .post-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+    .post-author-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .post-author { font-weight: bold; color: var(--primary-text-color); }
+    .post-time { font-size: 0.85rem; color: var(--secondary-text-color); }
+    .post-actions .action-btn {
+      background: none;
+      border: none;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      padding: 5px;
+      font-size: 0.9rem;
+      border-radius: 5px;
+      margin-left: 5px;
+    }
+     .action-btn.btn-delete { color: var(--danger-color); }
+     .action-btn.btn-report { color: var(--warning-color); }
+     .action-btn:hover { background-color: #333; }
+
+    .post-caption {
+      margin-bottom: 15px;
+      white-space: pre-wrap; /* Giữ lại các xuống dòng */
+    }
+    .post-image { margin-bottom: 15px; }
+
+    /* === Khu vực Bình luận === */
+    .comments-section {
+      border-top: 1px solid var(--border-color);
+      padding-top: 15px;
+      margin-top: 15px;
+    }
+    .comments-section h4 {
+        margin-bottom: 10px;
+        color: var(--secondary-text-color);
+        font-weight: 600;
+    }
+    .comment {
+      background: var(--background-color);
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+    }
+    .comment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .comment-author {
+      font-weight: bold;
+      color: var(--primary-text-color);
+    }
+    .comment-meta {
+      font-size: 0.8rem;
+      color: #777;
+    }
+    .delete-comment-btn {
+      background: none; border: none; color: #888; cursor: pointer;
+    }
+    .delete-comment-btn:hover { color: var(--danger-color); }
+
+    .comment-form {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
     .comment-form input[type="text"] {
-      flex: 1; border: 1px solid #444; background: #3a3a3a; color: #e0e0e0;
-      border-radius: 6px; padding: 8px; min-width: 120px;
+      flex: 1;
+      border: 1px solid var(--border-color);
+      background: var(--background-color);
+      color: var(--primary-text-color);
+      border-radius: 20px;
+      padding: 8px 15px;
+      outline: none;
     }
-    .comment-form button {
-      background: #4CAF50; border: none; border-radius: 6px;
-      color: white; padding: 0 12px; cursor: pointer;
+    .comment-form .btn-comment-action {
+      background: transparent;
+      border: none;
+      border-radius: 50%;
+      color: var(--secondary-text-color);
+      padding: 0 10px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      transition: color 0.2s;
     }
-    .comment-form label { cursor: pointer; font-size: 18px; padding: 0 5px; }
+     .comment-form .btn-comment-action:hover { color: var(--primary-color); }
 
-    /* Responsive */
-    @media (max-width: 600px) {
-      .post-form-controls { flex-direction: column; }
-      .control-button { width: 100%; }
-      .comment-form { flex-direction: column; }
-      .comment-form input[type="text"], .comment-form button { width: 100%; }
+
+    /* === Responsive Design === */
+    @media (min-width: 768px) {
+      .chat-title { display: block; }
+      .navbar .nav-text { display: inline; }
+      .navbar a { padding: 5px 10px; border-radius: 6px; }
+      .navbar a:hover { background-color: #333; }
     }
+    /* Ảnh trong bài viết */
+.post-image img {
+  max-width: 100%;
+  max-height: 400px; /* Giới hạn chiều cao ảnh */
+  object-fit: contain; /* Giữ nguyên tỉ lệ, không méo ảnh */
+  border-radius: 8px;
+  display: block;
+  margin: 10px auto;
+}
+
+/* Ảnh trong bình luận */
+.comment-content img {
+  max-width: 200px;   /* Giới hạn chiều rộng */
+  max-height: 200px;  /* Giới hạn chiều cao */
+  object-fit: cover;  /* Nếu ảnh to sẽ cắt gọn để vừa khung */
+  border-radius: 6px;
+  margin-top: 5px;
+  display: block;
+}
+
+/* Responsive cho mobile */
+@media (max-width: 600px) {
+  .post-image img {
+    max-height: 250px;
+  }
+  .comment-content img {
+    max-width: 150px;
+    max-height: 150px;
+  }
+}
+
   </style>
 </head>
 <body>
   <header class="header">
     <div class="header-container">
       <a href="trang chu hoc sinh.html" class="logo">
-        <img src="5.jpg" alt="Icon"> NT
+        <img src="https://i.imgur.com/qgA490G.png" alt="Icon">
+        <span>NT</span>
       </a>
       <div class="chat-title">GÓC HỎI ĐÁP</div>
       <nav class="navbar">
-        <a href="#"><i class="fas fa-home"></i> Trang chủ</a>
-        <a href="#"><i class="fas fa-tools"></i> Tiện ích</a>
-        <a href="#"><i class="fas fa-envelope"></i> Liên hệ</a>
+        <a href="#" class="active"><i class="fas fa-home"></i> <span class="nav-text">Trang chủ</span></a>
+        <a href="#"><i class="fas fa-tools"></i> <span class="nav-text">Tiện ích</span></a>
+        <a href="#"><i class="fas fa-envelope"></i> <span class="nav-text">Liên hệ</span></a>
       </nav>
     </div>
   </header>
 
   <main>
     <div class="container">
-      <!-- Form đăng bài -->
-      <div class="post-box">
+      <div class="card">
         <form id="postForm" enctype="multipart/form-data">
-          <textarea name="caption" placeholder="Bạn cần gì..." required></textarea>
-          <div class="image-preview-container" id="imagePreview"></div>
+          <textarea name="caption" placeholder="Bạn đang nghĩ gì..." required></textarea>
+          <div id="imagePreview"></div>
           <div class="post-form-controls">
-            <label class="control-button">
-              <i class="fas fa-paperclip"></i> Đính kèm
+            <label class="btn">
+              <i class="fas fa-paperclip"></i> Đính kèm ảnh
               <input type="file" id="imageUpload" name="image" accept="image/*" style="display:none" required>
             </label>
-            <button type="submit" class="control-button submit">
+            <button type="submit" class="btn btn-primary">
               <i class="fas fa-paper-plane"></i> Đăng bài
             </button>
           </div>
         </form>
       </div>
 
-      <!-- Danh sách bài đăng -->
       <div id="posts"></div>
     </div>
   </main>
@@ -124,121 +364,258 @@
           currentUser = await res.json();
           window.currentUser = currentUser;
         }
-      } catch {}
+      } catch (err) {
+        console.error("Could not fetch user info:", err);
+      }
     }
 
     const imageUploadInput = document.getElementById('imageUpload');
     const imagePreviewContainer = document.getElementById('imagePreview');
+    const postForm = document.getElementById('postForm');
+    const postsContainer = document.getElementById('posts');
 
     imageUploadInput.addEventListener('change', event => {
       const file = event.target.files[0];
+      imagePreviewContainer.innerHTML = '';
       if (file) {
         const objectURL = URL.createObjectURL(file);
-        imagePreviewContainer.innerHTML = `<img src="${objectURL}" alt="Ảnh xem trước">`;
+        const img = document.createElement('img');
+        img.src = objectURL;
+        img.alt = "Ảnh xem trước";
+        imagePreviewContainer.appendChild(img);
       }
     });
 
-    async function loadPosts() {
-      const res = await fetch('/api/posts', { credentials: 'include' });
-      const posts = await res.json();
-      const postsDiv = document.getElementById('posts');
-      postsDiv.innerHTML = '';
+    function renderPost(post) {
+      const isAdmin = currentUser?.username === "Vuvantuan1122";
+      const postDiv = document.createElement('div');
+      postDiv.className = 'card';
+      postDiv.dataset.postId = post._id; // Thêm data-id để nhận diện
 
-      for (const post of posts) {
-        const div = document.createElement('div');
-        div.className = 'post-box';
-        div.innerHTML = `
-          <p>
-            <b>${post.author || "Ẩn danh"}</b> - ${new Date(post.createdAt).toLocaleString()}
-            ${currentUser?.username === "Vuvantuan1122" ? 
-              `<button onclick="deletePost('${post._id}')" style="float:right; background:#e74c3c; border:none; color:white; padding:4px 8px; border-radius:4px; cursor:pointer;">Xoá</button>` 
-              : ""}
-          </p>
-          <p>${post.caption}</p>
-          ${post.imageUrl ? `<img src="${post.imageUrl}" alt="Ảnh">` : ""}
-          <div class="comments" id="comments-${post._id}">
-            <b>Bình luận:</b>
-            <div class="comment-list"></div>
-            <form class="comment-form" data-id="${post._id}" enctype="multipart/form-data">
-              <label for="comment-image-${post._id}">📎</label>
-              <input type="file" name="image" accept="image/*" id="comment-image-${post._id}" style="display:none">
-              <input type="text" name="content" placeholder="Viết bình luận...">
-              <button type="submit">➢</button>
-            </form>
+      postDiv.innerHTML = `
+        <div class="post-header">
+          <div class="post-author-info">
+            <span class="post-author">${post.author || "Ẩn danh"}</span>
+            <span class="post-time">${new Date(post.createdAt).toLocaleString('vi-VN')}</span>
           </div>
-        `;
-        postsDiv.appendChild(div);
-        loadComments(post._id);
+          <div class="post-actions">
+            <button class="action-btn btn-report" data-action="report-post" title="Báo cáo">
+                <i class="fas fa-flag"></i>
+            </button>
+            ${isAdmin ? `
+            <button class="action-btn btn-delete" data-action="delete-post" title="Xoá bài viết">
+                <i class="fas fa-trash"></i>
+            </button>` : ""}
+          </div>
+        </div>
+        <p class="post-caption">${post.caption}</p>
+        ${post.imageUrl ? `<div class="post-image"><img src="${post.imageUrl}" alt="Ảnh bài đăng"></div>` : ""}
+
+        <div class="comments-section">
+            <h4>Bình luận</h4>
+            <div class="comment-list"></div>
+            <form class="comment-form" data-action="submit-comment" enctype="multipart/form-data">
+                <label for="comment-image-${post._id}" class="btn-comment-action" title="Đính kèm ảnh">
+                    <i class="fas fa-paperclip"></i>
+                </label>
+                <input type="file" name="image" accept="image/*" id="comment-image-${post._id}" style="display:none">
+                <input type="text" name="content" placeholder="Viết bình luận..." required>
+                <button type="submit" class="btn-comment-action" title="Gửi bình luận">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+      `;
+      return postDiv;
+    }
+
+    async function loadPosts() {
+      try {
+        const res = await fetch('/api/posts', { credentials: 'include' });
+        const posts = await res.json();
+        postsContainer.innerHTML = ''; // Xóa bài đăng cũ
+        for (const post of posts) {
+          const postElement = renderPost(post);
+          postsContainer.appendChild(postElement);
+          loadComments(post._id);
+        }
+      } catch (err) {
+        console.error("Failed to load posts:", err);
       }
+    }
+    
+    function renderComment(comment, postId) {
+      const commentDiv = document.createElement('div');
+      commentDiv.className = 'comment';
+      commentDiv.dataset.commentId = comment._id;
+
+      commentDiv.innerHTML = `
+        <div class="comment-header">
+            <span class="comment-author">${comment.author || 'Ẩn danh'}</span>
+            <span class="comment-meta">IP: ${comment.ip || 'ẩn'}</span>
+            <button class="delete-comment-btn" data-action="delete-comment" title="Xoá bình luận">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="comment-content">
+            <p>${comment.content || ''}</p>
+            ${comment.imageUrl ? `<img src="${comment.imageUrl}" style="max-width:200px; margin-top:5px;">` : ''}
+        </div>
+      `;
+      return commentDiv;
     }
 
     async function loadComments(postId) {
-      const res = await fetch(`/api/posts/${postId}/comments`, { credentials: 'include' });
-      const comments = await res.json();
-      const list = document.querySelector(`#comments-${postId} .comment-list`);
-      list.innerHTML = '';
-      comments.forEach(c => {
-  const div = document.createElement('div');
-  div.className = 'comment';
+       try {
+        const res = await fetch(`/api/posts/${postId}/comments`, { credentials: 'include' });
+        const comments = await res.json();
+        const commentList = document.querySelector(`.card[data-post-id='${postId}'] .comment-list`);
+        if (commentList) {
+          commentList.innerHTML = '';
+          comments.forEach(c => {
+            const commentElement = renderComment(c, postId);
+            commentList.appendChild(commentElement);
+          });
+        }
+       } catch (err) {
+           console.error(`Failed to load comments for post ${postId}:`, err);
+       }
+    }
+    
+    // === Xử lý sự kiện tập trung (Event Delegation) ===
+    document.addEventListener('click', async (e) => {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
 
-  div.innerHTML = `
-    <b>${c.author}:</b> ${c.content || ''}
-    <small style="color:#888;">(IP: ${c.ip || 'ẩn'})</small>
-    <button class="delete-comment" data-post="${postId}" data-id="${c._id}" style="margin-left:10px;">🗑</button>
-  `;
+        const action = target.dataset.action;
+        const postElement = target.closest('.card[data-post-id]');
+        const postId = postElement?.dataset.postId;
+        
+        switch (action) {
+            case 'report-post':
+                if (postId) reportPost(postId);
+                break;
+            case 'delete-post':
+                if (postId) deletePost(postId);
+                break;
+            case 'delete-comment':
+                const commentElement = target.closest('.comment[data-comment-id]');
+                const commentId = commentElement?.dataset.commentId;
+                if(postId && commentId) deleteComment(postId, commentId);
+                break;
+        }
+    });
 
-  if (c.imageUrl) {
-    div.innerHTML += `<br><img src="${c.imageUrl}" style="max-width:200px; border-radius:4px; margin-top:5px;">`;
-  }
+    document.addEventListener('submit', async (e) => {
+        const target = e.target;
+        if (target.matches('#postForm')) {
+            e.preventDefault();
+            const submitBtn = target.querySelector('button[type="submit"]');
+            const formData = new FormData(target);
+            if (!formData.get('image').size && !formData.get('caption').trim()) {
+                alert('Vui lòng viết nội dung hoặc chọn một hình ảnh để đăng!');
+                return;
+            }
+            if(!formData.get('image').size) formData.delete('image');
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang đăng...';
 
-  list.appendChild(div);
-});
+            try {
+                await fetch('/api/posts', { method: 'POST', body: formData, credentials: 'include' });
+                target.reset();
+                imagePreviewContainer.innerHTML = '';
+                await loadPosts();
+            } catch (err) {
+                alert("Đã xảy ra lỗi khi đăng bài.");
+                console.error(err);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Đăng bài';
+            }
+        }
+        
+        if (target.matches('.comment-form')) {
+            e.preventDefault();
+            const postId = target.closest('.card[data-post-id]').dataset.postId;
+            const formData = new FormData(target);
+            
+            // Xoá file ảnh nếu không được chọn
+            if (!formData.get('image')?.size) {
+                formData.delete('image');
+            }
+
+            if (!formData.get('content')?.trim() && !formData.has('image')) {
+                return; // Không gửi nếu trống
+            }
+
+            try {
+                await fetch(`/api/posts/${postId}/comments`, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+                target.reset();
+                loadComments(postId);
+            } catch (err) {
+                console.error("Error posting comment:", err);
+            }
+        }
+    });
+
+    async function reportPost(postId) {
+      const reason = prompt("Nhập lý do báo cáo:");
+      if (!reason || reason.trim() === '') return;
+      try {
+        const res = await fetch("/api/reports", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", },
+            credentials: "include",
+            body: JSON.stringify({ postId, reason })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert("Đã gửi báo cáo tới admin!");
+        } else {
+            alert(data.message || "Lỗi khi báo cáo");
+        }
+      } catch (err) {
+          alert("Không thể kết nối đến máy chủ để báo cáo.");
+      }
     }
 
     async function deletePost(postId) {
-      if (!confirm("Bạn có chắc chắn muốn xoá bài này?")) return;
-      const res = await fetch(`/api/posts/${postId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-      const result = await res.json();
-      if (result.success) {
-        alert("Đã xoá bài!");
-        loadPosts();
-      } else {
-        alert(result.message || "Không xoá được bài");
-      }
-    }
-
-    document.getElementById('postForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      if (!formData.get('image').size) {
-        alert('Vui lòng chọn một hình ảnh để đăng!');
-        return;
-      }
-      await fetch('/api/posts', { method: 'POST', body: formData, credentials: 'include' });
-      e.target.reset();
-      imagePreviewContainer.innerHTML = '';
-      await loadPosts();
-    });
-
-    document.addEventListener('submit', async e => {
-      if (e.target.classList.contains('comment-form')) {
-        e.preventDefault();
-        const postId = e.target.dataset.id;
-        const formData = new FormData(e.target);
-        await fetch(`/api/posts/${postId}/comments`, {
-          method: 'POST',
-          body: formData,
+      if (!confirm("Bạn có chắc chắn muốn xoá bài viết này? Hành động này không thể hoàn tác.")) return;
+      try {
+        const res = await fetch(`/api/posts/${postId}`, {
+          method: 'DELETE',
           credentials: 'include'
         });
-        e.target.reset();
-        loadComments(postId);
+        const result = await res.json();
+        if (result.success) {
+          alert("Đã xoá bài viết thành công!");
+          const postElement = document.querySelector(`.card[data-post-id='${postId}']`);
+          if (postElement) postElement.remove();
+        } else {
+          alert(result.message || "Không xoá được bài viết.");
+        }
+      } catch (err) {
+          alert("Lỗi kết nối khi xoá bài.");
       }
-    });
+    }
+    
+    async function deleteComment(postId, commentId) {
+        // Implement your comment deletion logic here. Example:
+        // if (!confirm("Xoá bình luận này?")) return;
+        // await fetch(`/api/posts/${postId}/comments/${commentId}`, { method: 'DELETE', ... });
+        // After successful deletion:
+        // const commentElement = document.querySelector(`.comment[data-comment-id='${commentId}']`);
+        // if (commentElement) commentElement.remove();
+        console.log(`Placeholder: Would delete comment ${commentId} from post ${postId}`);
+        alert("Chức năng xoá bình luận chưa được cài đặt ở phía máy chủ (backend).");
+    }
 
-    // ✅ Khởi động
+    // ✅ Khởi động ứng dụng
     getCurrentUser().then(loadPosts);
   </script>
 </body>
