@@ -10,7 +10,9 @@ const cors = require('cors');
 const Post = require("./models/Post");
 const Comment = require("./models/Comment");
 const Report = require("./models/Report");
-
+const Exam = require("./models/Exam");
+const Result = require("./models/Result");
+const fetch = require("node-fetch");
 // --- CHAT ---
 const http = require('http');
 const { Server } = require('socket.io');
@@ -192,7 +194,31 @@ app.post('/api/register', async (req, res) => {
     res.status(500).json({ message: 'Lỗi máy chủ.' });
   }
 });
+app.post("/api/chat", async (req, res) => {
+  try {
+    const { message } = req.body;
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama3-70b-8192",
+        messages: [
+          { role: "system", content: "Bạn là một trợ lý AI hữu ích và thân thiện cho học sinh." },
+          { role: "user", content: message }
+        ]
+      })
+    });
 
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "API Error" });
+  }
+});
 // =======================
 // ✅ API: Đăng nhập / Đăng xuất
 // =======================
@@ -395,7 +421,82 @@ app.put('/api/students/:id/scores', async (req, res) => {
     res.status(500).json({ message: 'Lỗi máy chủ.' });
   }
 });
+app.post("/api/exams", async (req, res) => {
+  if (!req.session.user || req.session.user.role !== "teacher") {
+    return res.status(403).json({ message: "Chỉ giáo viên được tạo đề thi" });
+  }
+  const exam = new Exam({ ...req.body, createdBy: req.session.user.username });
+  await exam.save();
+  res.json({ success: true, exam });
+});
 
+// Lấy đề thi (học sinh)
+app.get("/api/exams/:id", async (req, res) => {
+  const exam = await Exam.findById(req.params.id);
+  if (!exam) return res.status(404).json({ message: "Không tìm thấy đề thi" });
+
+  // ẩn đáp án đúng
+  const safeExam = {
+    _id: exam._id,
+    title: exam.title,
+    subject: exam.subject,
+    duration: exam.duration,
+    questions: exam.questions.map(q => ({
+      _id: q._id,
+      question: q.question,
+      options: q.options,
+      type: q.type
+    }))
+  };
+
+  res.json(safeExam);
+});
+
+// Nộp bài
+app.post("/api/exams/:id/submit", async (req, res) => {
+  const { answers } = req.body;
+  const exam = await Exam.findById(req.params.id);
+  if (!exam) return res.status(404).json({ message: "Không tìm thấy đề thi" });
+
+  let score = 0;
+  exam.questions.forEach((q, i) => {
+    if ((q.type === "tracnghiem" || q.type === "truefalse")) {
+      if (answers[i] != null && parseInt(answers[i]) === q.correctAnswer) {
+        score++;
+      }
+    }
+    // với shortanswer: giáo viên sẽ chấm tay sau
+  });
+
+  const result = new Result({
+    examId: exam._id,
+    userId: req.session.user?.username || "unknown",
+    answers,
+    score
+  });
+  await result.save();
+
+  res.json({ success: true, score });
+});
+
+// Giáo viên xem kết quả
+app.get("/api/exams/:id/results", async (req, res) => {
+  if (!req.session.user || req.session.user.role !== "teacher") {
+    return res.status(403).json({ message: "Không có quyền" });
+  }
+  const results = await Result.find({ examId: req.params.id });
+  res.json(results);
+});
+
+// Giáo viên chấm tự luận
+app.post("/api/results/:id/grade", async (req, res) => {
+  const { score } = req.body;
+  if (!req.session.user || req.session.user.role !== "teacher") {
+    return res.status(403).json({ message: "Không có quyền" });
+  }
+  const result = await Result.findByIdAndUpdate(req.params.id, { score, status: "graded" }, { new: true });
+  res.json({ success: true, result });
+});
 // =======================
 // ✅ API: Upload file chat (ảnh/tệp/video - Cloudinary)
 // =======================
@@ -405,30 +506,70 @@ app.post('/chat-upload', chatUpload.single('file'), (req, res) => {
   }
   res.json({ url: req.file.path }); // Cloudinary trả về URL
 });
+// Lấy tất cả đề thi
+app.get("/api/exams", async (req, res) => {
+  try {
+    const exams = await Exam.find().sort({ createdAt: -1 });
+    const safeExams = exams.map(exam => ({
+      _id: exam._id,
+      title: exam.title,
+      subject: exam.subject,
+      duration: exam.duration,
+      createdBy: exam.createdBy,
+      createdAt: exam.createdAt
+    }));
+    res.json(safeExams);
+  } catch (err) {
+    res.status(500).json({ message: "Lỗi server", error: err.message });
+  }
+});
 
+// =======================
+// ✅ SOCKET.IO CHAT
+// =======================
 // =======================
 // ✅ SOCKET.IO CHAT
 // =======================
 let onlineUsers = 0;
 
 io.on("connection", (socket) => {
-  console.log("✅ Người dùng kết nối:", socket.id);
+  // Lấy user từ session (express-socket.io-session)
+  const sessionUser = socket.handshake.session?.user;
+  socket.username = sessionUser?.username || "Ẩn danh";
 
-  // khi client gửi username
-  socket.on("join-call", (username) => {
-    socket.username = username;
-    socket.broadcast.emit("user-joined", { id: socket.id, username });
+  onlineUsers++;
+  console.log("✅ Người dùng kết nối:", socket.id, "->", socket.username);
+  io.emit("serverMessage", `${socket.username} đã tham gia phòng chat`);
+  io.emit("onlineCount", onlineUsers);
+
+  // Khi client gửi tin nhắn (text hoặc object)
+  socket.on("chatMessage", (payload) => {
+    // Nếu client chỉ gửi chuỗi, chuyển thành object
+    if (typeof payload === "string") {
+      payload = { user: socket.username, message: payload };
+    } else {
+      // nếu client gửi object có message nhưng không có user, gán từ session
+      payload.user = payload.user || socket.username;
+    }
+
+    // Phát lại cho tất cả client
+    io.emit("chatMessage", payload);
   });
 
-  socket.on("disconnect", () => {
-    io.emit("user-left", { id: socket.id, username: socket.username });
-  });
-
-  // signaling cho WebRTC
+  // Hỗ trợ signaling cho WebRTC (videocall)
   socket.on("offer", (data) => socket.broadcast.emit("offer", { ...data, from: socket.id }));
   socket.on("answer", (data) => socket.broadcast.emit("answer", { ...data, from: socket.id }));
   socket.on("ice-candidate", (data) => socket.broadcast.emit("ice-candidate", { ...data, from: socket.id }));
+
+  socket.on("disconnect", () => {
+    onlineUsers = Math.max(0, onlineUsers - 1);
+    console.log("❌ Người dùng ngắt kết nối:", socket.id, socket.username);
+    io.emit("serverMessage", `${socket.username} đã rời khỏi phòng`);
+    io.emit("onlineCount", onlineUsers);
+  });
 });
+
+
 
 
 // =======================
