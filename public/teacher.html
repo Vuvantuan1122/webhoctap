@@ -1,19 +1,194 @@
-<h3>Danh sách bài nộp:</h3>
-<ul id="fileList"></ul>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Quản lý đề thi</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-4">
+  <h1 class="mb-4 text-center">👩‍🏫 Quản lý đề thi</h1>
+
+  <!-- Form tạo đề thi -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h3 class="card-title">Tạo đề thi mới</h3>
+      <form id="createExamForm">
+        <div class="mb-3">
+          <label class="form-label">Tên đề thi</label>
+          <input type="text" id="title" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Môn học</label>
+          <input type="text" id="subject" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Thời gian (phút)</label>
+          <input type="number" id="duration" class="form-control" required>
+        </div>
+
+        <h5>Câu hỏi</h5>
+        <div id="questionsContainer"></div>
+        <button type="button" class="btn btn-outline-primary mb-3" onclick="addQuestion()">➕ Thêm câu hỏi</button>
+
+        <button type="submit" class="btn btn-success w-100">✅ Tạo đề thi</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Kết quả -->
+  <h3>Kết quả thi</h3>
+  <input type="text" id="examId" class="form-control mb-2" placeholder="Nhập Exam ID để xem kết quả">
+  <button class="btn btn-info mb-3" onclick="loadResults()">📊 Xem kết quả</button>
+  <div id="results"></div>
+</div>
 
 <script>
-  async function loadFiles() {
-    const res = await fetch('/files', { credentials: 'include' });
-    const files = await res.json();
+let questionIndex = 0;
 
-    const list = document.getElementById('fileList');
-    list.innerHTML = '';
-    files.forEach(file => {
-      const li = document.createElement('li');
-      li.innerHTML = `<a href="/uploads/${file}" target="_blank">${file}</a>`;
-      list.appendChild(li);
-    });
+function addQuestion() {
+  const qId = "q" + Date.now();
+  const container = document.createElement("div");
+  container.classList.add("card", "p-3", "mb-3");
+  container.innerHTML = `
+    <div class="mb-2">
+      <label>Nội dung câu hỏi</label>
+      <input type="text" class="form-control question-text">
+    </div>
+    <div class="mb-2">
+      <label>Loại câu hỏi</label>
+      <select class="form-select question-type" onchange="renderOptions('${qId}', this.value)">
+        <option value="tracnghiem">Trắc nghiệm</option>
+        <option value="truefalse">Đúng / Sai</option>
+        <option value="shortanswer">Trả lời ngắn</option>
+      </select>
+    </div>
+    <!-- 🔑 div rỗng để render đáp án -->
+    <div id="${qId}-options" class="mb-2"></div>
+    <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">❌ Xóa</button>
+  `;
+  document.getElementById("questionsContainer").appendChild(container);
+
+  // render mặc định trắc nghiệm
+  renderOptions(qId, "tracnghiem");
+}
+
+
+function renderOptions(qId, type) {
+  // 🔑 phải có dòng này để lấy div rỗng ra trước
+  const optionsDiv = document.getElementById(`${qId}-options`);
+
+  if (type === "tracnghiem") {
+    optionsDiv.innerHTML = `
+      <label>Nhập các đáp án (ít nhất 2):</label>
+      <div class="mb-2">
+        <input type="text" class="form-control option-input" placeholder="Đáp án 1">
+      </div>
+      <div class="mb-2">
+        <input type="text" class="form-control option-input" placeholder="Đáp án 2">
+      </div>
+      <div class="mb-2">
+        <input type="text" class="form-control option-input" placeholder="Đáp án 3 (tùy chọn)">
+      </div>
+      <div class="mb-2">
+        <input type="text" class="form-control option-input" placeholder="Đáp án 4 (tùy chọn)">
+      </div>
+      <input type="number" class="form-control correct-answer" placeholder="Số thứ tự đáp án đúng (1-4)">
+    `;
+  } else if (type === "truefalse") {
+    optionsDiv.innerHTML = `
+      <p>Chọn đáp án đúng:</p>
+      <div class="form-check">
+        <input class="form-check-input correct-answer" type="radio" name="${qId}-ans" value="0" checked>
+        <label class="form-check-label">Đúng</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input correct-answer" type="radio" name="${qId}-ans" value="1">
+        <label class="form-check-label">Sai</label>
+      </div>
+    `;
+  } else if (type === "shortanswer") {
+    optionsDiv.innerHTML = `
+      <label>Đáp án chuẩn (có thể bỏ trống để chấm tay):</label>
+      <input type="text" class="form-control correct-answer" placeholder="Ví dụ: Hà Nội">
+    `;
   }
+}
+// Submit form
+document.getElementById("createExamForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const title = document.getElementById("title").value;
+  const subject = document.getElementById("subject").value;
+  const duration = parseInt(document.getElementById("duration").value);
 
-  loadFiles();
+  const questions = [];
+  document.querySelectorAll("#questionsContainer .card").forEach(card => {
+    const question = card.querySelector(".question-text").value;
+    const type = card.querySelector(".question-type").value;
+
+    let options = [];
+    let correctAnswer = null;
+
+    if (type === "tracnghiem") {
+      options = Array.from(card.querySelectorAll(".option-input")).map(opt => opt.value).filter(v => v);
+      correctAnswer = parseInt(card.querySelector(".correct-answer").value);
+    } else if (type === "truefalse") {
+      options = ["Đúng", "Sai"];
+      correctAnswer = parseInt(card.querySelector(".correct-answer:checked").value);
+    } else if (type === "shortanswer") {
+      correctAnswer = card.querySelector(".correct-answer").value || null;
+    }
+
+    questions.push({ question, type, options, correctAnswer });
+  });
+
+  let res = await fetch("/api/exams", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, subject, duration, questions })
+  });
+  let data = await res.json();
+  if (data.exam) {
+    alert("✅ Tạo đề thi thành công! Exam ID: " + data.exam._id);
+  } else {
+    alert("❌ Lỗi: " + (data.message || "Không tạo được đề thi"));
+  }
+});
+// Load results
+async function loadResults() {
+  let examId = document.getElementById("examId").value;
+  let res = await fetch(`/api/exams/${examId}/results`);
+  let data = await res.json();
+
+  let html = `
+    <table class="table table-bordered">
+      <thead><tr><th>Học sinh</th><th>Điểm</th><th>Bài tự luận</th><th>Chấm</th></tr></thead>
+      <tbody>`;
+  data.forEach(r => {
+    const shortAns = r.answers.filter(a => typeof a.answer === "string").map(a => `<li>${a.answer}</li>`).join("");
+    html += `<tr>
+      <td>${r.userId}</td>
+      <td>${r.score ?? "-"}</td>
+      <td><ul>${shortAns}</ul></td>
+      <td><button class="btn btn-sm btn-primary" onclick="gradeResult('${r._id}')">Chấm</button></td>
+    </tr>`;
+  });
+  html += "</tbody></table>";
+  document.getElementById("results").innerHTML = html;
+}
+
+async function gradeResult(resultId) {
+  let score = prompt("Nhập điểm cho bài này:");
+  if (!score) return;
+  let res = await fetch(`/api/results/${resultId}/grade`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ score: parseInt(score) })
+  });
+  let data = await res.json();
+  alert("✅ Đã chấm: " + data.result.score);
+  loadResults();
+}
 </script>
+</body>
+</html>
