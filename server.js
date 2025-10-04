@@ -13,6 +13,7 @@ const Report = require("./models/Report");
 const Exam = require("./models/Exam");
 const Result = require("./models/Result");
 const fetch = require("node-fetch");
+const ExitLog = require("./models/ExitLog");
 // --- CHAT ---
 const http = require('http');
 const { Server } = require('socket.io');
@@ -437,55 +438,129 @@ app.get("/api/exams/:id", async (req, res) => {
 
   // ẩn đáp án đúng
   const safeExam = {
-    _id: exam._id,
-    title: exam.title,
-    subject: exam.subject,
-    duration: exam.duration,
-    questions: exam.questions.map(q => ({
-      _id: q._id,
-      question: q.question,
-      options: q.options,
-      type: q.type
-    }))
-  };
+  _id: exam._id,
+  title: exam.title,
+  subject: exam.subject,
+  duration: exam.duration,
+  passage: exam.passage,   // 👈 thêm dòng này
+  questions: exam.questions.map(q => ({
+    _id: q._id,
+    question: q.question,
+    options: q.options,
+    type: q.type
+  }))
+};
+
 
   res.json(safeExam);
 });
 
 // Nộp bài
+// Nộp bài
 app.post("/api/exams/:id/submit", async (req, res) => {
-  const { answers } = req.body;
-  const exam = await Exam.findById(req.params.id);
-  if (!exam) return res.status(404).json({ message: "Không tìm thấy đề thi" });
+  try {
+    const exam = await Exam.findById(req.params.id);
+    if (!exam) return res.status(404).json({ message: "Exam not found" });
 
-  let score = 0;
-  exam.questions.forEach((q, i) => {
-    if ((q.type === "tracnghiem" || q.type === "truefalse")) {
-      if (answers[i] != null && parseInt(answers[i]) === q.correctAnswer) {
-        score++;
+    const { answers } = req.body;
+    let correctCount = 0;
+    const detailedAnswers = [];
+
+    exam.questions.forEach((q, i) => {
+      const studentAns = answers[i];
+
+      if (q.type === "tracnghiem" || q.type === "truefalse") {
+        if (studentAns !== null && parseInt(studentAns) === parseInt(q.correctAnswer)) {
+          correctCount++;
+        }
       }
-    }
-    // với shortanswer: giáo viên sẽ chấm tay sau
-  });
 
-  const result = new Result({
-    examId: exam._id,
-    userId: req.session.user?.username || "unknown",
-    answers,
-    score
-  });
-  await result.save();
+      detailedAnswers.push({
+        question: q.question,
+        type: q.type,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        answer: studentAns
+      });
+    });
 
-  res.json({ success: true, score });
+    // ✅ Tính điểm theo thang 10
+    const totalQuestions = exam.questions.length; 
+const score = totalQuestions > 0 ? (correctCount / totalQuestions) * 10 : 0;
+
+    const result = new Result({
+      examId: exam._id,
+      userId: req.session.user?.username || "anonymous",
+      answers: detailedAnswers,
+      score: Math.round(score * 10) / 10,
+      status: "graded"
+    });
+
+    await result.save();
+
+    res.json({ message: "Nộp bài thành công", score: result.score, result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi khi nộp bài" });
+  }
 });
+
+app.post("/api/exams/:id/exit-log", async (req, res) => {
+  try {
+    const log = new ExitLog({
+      examId: req.params.id,
+      userId: req.session.user?.username || "unknown",
+      reason: req.body.reason
+    });
+    await log.save();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ✅ Lấy lịch sử thoát cho giáo viên xem
+app.get("/api/exams/:id/exit-log", async (req, res) => {
+  try {
+    const logs = await ExitLog.find({ examId: req.params.id }).sort({ timestamp: -1 });
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 
 // Giáo viên xem kết quả
 app.get("/api/exams/:id/results", async (req, res) => {
-  if (!req.session.user || req.session.user.role !== "teacher") {
-    return res.status(403).json({ message: "Không có quyền" });
+  try {
+    const examId = req.params.id;
+    const results = await Result.find({ examId }).lean();
+    const exam = await Exam.findById(examId).lean();
+
+    // Gắn thêm thông tin câu hỏi để đối chiếu
+    const detailedResults = results.map(r => {
+      return {
+        _id: r._id,
+        userId: r.userId,
+        score: r.score,
+        answers: r.answers.map((ans, i) => {
+          const q = exam.questions[i];
+          return {
+            type: q.type,
+            question: q.question,
+            options: q.options,
+            answer: ans,               // câu trả lời của học sinh
+            correctAnswer: q.correctAnswer // đáp án đúng (nếu có)
+          };
+        })
+      };
+    });
+
+    res.json(detailedResults);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi khi lấy kết quả" });
   }
-  const results = await Result.find({ examId: req.params.id });
-  res.json(results);
 });
 
 // Giáo viên chấm tự luận
