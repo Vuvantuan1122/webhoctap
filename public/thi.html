@@ -2,103 +2,386 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Làm bài thi</title>
+  
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-  <div class="container py-4">
-    <h1 class="text-center mb-4">✏️ Làm bài thi</h1>
-    <div class="alert alert-info text-center" id="timer">⏳ Đang tải...</div>
-    <form id="examForm" class="mb-3"></form>
-    <button type="button" class="btn btn-success w-100" onclick="submitExam()">Nộp bài</button>
-  </div>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 
+  <style>
+    /* --- CÀI ĐẶT CHUNG & CHO DI ĐỘNG (MOBILE-FIRST) --- */
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f0f2f5;
+    }
+
+    .exam-header {
+      background-color: #fff;
+      border-bottom: 1px solid #dee2e6;
+      z-index: 1030;
+      /* Dính trên cùng màn hình khi cuộn trên di động */
+      position: sticky;
+      top: 0;
+    }
+
+    .exam-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    #timer {
+      font-weight: 600;
+      font-size: 1.1rem;
+      transition: color 0.3s;
+    }
+
+    #timer.timer-warning {
+      color: #dc3545; /* Màu đỏ cảnh báo */
+    }
+    
+    .scrollable-pane {
+        padding: 1.5rem;
+    }
+    
+    #passage-content .highlight {
+      background-color: #ffc;
+      cursor: pointer;
+    }
+
+    .question-card {
+      background-color: #fff;
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    .question-card .card-header {
+        font-weight: 600;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .option-label {
+      display: block;
+      padding: 1rem;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .option-label:hover {
+      background-color: #e9ecef;
+      border-color: #0d6efd;
+    }
+    .form-check-input:checked + .option-label {
+      background-color: #0d6efd;
+      color: white;
+      border-color: #0d6efd;
+      font-weight: 500;
+    }
+    .form-check-input {
+        display: none;
+    }
+    
+    /* --- CSS CHO MÀN HÌNH LỚN (>= 768px) --- */
+    @media (min-width: 768px) {
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* Toàn màn hình */
+    overflow: hidden; /* Ngăn body cuộn */
+  }
+
+  .exam-header {
+    position: static;
+    flex-shrink: 0;
+  }
+
+  .main-content {
+    flex-grow: 1;
+    display: flex;
+    height: 100%; /* Toàn chiều cao còn lại */
+  }
+
+  /* mỗi cột có scroll riêng */
+  #passageColumn, #questionColumn {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #passageColumn .scrollable-pane,
+  #questionColumn .scrollable-pane {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-bottom: 2rem;
+  }
+
+  /* Tuỳ chỉnh thanh cuộn */
+  .scrollable-pane::-webkit-scrollbar { width: 8px; }
+  .scrollable-pane::-webkit-scrollbar-track { background: #f1f1f1; }
+  .scrollable-pane::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+  .scrollable-pane::-webkit-scrollbar-thumb:hover { background: #555; }
+}
+  </style>
+</head>
+<body>
+
+  <header class="exam-header shadow-sm py-2 px-3">
+    <div class="d-flex justify-content-between align-items-center">
+      <h1 class="exam-title mb-0" id="examTitle">✏️ Đang tải bài thi...</h1>
+      <div class="d-flex align-items-center">
+        <div id="timer" class="alert alert-info py-2 px-3 mb-0 me-3">⏳ --:--</div>
+        <button type="button" class="btn btn-success fw-bold" data-bs-toggle="modal" data-bs-target="#confirmSubmitModal">
+          <i class="bi bi-check-circle-fill me-2"></i>Nộp bài
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content row g-0">
+    <div id="passageColumn" class="col-md-5 bg-white border-end">
+      <div class="scrollable-pane">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">📜 Đoạn văn tham khảo</h5>
+          <button class="btn btn-outline-primary btn-sm" onclick="highlightSelection()">
+            <i class="bi bi-highlighter"></i> Đánh dấu
+          </button>
+        </div>
+        <div id="passage-content" class="text-secondary" onclick="removeHighlight(event)"></div>
+      </div>
+    </div>
+
+    <div id="questionColumn" class="col-md-7">
+      <div class="scrollable-pane">
+        <form id="examForm"></form>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal fade" id="confirmSubmitModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Xác nhận nộp bài</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Bạn có chắc chắn muốn nộp bài thi không? Mọi thay đổi sau khi nộp sẽ không được ghi nhận.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="button" class="btn btn-primary" onclick="submitExam()">Đồng ý nộp bài</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal fade" id="resultModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <h3 id="resultTitle"></h3>
+                <p id="resultText" class="lead"></p>
+                <button type="button" class="btn btn-primary mt-3" onclick="window.location.href = 'exams.html'">Về trang chủ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const examId = new URLSearchParams(window.location.search).get("id");
     let examData = null;
     let timeLeft = 0;
+    let timerInterval = null;
+    let examSubmitted = false;
+    const confirmModal = new bootstrap.Modal(document.getElementById('confirmSubmitModal'));
+    const resultModal = new bootstrap.Modal(document.getElementById('resultModal'));
 
     async function loadExam() {
-      let res = await fetch(`/api/exams/${examId}`);
-      examData = await res.json();
-      timeLeft = examData.duration * 60;
+      try {
+        let res = await fetch(`/api/exams/${examId}`);
+        if (!res.ok) throw new Error("Không thể tải dữ liệu bài thi.");
+        examData = await res.json();
+        
+        document.getElementById('examTitle').textContent = `✏️ ${examData.title}`;
+        timeLeft = examData.duration * 60;
+        
+        // Hiển thị đoạn văn
+        if (examData.passage) {
+          document.getElementById('passage-content').innerHTML = `<p>${examData.passage.replace(/\n/g, '<br>')}</p>`;
+        } else {
+          document.getElementById("passageColumn").style.display = "none";
+          document.getElementById("questionColumn").classList.remove("col-md-7", "col-md-5");
+          document.getElementById("questionColumn").classList.add("col-12");
+        }
 
-      let html = "";
-      examData.questions.forEach((q, i) => {
-        html += `
-          <div class="card mb-3 shadow-sm">
-            <div class="card-body">
-              <h5>Câu ${i+1}: ${q.question}</h5>`;
-        if (q.type === "tracnghiem") {
-  q.options.forEach((opt, j) => {
-    html += `
-      <div class="form-check">
-        <input class="form-check-input" type="radio" name="q${i}" value="${j}">
-        <label class="form-check-label">${opt}</label>
-      </div>`;
-  });
-} else if (q.type === "truefalse") {
-  html += `
-    <div class="form-check">
-      <input class="form-check-input" type="radio" name="q${i}" value="0">
-      <label class="form-check-label">Đúng</label>
-    </div>
-    <div class="form-check">
-      <input class="form-check-input" type="radio" name="q${i}" value="1">
-      <label class="form-check-label">Sai</label>
-    </div>`;
-} else {
-  html += `<textarea class="form-control" name="q${i}" rows="3"></textarea>`;
-}
+        // Hiển thị câu hỏi
+        let html = "";
+        examData.questions.forEach((q, i) => {
+          html += `
+            <div class="card question-card mb-4">
+              <div class="card-header">Câu ${i+1}: ${q.question}</div>
+              <div class="card-body">`;
+          
+          if (q.type === "tracnghiem") {
+            q.options.forEach((opt, j) => {
+              html += `
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="q${i}" id="q${i}o${j}" value="${j}">
+                  <label class="form-check-label option-label" for="q${i}o${j}">${opt}</label>
+                </div>`;
+            });
+          } else if (q.type === "truefalse") {
+            html += `
+              <div class="form-check">
+                  <input class="form-check-input" type="radio" name="q${i}" id="q${i}o0" value="0">
+                  <label class="form-check-label option-label" for="q${i}o0">Đúng</label>
+              </div>
+              <div class="form-check">
+                  <input class="form-check-input" type="radio" name="q${i}" id="q${i}o1" value="1">
+                  <label class="form-check-label option-label" for="q${i}o1">Sai</label>
+              </div>`;
+          } else {
+            html += `<textarea class="form-control" name="q${i}" rows="4" placeholder="Nhập câu trả lời của bạn..."></textarea>`;
+          }
+          html += "</div></div>";
+        });
 
-        html += "</div></div>";
-      });
-
-      document.getElementById("examForm").innerHTML = html;
-      startTimer();
+        document.getElementById("examForm").innerHTML = html;
+        startTimer();
+      } catch (error) {
+        document.body.innerHTML = `<div class="alert alert-danger m-5">${error.message}</div>`;
+      }
     }
 
     function startTimer() {
-      let timerEl = document.getElementById("timer");
-      let interval = setInterval(() => {
-        let minutes = Math.floor(timeLeft / 60);
-        let seconds = timeLeft % 60;
-        timerEl.innerText = `⏳ Thời gian còn lại: ${minutes}:${seconds}`;
+      const timerEl = document.getElementById("timer");
+      timerInterval = setInterval(() => {
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          timerEl.textContent = "⌛ Hết giờ!";
+          submitExam(true); // Tự động nộp bài khi hết giờ
+          return;
+        }
+
         timeLeft--;
-        if (timeLeft < 0) {
-          clearInterval(interval);
-          submitExam();
+        const minutes = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+        const seconds = String(timeLeft % 60).padStart(2, '0');
+        timerEl.innerHTML = `⏳ ${minutes}:${seconds}`;
+
+        if (timeLeft < 60) {
+          timerEl.classList.add('timer-warning');
         }
       }, 1000);
     }
 
-    async function submitExam() {
+    async function submitExam(isAutoSubmit = false) {
+      if (!isAutoSubmit) {
+        confirmModal.hide();
+      }
+      clearInterval(timerInterval);
+      examSubmitted = true; 
+      
       let answers = [];
       examData.questions.forEach((q, i) => {
-  let val = null;
-  if (q.type === "tracnghiem" || q.type === "truefalse") {
-    const checked = document.querySelector(`input[name="q${i}"]:checked`);
-    val = checked ? checked.value : null;
-  } else if (q.type === "shortanswer") {
-    const textarea = document.querySelector(`textarea[name="q${i}"]`);
-    val = textarea ? textarea.value : "";
-  }
-  answers.push(val);
-});
-
-      let res = await fetch(`/api/exams/${examId}/submit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers })
+        let val = null;
+        if (q.type === "tracnghiem" || q.type === "truefalse") {
+          const checked = document.querySelector(`input[name="q${i}"]:checked`);
+          val = checked ? checked.value : null;
+        } else { // 'shortanswer' or other types
+          const textarea = document.querySelector(`textarea[name="q${i}"]`);
+          val = textarea ? textarea.value.trim() : "";
+        }
+        answers.push(val);
       });
-      let data = await res.json();
-      const autoGraded = examData.questions.filter(q => q.type === "tracnghiem" || q.type === "truefalse").length;
-alert("✅ Đã nộp! Điểm: " + data.score + "/" + autoGraded);
 
-      window.location.href = "exams.html";
+      try {
+        const res = await fetch(`/api/exams/${examId}/submit`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ answers })
+        });
+        const data = await res.json();
+        
+        const autoGradedCount = examData.questions.filter(q => q.type !== 'shortanswer').length;
+        document.getElementById('resultTitle').innerHTML = isAutoSubmit ? '🔔 Hết giờ!' : '✅ Nộp bài thành công!';
+        document.getElementById('resultText').textContent =
+  `Điểm của bạn là: ${data.score.toFixed(1)}/10 (Các câu trả lời tự luận sẽ được chấm sau).`;
+
+        resultModal.show();
+      } catch (error) {
+        document.getElementById('resultTitle').innerHTML = '❌ Đã xảy ra lỗi!';
+        document.getElementById('resultText').textContent = 'Không thể nộp bài thi. Vui lòng kiểm tra lại kết nối.';
+        resultModal.show();
+      }
+    }
+
+    // --- Chức năng đánh dấu chữ ---
+    function highlightSelection() {
+      const selection = window.getSelection();
+      if (!selection.rangeCount || selection.isCollapsed) return;
+      
+      const range = selection.getRangeAt(0);
+      const span = document.createElement('span');
+      span.className = 'highlight';
+      
+      try {
+        range.surroundContents(span);
+      } catch (e) {
+        console.warn("Không thể đánh dấu vùng chọn này.", e);
+      }
+      selection.removeAllRanges();
+    }
+
+    function removeHighlight(event) {
+      const target = event.target;
+      if (target.classList.contains('highlight')) {
+        const parent = target.parentNode;
+        while (target.firstChild) {
+          parent.insertBefore(target.firstChild, target);
+        }
+        parent.removeChild(target);
+        parent.normalize(); // Gộp các text node lại
+      }
     }
 
     loadExam();
+    async function reportExit(reason) {
+  try {
+    await fetch(`/api/exams/${examId}/exit-log`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason })
+    });
+  } catch (err) {
+    console.error("Không ghi được log thoát:", err);
+  }
+}
+// Khi đóng tab hoặc reload
+window.addEventListener("beforeunload", function (e) {
+  reportExit("Đóng tab hoặc tải lại");
+  e.preventDefault();
+  e.returnValue = "Bạn có chắc chắn muốn thoát? Lịch sử sẽ bị ghi lại.";
+});
+
+// Khi chuyển tab hoặc ẩn cửa sổ
+document.addEventListener("visibilitychange", function () {
+  if (document.hidden && !examSubmitted) {
+    reportExit("Chuyển tab hoặc ẩn cửa sổ");
+  }
+});
+
   </script>
 </body>
 </html>
