@@ -1,20 +1,17 @@
 const mongoose = require("mongoose");
 
 const QuestionSchema = new mongoose.Schema({
-  question: { type: String, required: true },
+  question: String,
   options: [String],
-  correctAnswer: { type: mongoose.Schema.Types.Mixed, default: null },
-  type: { 
-    type: String, 
-    enum: ["tracnghiem", "truefalse", "shortanswer"], 
-    default: "tracnghiem" 
-  }
+  correctAnswer: Number,
+  type: { type: String, enum: ["tracnghiem", "truefalse", "shortanswer"], default: "tracnghiem" }
 });
 
 const ExamSchema = new mongoose.Schema({
-  title: { type: String, required: true },
+  title: String,
   subject: String,
-  duration: Number, // phút
+  duration: Number,
+  passage: String, // ✅ thêm đoạn văn đọc hiểu
   questions: [QuestionSchema],
   createdBy: String,
   createdAt: { type: Date, default: Date.now }
