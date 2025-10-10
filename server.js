@@ -12,14 +12,15 @@ const Comment = require("./models/Comment");
 const Report = require("./models/Report");
 const Exam = require("./models/Exam");
 const Result = require("./models/Result");
-const fetch = require("node-fetch");
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const ExitLog = require("./models/ExitLog");
 // --- CHAT ---
 const http = require('http');
 const { Server } = require('socket.io');
-
+const { sendVerificationEmail } = require('./utils/mailer');
 const User = require('./models/user');
 const Student = require('./models/student');
+
 
 const app = express();
 const server = http.createServer(app);
@@ -176,50 +177,164 @@ app.get("/api/posts/:id/comments", async (req, res) => {
 // =======================
 // ✅ API: Đăng ký tài khoản
 // =======================
-app.post('/api/register', async (req, res) => {
-  const { username, email, password, role, school, class: userClass } = req.body;
-  if (!username || !email || !password || !role) {
-    return res.status(400).json({ message: 'Thiếu thông tin.' });
-  }
+const nodemailer = require('nodemailer'); 
+
+app.post('/api/send-otp', async (req, res) => {
+  const { email } = req.body;
 
   try {
-    const existing = await User.findOne({ username });
-    if (existing) return res.status(400).json({ message: 'Tài khoản đã tồn tại.' });
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ message: "Email không hợp lệ." });
+    }
 
-    const newUser = new User({ username, email, password, role, school, class: userClass });
+    // Kiểm tra nếu email đã có user xác thực
+    const existingUser = await User.findOne({ email, isVerified: true });
+    if (existingUser) {
+      return res.json({ message: 'Email đã được đăng ký tài khoản.' });
+    }
+
+    // Tạo mã OTP 6 chữ số
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Lưu OTP tạm thời vào file (có thể đổi sang DB sau)
+    fs.writeFileSync(
+      'temp-otp.json',
+      JSON.stringify({ email, otpCode, time: Date.now() })
+    );
+
+    // Gửi email
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    await transporter.sendMail({
+      from: `"Xác thực tài khoản" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Mã xác thực đăng ký",
+      text: `Mã xác nhận của bạn là: ${otpCode}`
+    });
+
+    console.log("✅ Đã gửi mã OTP tới:", email);
+    res.json({ message: "Mã xác thực đã được gửi qua email." });
+  } catch (err) {
+    console.error("❌ Lỗi gửi OTP:", err);
+    res.status(500).json({ message: "Lỗi máy chủ khi gửi OTP." });
+  }
+});
+
+// 🧩 Xác minh OTP và tạo tài khoản thật
+app.post('/api/register', async (req, res) => {
+  const { username, email, password, role, school, class: cls, otp } = req.body;
+
+  try {
+    // Kiểm tra file OTP
+    if (!fs.existsSync('temp-otp.json')) {
+      return res.status(400).json({ message: "Chưa có mã OTP nào được gửi." });
+    }
+
+    const otpData = JSON.parse(fs.readFileSync('temp-otp.json', 'utf-8'));
+    if (!otpData || otpData.email !== email || otpData.otpCode !== otp) {
+      return res.status(400).json({ message: "Mã OTP không đúng." });
+    }
+
+    if (Date.now() - otpData.time > 10 * 60 * 1000) {
+      return res.status(400).json({ message: "Mã OTP đã hết hạn." });
+    }
+
+    // Xoá OTP sau khi dùng
+    fs.unlinkSync('temp-otp.json');
+
+    // Kiểm tra nếu user tồn tại
+    const existing = await User.findOne({ email });
+    if (existing && existing.isVerified) {
+      return res.status(400).json({ message: "Tài khoản đã tồn tại." });
+    }
+
+    // Tạo tài khoản thật (sau khi xác thực)
+    const newUser = new User({
+      username,
+      email,
+      password,
+      role,
+      school,
+      class: cls,
+      isVerified: true
+    });
+
     await newUser.save();
 
-    res.json({ message: 'Đăng ký thành công!' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Lỗi máy chủ.' });
+    console.log("✅ Đã tạo tài khoản cho:", email);
+    res.json({ message: "✅ Tạo tài khoản thành công!" });
+  } catch (err) {
+    console.error("❌ Lỗi khi tạo tài khoản:", err);
+    res.status(500).json({ message: "Lỗi máy chủ khi tạo tài khoản." });
+  }
+});
+app.post('/api/verify-otp', async (req, res) => {
+  const { email, otp } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
+
+    if (user.emailToken !== otp || Date.now() > user.emailTokenExpires) {
+      return res.status(400).json({ message: "Mã OTP không đúng hoặc đã hết hạn" });
+    }
+
+    user.isVerified = true;
+    user.emailToken = null;
+    await user.save();
+
+    res.json({ message: "✅ Xác thực thành công!" });
+  } catch (err) {
+    res.status(500).json({ message: "Lỗi máy chủ khi xác thực OTP" });
   }
 });
 app.post("/api/chat", async (req, res) => {
   try {
     const { message } = req.body;
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "llama3-70b-8192",
-        messages: [
-          { role: "system", content: "Bạn là một trợ lý AI hữu ích và thân thiện cho học sinh." },
-          { role: "user", content: message }
-        ]
-      })
-    });
+
+    // Gọi Gemini API
+    const response = await fetch(
+      // ✅ SỬA Ở ĐÂY: Thay 'gemini-1.5-flash' bằng 'gemini-2.5-flash'
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: message }]
+            }
+          ]
+        })
+      }
+    );
 
     const data = await response.json();
-    res.json(data);
+    console.log("Gemini response:", JSON.stringify(data, null, 2));
+
+    // Trích phản hồi
+    let reply = "⚠️ Không có phản hồi từ Gemini.";
+
+if (data?.candidates?.length > 0) {
+  const parts = data.candidates[0].content?.parts;
+  if (parts && parts.length > 0) {
+    reply = parts.map(p => p.text || "").join("\n");
+  }
+}
+    res.json({ reply });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "API Error" });
+    res.status(500).json({ reply: "⚠️ Lỗi khi gọi Gemini API." });
   }
 });
+
+
 // =======================
 // ✅ API: Đăng nhập / Đăng xuất
 // =======================
@@ -227,7 +342,7 @@ app.post('/api/login', async (req, res) => {
   const { username, password, role } = req.body;
 
   try {
-    const user = await User.findOne({ username, password, role });
+    const user = await User.findOne({ username, password, role, isVerified: true });
     if (!user) return res.status(401).json({ message: 'Sai tài khoản hoặc mật khẩu.' });
 
     // 📌 Lưu session
@@ -268,11 +383,12 @@ app.post('/upload', baiTapUpload.single('image'), (req, res) => {
   if (!req.file || !req.file.path) return res.status(400).json({ message: 'Chưa có ảnh nào được gửi lên' });
 
   const imageUrl = req.file.path;
+  const subject = req.body.subject || 'Không rõ'; // 👈 NEW: Lấy môn học từ body
 
   const imagesFile = 'images.json';
   const images = fs.existsSync(imagesFile) ? JSON.parse(fs.readFileSync(imagesFile)) : [];
 
-  images.push({ id: Date.now(), url: imageUrl, timestamp: Date.now() });
+  images.push({ id: Date.now(), url: imageUrl, timestamp: Date.now(), subject: subject }); // 👈 NEW: Lưu môn học
   fs.writeFileSync(imagesFile, JSON.stringify(images, null, 2));
 
   res.json({ message: 'Tải lên thành công', imageUrl });
@@ -310,7 +426,7 @@ app.get('/api/users', async (req, res) => {
 });
 app.get('/api/admin/login-ips', async (req, res) => {
   const admin = req.session.user;
-  if (!admin || admin.username !== 'Vuvantaun1122') {
+  if (!admin || admin.username !== 'Vuvantuan1122') {
     return res.status(403).json({ message: 'Không có quyền truy cập' });
   }
 
@@ -549,7 +665,7 @@ app.get("/api/exams/:id/results", async (req, res) => {
             type: q.type,
             question: q.question,
             options: q.options,
-            answer: ans,               // câu trả lời của học sinh
+            answer: ans.answer,// câu trả lời của học sinh
             correctAnswer: q.correctAnswer // đáp án đúng (nếu có)
           };
         })
@@ -598,7 +714,18 @@ app.get("/api/exams", async (req, res) => {
     res.status(500).json({ message: "Lỗi server", error: err.message });
   }
 });
+app.get("/api/results", async (req, res) => {
+  try {
+    const results = await Result.find()
+      .populate("examId", "title subject createdAt") // lấy thêm thông tin đề thi
+      .sort({ createdAt: -1 })
+      .lean();
 
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ message: "Lỗi khi lấy tất cả kết quả", error: err.message });
+  }
+});
 // =======================
 // ✅ SOCKET.IO CHAT
 // =======================
