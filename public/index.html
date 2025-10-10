@@ -7,6 +7,7 @@
     <title>Dashboard | NT</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* === Biến CSS và Thiết lập chung === */
         :root {
@@ -14,7 +15,7 @@
             --background-image: url('4.jpg');
             --text-primary: #f0f2f5;
             --text-secondary: #b0b9c6;
-            --surface-color: rgba(30, 32, 38, 0.7);
+            --surface-color: rgba(30, 32, 38, 0.9); /* Làm tối hơn cho dễ đọc */
             --surface-hover: rgba(45, 48, 56, 0.9);
             --border-color: rgba(255, 255, 255, 0.1);
             --shadow-color: rgba(0, 0, 0, 0.5);
@@ -38,19 +39,8 @@
             color: var(--text-primary);
             overflow-x: hidden;
         }
-
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: -1;
-        }
         
-        /* === Loading Screen Styles MỚI === */
+        /* === Loading Screen Styles === */
         #loader-wrapper {
             position: fixed;
             top: 0;
@@ -75,8 +65,8 @@
         }
 
         .loader {
-            border: 8px solid var(--border-color); /* Light grey */
-            border-top: 8px solid var(--primary-color); /* Blue/Primary color */
+            border: 8px solid var(--border-color);
+            border-top: 8px solid var(--primary-color);
             border-radius: 50%;
             width: 60px;
             height: 60px;
@@ -129,7 +119,7 @@
         }
 
         .menu-toggle {
-            display: none; /* Ẩn trên desktop */
+            display: none;
             font-size: 1.5rem;
             cursor: pointer;
             color: var(--text-primary);
@@ -159,7 +149,7 @@
 
         #welcome-message {
             font-weight: 500;
-            display: none; /* Ẩn trên mobile cho gọn */
+            display: none;
         }
         
         .streak-box {
@@ -178,7 +168,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            background: rgba(58, 123, 253, 0.1); /* Màu nền dựa trên màu chính */
+            background: rgba(58, 123, 253, 0.1);
             color: var(--primary-color);
             padding: 8px 12px;
             border-radius: 20px;
@@ -245,7 +235,7 @@
         }
 
         #logoutBtn {
-            margin-top: auto; /* Đẩy xuống cuối */
+            margin-top: auto;
             width: 100%;
             padding: 15px;
             background-color: var(--surface-hover);
@@ -270,13 +260,17 @@
         /* === Modals (Popups) === */
         .modal-overlay {
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 199;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
             display: none;
             opacity: 0;
             transition: opacity 0.3s ease;
+            z-index: 999;
         }
+        
         .modal-overlay.show { display: block; opacity: 1; }
 
         .modal {
@@ -288,7 +282,7 @@
             border: 1px solid var(--border-color);
             border-radius: var(--border-radius);
             padding: 25px;
-            z-index: 200;
+            z-index: 1001;
             display: none;
             box-shadow: 0 10px 30px var(--shadow-color);
             opacity: 0;
@@ -410,6 +404,7 @@
             }
             .sidebar.open {
                 transform: translateX(0);
+                z-index: 1000;
             }
             .menu-toggle {
                 display: block;
@@ -420,8 +415,290 @@
         }
     </style>
 </head>
+<div id="chat-widget">
+    <div id="chat-bubble"><i class="bx bx-message-rounded-dots"></i></div>
+    <div id="chat-box">
+        <div id="chat-header">
+            <span>🤖 AI Học Tập</span>
+            <button id="chat-close">&times;</button>
+        </div>
+        <div id="chat-messages">
+            </div>
+        <div id="typing-indicator" style="display:none;" class="bot-msg">
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        <div id="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Nhập câu hỏi, bài tập..." />
+            <button id="chat-send"><i class="bx bx-send"></i></button>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* === SỬA ĐỔI: Chat Widget Styles === */
+    #chat-widget {
+        position: fixed;
+        bottom: 20px;
+        right: 25px;
+        z-index: 1500;
+    }
+
+    #chat-bubble {
+        width: 60px;
+        height: 60px;
+        background: var(--primary-color);
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 1.8rem;
+        cursor: pointer;
+        box-shadow: 0 4px 12px var(--shadow-color);
+        transition: transform 0.2s, background 0.3s;
+    }
+    #chat-bubble:hover { 
+        transform: scale(1.1); 
+        background: #5b92ff;
+    }
+
+    #chat-box {
+        display: none;
+        position: absolute;
+        bottom: 80px;
+        right: 0;
+        width: 350px; /* Tăng chiều rộng */
+        height: 450px; /* Tăng chiều cao */
+        background: var(--surface-color);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 8px 24px var(--shadow-color);
+        overflow: hidden;
+        display: flex; /* Dùng flex để bố cục bên trong */
+        flex-direction: column;
+        animation: fadeInUp 0.3s ease;
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    #chat-header {
+        background: var(--primary-color);
+        color: white;
+        padding: 12px 15px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0; /* Không co lại */
+    }
+
+    #chat-header span {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    #chat-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    #chat-close:hover { color: var(--danger-color); }
+
+    #chat-messages {
+        flex-grow: 1; /* Cho phép mở rộng chiều cao */
+        overflow-y: auto;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background-color: rgba(0, 0, 0, 0.1); /* Màu nền nhẹ cho khu vực tin nhắn */
+    }
+
+    .chat-msg {
+        padding: 10px 14px;
+        border-radius: 18px;
+        line-height: 1.4;
+        max-width: 85%;
+        word-wrap: break-word;
+        font-size: 0.95rem;
+    }
+
+    .user-msg {
+        align-self: flex-end;
+        background: var(--primary-color);
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .bot-msg {
+        align-self: flex-start;
+        background: var(--surface-hover); /* Màu nền tối hơn, nổi bật hơn */
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        border-bottom-left-radius: 4px;
+    }
+
+    #chat-input-area {
+        display: flex;
+        border-top: 1px solid var(--border-color);
+        flex-shrink: 0;
+    }
+
+    #chat-input {
+        flex: 1;
+        padding: 15px;
+        background: transparent;
+        border: none;
+        color: var(--text-primary);
+        outline: none;
+        font-size: 1rem;
+    }
+
+    #chat-send {
+        background: var(--primary-color);
+        border: none;
+        color: white;
+        padding: 10px 15px;
+        cursor: pointer;
+        font-size: 1.2rem;
+        transition: background 0.2s;
+    }
+    #chat-send:hover {
+        background: #5b92ff;
+    }
+
+    /* === HIỆU ỨNG 3 CHẤM (TYPING INDICATOR) === */
+    #typing-indicator {
+        align-self: flex-start;
+        display: flex;
+        align-items: center;
+        padding: 10px 14px;
+        border-radius: 18px;
+        border-bottom-left-radius: 4px;
+        background: var(--surface-hover);
+        width: fit-content;
+        margin: 10px 0;
+    }
+
+    .typing-dots span {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        background: var(--text-primary);
+        border-radius: 50%;
+        margin: 0 2px;
+        opacity: 0;
+        animation: typing 1s infinite;
+    }
+
+    .typing-dots span:nth-child(1) {
+        animation-delay: 0s;
+    }
+    .typing-dots span:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+    .typing-dots span:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+        0% { transform: translateY(0); opacity: 0.5; }
+        25% { transform: translateY(-4px); opacity: 1; }
+        50% { transform: translateY(0); opacity: 0.5; }
+        100% { transform: translateY(0); opacity: 0.5; }
+    }
+</style>
+
+<script>
+    // === SỬA ĐỔI: Chat Logic ===
+    const chatBubble = document.getElementById("chat-bubble");
+    const chatBox = document.getElementById("chat-box");
+    const chatClose = document.getElementById("chat-close");
+    const chatSend = document.getElementById("chat-send");
+    const chatInput = document.getElementById("chat-input");
+    const chatMessages = document.getElementById("chat-messages");
+    const typingIndicator = document.getElementById("typing-indicator"); // Thêm indicator
+
+    // Khởi tạo trạng thái ban đầu (Ẩn chat box, hiển thị bubble)
+    chatBox.style.display = "none";
+    chatBubble.style.display = "flex";
+
+    chatBubble.addEventListener("click", () => {
+        chatBox.style.display = "flex";
+        chatBubble.style.display = "none";
+        chatInput.focus();
+    });
+
+    chatClose.addEventListener("click", () => {
+        chatBox.style.display = "none";
+        chatBubble.style.display = "flex";
+    });
+
+    function addMessage(text, sender = "bot") {
+        const msg = document.createElement("div");
+        msg.classList.add("chat-msg", sender === "user" ? "user-msg" : "bot-msg");
+        msg.textContent = text;
+        chatMessages.appendChild(msg);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    chatSend.addEventListener("click", sendMessage);
+    chatInput.addEventListener("keypress", e => {
+        if (e.key === "Enter") sendMessage();
+    });
+
+    function showTypingIndicator() {
+        typingIndicator.style.display = "flex";
+        chatMessages.appendChild(typingIndicator); // Đảm bảo nó ở dưới cùng
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+        typingIndicator.style.display = "none";
+        if (typingIndicator.parentNode) {
+            typingIndicator.parentNode.removeChild(typingIndicator); // Xóa khỏi DOM sau khi dùng
+        }
+    }
+
+    function sendMessage() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        addMessage(text, "user");
+        chatInput.value = "";
+        showTypingIndicator(); // Bắt đầu hiển thị 3 chấm
+
+        fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text })
+        })
+            .then(res => res.json())
+            .then(data => {
+                hideTypingIndicator(); // Ẩn 3 chấm
+                addMessage(data.reply || "⚠️ Không có phản hồi từ AI. Vui lòng kiểm tra kết nối server.", "bot");
+            })
+            .catch(() => {
+                hideTypingIndicator(); // Ẩn 3 chấm ngay cả khi có lỗi
+                addMessage("⚠️ Lỗi kết nối đến AI server.", "bot");
+            });
+    }
+</script>
 
 <body>
+    
     <div id="loader-wrapper">
         <div class="loader"></div>
         <div class="loader-text">Đang tải...</div>
@@ -544,10 +821,6 @@
             modalOverlay.classList.remove('show');
         }
 
-        modalOverlay.addEventListener('click', () => {
-            allModals.forEach(closeModal);
-        });
-
         document.querySelectorAll('.btn-close-modal').forEach(button => {
             button.addEventListener('click', () => {
                 const modal = button.closest('.modal');
@@ -563,7 +836,16 @@
             modalOverlay.classList.toggle('show');
         });
 
+        // === Hợp nhất quản lý sự kiện click trên Overlay (Đã sửa) ===
         modalOverlay.addEventListener('click', () => {
+            // 1. Đóng tất cả các modal đang mở
+            allModals.forEach(modal => {
+                if (modal.classList.contains('show')) {
+                    closeModal(modal);
+                }
+            });
+
+            // 2. Nếu sidebar trên mobile đang mở thì cũng đóng nó
             if (sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
                 modalOverlay.classList.remove('show');

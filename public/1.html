@@ -10,6 +10,7 @@
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 
     <style>
+        
         :root {
             --primary-color: #00aaff;
             --white-color: #ffffff;
@@ -18,10 +19,9 @@
             --bg-glass: rgba(255, 255, 255, 0.05);
             --input-bg: rgba(255, 255, 255, 0.1);
         }
-        
-        /* Đảm bảo cuộn mượt mà */
+
         html {
-            scroll-behavior: smooth; 
+            scroll-behavior: smooth;
         }
 
         * {
@@ -30,9 +30,8 @@
             box-sizing: border-box;
             font-family: 'Poppins', sans-serif;
         }
-        
+
         body {
-            /* Thay thế ảnh nền ở đây */
             background: url('https://images.unsplash.com/photo-1484589065579-248aad0d8b13?q=80&w=1959&auto=format&fit=crop') no-repeat center center fixed;
             background-size: cover;
             color: var(--white-color);
@@ -40,9 +39,9 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            overflow: hidden; /* Ngăn cuộn chính khi animation chạy */
+            overflow: hidden;
         }
-        
+
         .header {
             position: fixed;
             top: 0;
@@ -56,7 +55,7 @@
             z-index: 100;
             backdrop-filter: blur(5px);
         }
-        
+
         .logo {
             font-size: 25px;
             color: var(--white-color);
@@ -78,7 +77,7 @@
         .navbar a.active {
             color: var(--white-color);
         }
-        
+
         .navbar a::after {
             content: '';
             position: absolute;
@@ -91,17 +90,16 @@
             transform: scaleX(0);
             transition: transform 0.3s ease;
         }
-        
+
         .navbar a:hover::after {
             transform: scaleX(1);
         }
-        
+
         .container {
             position: relative;
             width: 90%;
             max-width: 850px;
-            /* Chiều cao cố định cho desktop */
-            height: 650px; 
+            height: 650px;
             background: transparent;
             border: 2px solid rgba(255, 255, 255, 0.2);
             border-radius: 20px;
@@ -109,9 +107,9 @@
             box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
-            overflow: hidden; 
+            overflow: hidden;
         }
-        
+
         .content {
             position: absolute;
             top: 0;
@@ -122,16 +120,15 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            transition: transform 0.6s ease, opacity 0.6s ease; 
+            transition: transform 0.6s ease, opacity 0.6s ease;
         }
 
-        /* Ẩn phần chữ khi container active */
         .container.active .content {
-            transform: translateX(-50px); 
-            opacity: 0; 
+            transform: translateX(-50px);
+            opacity: 0;
             pointer-events: none;
         }
-        
+
         .content h2 {
             font-size: 40px;
             font-weight: 700;
@@ -142,29 +139,29 @@
             margin-right: 10px;
             vertical-align: middle;
         }
-        
+
         .content .welcome-text {
             font-size: 18px;
             margin: 20px 0;
             color: var(--text-color);
         }
-        
+
         .social-icon {
             margin-top: 20px;
         }
-        
+
         .social-icon a i {
             font-size: 25px;
             color: var(--text-color);
             margin-right: 15px;
             transition: 0.3s ease;
         }
-        
+
         .social-icon a:hover i {
             transform: scale(1.2);
             color: var(--primary-color);
         }
-        
+
         .logreg-box {
             position: absolute;
             top: 0;
@@ -185,22 +182,19 @@
             padding: 0 50px;
             transition: transform 0.6s ease-in-out;
         }
-        
+
         .form-box.login {
             transform: translateX(0);
         }
 
         .form-box.register {
-            /* THÊM CUỘN DESKTOP: Giới hạn chiều cao và cho phép cuộn */
-            max-height: 90%; 
-            overflow-y: auto; 
-            
-            align-items: center; 
-            padding: 20px 50px 10px 50px; 
-            transform: translateX(100%); 
+            max-height: 90%;
+            overflow-y: auto;
+            align-items: center;
+            padding: 20px 50px 10px 50px;
+            transform: translateX(100%);
         }
-        
-        /* Hiệu ứng trượt form */
+
         .container.active .form-box.login {
             transform: translateX(-100%);
         }
@@ -208,21 +202,21 @@
         .container.active .form-box.register {
             transform: translateX(0);
         }
-        
+
         .form-box h3 {
             font-size: 28px;
             text-align: center;
-            margin-bottom: 15px; 
+            margin-bottom: 15px;
             font-weight: 600;
         }
 
         .input-box {
             position: relative;
             width: 100%;
-            height: 40px; 
-            margin: 8px 0; 
+            height: 40px;
+            margin: 8px 0;
         }
-        
+
         .input-box input,
         .input-box select {
             width: 100%;
@@ -237,7 +231,6 @@
             transition: border-color 0.3s ease;
         }
 
-        /* Tùy chỉnh mũi tên cho select */
         .input-box select {
             -webkit-appearance: none;
             -moz-appearance: none;
@@ -258,23 +251,23 @@
         .input-box select:focus {
             border-color: var(--primary-color);
         }
-        
+
         .input-box input::placeholder {
             color: var(--text-color);
         }
 
         .input-box i {
             position: absolute;
-            left: 10px; 
+            left: 10px;
             top: 50%;
             transform: translateY(-50%);
-            font-size: 18px; 
+            font-size: 18px;
             color: var(--text-color);
         }
-        
+
         .btn {
             width: 100%;
-            height: 40px; 
+            height: 40px;
             background: var(--primary-color);
             border: none;
             outline: none;
@@ -287,82 +280,78 @@
             transition: all 0.3s ease;
             margin-top: 10px;
         }
-        
+
         .btn:hover {
             background: #0099e6;
             box-shadow: 0 6px 20px rgba(0, 170, 255, 0.5);
             transform: translateY(-2px);
         }
-        
+
         .login-register {
             font-size: 14.5px;
             text-align: center;
-            margin-top: 10px; 
+            margin-top: 10px;
         }
-        
+
         .login-register p a {
             color: var(--primary-color);
             text-decoration: none;
             font-weight: 600;
         }
-        
+
         .login-register p a:hover {
             text-decoration: underline;
         }
-        
-        /* ===================================== */
-        /* === MEDIA QUERY CHO MOBILE (<= 900px) === */
-        /* ===================================== */
+
         @media (max-width: 900px) {
-            
-            /* Container chính */
             .container {
                 flex-direction: column;
                 max-width: 450px;
-                height: auto; 
+                height: auto;
                 padding: 30px;
             }
-            
-            /* Phần Nội dung (Chữ Noah) */
+
             .content {
                 position: static;
                 width: 100%;
                 height: auto;
                 text-align: center;
                 padding: 20px 0;
-                transform: translateX(0) !important; 
+                transform: translateX(0) !important;
                 opacity: 1 !important;
                 pointer-events: auto !important;
             }
-            
-            /* Khung chứa 2 form (logreg-box) */
+
             .logreg-box {
                 position: static;
                 width: 100%;
                 height: auto;
-                /* FIX LỖI TRÀN MOBILE: Giới hạn chiều cao và thanh cuộn */
-                max-height: 450px; 
-                overflow-y: auto; 
-                padding-top: 20px; 
-                background: rgba(0, 0, 0, 0.2); 
+                max-height: 450px;
+                overflow-y: auto;
+                padding-top: 20px;
+                background: rgba(0, 0, 0, 0.2);
                 border-radius: 10px;
             }
-            
-            /* Form Box */
+
             .form-box {
-                position: static; 
+                position: static;
                 padding: 0 10px;
-                height: auto; 
-                
-                /* Reset các thuộc tính cuộn của desktop */
-                max-height: initial; 
+                height: auto;
+                max-height: initial;
                 overflow-y: initial;
             }
-            
-            /* Logic Ẩn/Hiện Form trên Mobile */
-            .form-box.register { display: none; }
-            .container.active .form-box.login { display: none; }
-            .container.active .form-box.register { display: flex; }
+
+            .form-box.register {
+                display: none;
+            }
+
+            .container.active .form-box.login {
+                display: none;
+            }
+
+            .container.active .form-box.register {
+                display: flex;
+            }
         }
     </style>
 </head>
@@ -386,14 +375,14 @@
                 <form action="#">
                     <div class="input-box">
                         <i class='bx bxs-user'></i>
-                        <input type="text" placeholder="Username" required/>
+                        <input type="text" placeholder="Username" required />
                     </div>
                     <div class="input-box">
                         <i class='bx bxs-lock-alt'></i>
-                        <input type="password" placeholder="Password" required/>
+                        <input type="password" placeholder="Password" required />
                     </div>
                     <div class="input-box">
-                         <i class='bx bxs-user-check'></i>
+                        <i class='bx bxs-user-check'></i>
                         <select id="loginRole" required>
                             <option value="" disabled selected>-- Chọn vai trò --</option>
                             <option value="student">Học sinh</option>
@@ -412,23 +401,27 @@
                 <form action="#">
                     <div class="input-box">
                         <i class='bx bxs-user'></i>
-                        <input type="text" placeholder="Username" required/>
+                        <input type="text" id="username" placeholder="Username" required />
                     </div>
                     <div class="input-box">
                         <i class='bx bxs-envelope'></i>
-                        <input type="email" placeholder="Email" required/>
+                        <input type="email" id="email" placeholder="Email" required />
+                    </div>
+                    <div class="mb-3 d-flex">
+                        <input type="text" id="otp" class="form-control me-2" placeholder="Nhập mã xác thực" disabled>
+                        <button type="button" id="sendOtpBtn" class="btn btn-primary">Gửi mã</button>
                     </div>
                     <div class="input-box">
                         <i class='bx bxs-lock-alt'></i>
-                        <input type="password" placeholder="Password" required/>
+                        <input type="password" id="password" placeholder="Password" required />
                     </div>
-                     <div class="input-box">
+                    <div class="input-box">
                         <i class='bx bxs-lock-alt'></i>
-                        <input type="password" placeholder="Confirm Password" required/>
+                        <input type="password" id="confirmPassword" placeholder="Confirm Password" required />
                     </div>
                     <div class="input-box">
                         <i class='bx bxs-user-check'></i>
-                        <select id="registerRole" required>
+                        <select id="role" required>
                             <option value="" disabled selected>-- Chọn vai trò --</option>
                             <option value="student">Học sinh</option>
                             <option value="teacher">Giáo viên</option>
@@ -437,65 +430,65 @@
                     <div class="input-box">
                         <i class='bx bxs-map'></i>
                         <select id="registerProvince" required>
-                             <option value="" disabled selected>-- Chọn tỉnh thành --</option>
-                             <option value="An Giang">An Giang</option>
-                             <option value="Bà Rịa - Vũng Tàu">Bà Rịa - Vũng Tàu</option>
-                             <option value="Bắc Giang">Bắc Giang</option>
-                             <option value="Bắc Kạn">Bắc Kạn</option>
-                             <option value="Bạc Liêu">Bạc Liêu</option>
-                             <option value="Bắc Ninh">Bắc Ninh</option>
-                             <option value="Bến Tre">Bến Tre</option>
-                             <option value="Bình Định">Bình Định</option>
-                             <option value="Bình Dương">Bình Dương</option>
-                             <option value="Bình Phước">Bình Phước</option>
-                             <option value="Bình Thuận">Bình Thuận</option>
-                             <option value="Cà Mau">Cà Mau</option>
-                             <option value="Cao Bằng">Cao Bằng</option>
-                             <option value="Đắk Lắk">Đắk Lắk</option>
-                             <option value="Đắk Nông">Đắk Nông</option>
-                             <option value="Điện Biên">Điện Biên</option>
-                             <option value="Đồng Nai">Đồng Nai</option>
-                             <option value="Đồng Tháp">Đồng Tháp</option>
-                             <option value="Gia Lai">Gia Lai</option>
-                             <option value="Hà Giang">Hà Giang</option>
-                             <option value="Hà Nam">Hà Nam</option>
-                             <option value="Hà Tĩnh">Hà Tĩnh</option>
-                             <option value="Hải Dương">Hải Dương</option>
-                             <option value="Hậu Giang">Hậu Giang</option>
-                             <option value="Hòa Bình">Hòa Bình</option>
-                             <option value="Hưng Yên">Hưng Yên</option>
-                             <option value="Khánh Hòa">Khánh Hòa</option>
-                             <option value="Kiên Giang">Kiên Giang</option>
-                             <option value="Kon Tum">Kon Tum</option>
-                             <option value="Lai Châu">Lai Châu</option>
-                             <option value="Lâm Đồng">Lâm Đồng</option>
-                             <option value="Lạng Sơn">Lạng Sơn</option>
-                             <option value="Lào Cai">Lào Cai</option>
-                             <option value="Long An">Long An</option>
-                             <option value="Nam Định">Nam Định</option>
-                             <option value="Nghệ An">Nghệ An</option>
-                             <option value="Ninh Bình">Ninh Bình</option>
-                             <option value="Ninh Thuận">Ninh Thuận</option>
-                             <option value="Phú Thọ">Phú Thọ</option>
-                             <option value="Quảng Bình">Quảng Bình</option>
-                             <option value="Quảng Nam">Quảng Nam</option>
-                             <option value="Quảng Ngãi">Quảng Ngãi</option>
-                             <option value="Quảng Ninh">Quảng Ninh</option>
-                             <option value="Quảng Trị">Quảng Trị</option>
-                             <option value="Sóc Trăng">Sóc Trăng</option>
-                             <option value="Sơn La">Sơn La</option>
-                             <option value="Tây Ninh">Tây Ninh</option>
-                             <option value="Thái Bình">Thái Bình</option>
-                             <option value="Thái Nguyên">Thái Nguyên</option>
-                             <option value="Thanh Hóa">Thanh Hóa</option>
-                             <option value="Thừa Thiên Huế">Thừa Thiên Huế</option>
-                             <option value="Tiền Giang">Tiền Giang</option>
-                             <option value="Trà Vinh">Trà Vinh</option>
-                             <option value="Tuyên Quang">Tuyên Quang</option>
-                             <option value="Vĩnh Long">Vĩnh Long</option>
-                             <option value="Vĩnh Phúc">Vĩnh Phúc</option>
-                             <option value="Yên Bái">Yên Bái</option>
-                             <option value="Phú Yên">Phú Yên</option>
+                            <option value="" disabled selected>-- Chọn tỉnh thành --</option>
+                            <option value="An Giang">An Giang</option>
+                            <option value="Bà Rịa - Vũng Tàu">Bà Rịa - Vũng Tàu</option>
+                            <option value="Bắc Giang">Bắc Giang</option>
+                            <option value="Bắc Kạn">Bắc Kạn</option>
+                            <option value="Bạc Liêu">Bạc Liêu</option>
+                            <option value="Bắc Ninh">Bắc Ninh</option>
+                            <option value="Bến Tre">Bến Tre</option>
+                            <option value="Bình Định">Bình Định</option>
+                            <option value="Bình Dương">Bình Dương</option>
+                            <option value="Bình Phước">Bình Phước</option>
+                            <option value="Bình Thuận">Bình Thuận</option>
+                            <option value="Cà Mau">Cà Mau</option>
+                            <option value="Cao Bằng">Cao Bằng</option>
+                            <option value="Đắk Lắk">Đắk Lắk</option>
+                            <option value="Đắk Nông">Đắk Nông</option>
+                            <option value="Điện Biên">Điện Biên</option>
+                            <option value="Đồng Nai">Đồng Nai</option>
+                            <option value="Đồng Tháp">Đồng Tháp</option>
+                            <option value="Gia Lai">Gia Lai</option>
+                            <option value="Hà Giang">Hà Giang</option>
+                            <option value="Hà Nam">Hà Nam</option>
+                            <option value="Hà Tĩnh">Hà Tĩnh</option>
+                            <option value="Hải Dương">Hải Dương</option>
+                            <option value="Hậu Giang">Hậu Giang</option>
+                            <option value="Hòa Bình">Hòa Bình</option>
+                            <option value="Hưng Yên">Hưng Yên</option>
+                            <option value="Khánh Hòa">Khánh Hòa</option>
+                            <option value="Kiên Giang">Kiên Giang</option>
+                            <option value="Kon Tum">Kon Tum</option>
+                            <option value="Lai Châu">Lai Châu</option>
+                            <option value="Lâm Đồng">Lâm Đồng</option>
+                            <option value="Lạng Sơn">Lạng Sơn</option>
+                            <option value="Lào Cai">Lào Cai</option>
+                            <option value="Long An">Long An</option>
+                            <option value="Nam Định">Nam Định</option>
+                            <option value="Nghệ An">Nghệ An</option>
+                            <option value="Ninh Bình">Ninh Bình</option>
+                            <option value="Ninh Thuận">Ninh Thuận</option>
+                            <option value="Phú Thọ">Phú Thọ</option>
+                            <option value="Quảng Bình">Quảng Bình</option>
+                            <option value="Quảng Nam">Quảng Nam</option>
+                            <option value="Quảng Ngãi">Quảng Ngãi</option>
+                            <option value="Quảng Ninh">Quảng Ninh</option>
+                            <option value="Quảng Trị">Quảng Trị</option>
+                            <option value="Sóc Trăng">Sóc Trăng</option>
+                            <option value="Sơn La">Sơn La</option>
+                            <option value="Tây Ninh">Tây Ninh</option>
+                            <option value="Thái Bình">Thái Bình</option>
+                            <option value="Thái Nguyên">Thái Nguyên</option>
+                            <option value="Thanh Hóa">Thanh Hóa</option>
+                            <option value="Thừa Thiên Huế">Thừa Thiên Huế</option>
+                            <option value="Tiền Giang">Tiền Giang</option>
+                            <option value="Trà Vinh">Trà Vinh</option>
+                            <option value="Tuyên Quang">Tuyên Quang</option>
+                            <option value="Vĩnh Long">Vĩnh Long</option>
+                            <option value="Vĩnh Phúc">Vĩnh Phúc</option>
+                            <option value="Yên Bái">Yên Bái</option>
+                            <option value="Phú Yên">Phú Yên</option>
                         </select>
                     </div>
                     <div class="input-box">
@@ -503,10 +496,10 @@
                         <input type="text" id="registerSchool" placeholder="Nhập trường (VD: THPT Nguyễn Thiện Thuật)" required />
                     </div>
                     <div class="input-box">
-                         <i class='bx bxs-chalkboard'></i>
+                        <i class='bx bxs-chalkboard'></i>
                         <input type="text" id="registerClass" placeholder="Nhập lớp (VD: 10A1)" required />
                     </div>
-
+                    <div class="input-box" id="otpBox" style="display:none;"></div>
                     <button type="submit" id="registerBtn" class="btn">Register</button>
                     <div class="login-register">
                         <p>Already have an account? <a href="#" id="showLogin" class="login-link">Login</a></p>
@@ -521,7 +514,6 @@
         const loginForm = document.getElementById('loginForm');
         const registerForm = document.getElementById('registerForm');
 
-        // Toggle login/register bằng cách thêm/xóa class 'active' vào container
         document.getElementById('showRegister').addEventListener('click', e => {
             e.preventDefault();
             container.classList.add('active');
@@ -532,9 +524,7 @@
             container.classList.remove('active');
         });
 
-        // --- TÍNH NĂNG JAVASCRIPT ĐƯỢC GIỮ NGUYÊN ---
-
-        // Xử lý đăng nhập
+        // === Đăng nhập ===
         loginForm.querySelector('button').addEventListener('click', async (e) => {
             e.preventDefault();
             const username = loginForm.querySelector('input[type=text]').value.trim();
@@ -555,7 +545,7 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     localStorage.setItem('isLoggedIn', 'true');
                     localStorage.setItem('userData', JSON.stringify({
@@ -563,7 +553,6 @@
                         role: data.role
                     }));
 
-                    // Chuyển hướng theo vai trò
                     if (data.role === 'teacher') {
                         window.location.href = 'giaovien.html';
                     } else if (data.role === 'student') {
@@ -580,31 +569,66 @@
             }
         });
 
-        // Xử lý đăng ký
+        // === Gửi mã OTP ===
+        document.getElementById("sendOtpBtn").addEventListener("click", async () => {
+            const email = document.getElementById("email").value.trim();
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value.trim();
+            const role = document.getElementById("role").value;
+
+            if (!email || !username || !password || !role) {
+                alert("⚠️ Vui lòng nhập đầy đủ Username, Email, Password và chọn Vai trò trước khi gửi mã!");
+                return;
+            }
+
+            try {
+                const res = await fetch("/api/send-otp", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await res.json();
+                alert(data.message);
+
+                if (res.ok) {
+                    const otpInput = document.getElementById("otp");
+                    otpInput.disabled = false;
+                    otpInput.focus();
+                    document.getElementById("registerBtn").style.background = "#28a745";
+                    document.getElementById("registerBtn").textContent = "Register (Xác nhận OTP)";
+                }
+            } catch (err) {
+                console.error(err);
+                alert("❌ Lỗi máy chủ khi gửi mã!");
+            }
+        });
+
+        // === Đăng ký (Xác nhận OTP) ===
         registerForm.querySelector('#registerBtn').addEventListener('click', async e => {
             e.preventDefault();
 
-            const username = registerForm.querySelector('input[type=text]').value.trim();
-            const email = registerForm.querySelector('input[type=email]').value.trim();
-            const password = registerForm.querySelector('input[type=password]').value.trim();
-            const confirmPassword = registerForm.querySelectorAll('input[type=password]')[1].value.trim();
-            const role = document.getElementById('registerRole').value;
-            const province = document.getElementById('registerProvince').value;
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const confirmPassword = document.getElementById('confirmPassword').value.trim();
+            const role = document.getElementById('role').value;
             const school = document.getElementById('registerSchool').value.trim();
             const cls = document.getElementById('registerClass').value.trim();
+            const otpCode = document.getElementById('otp').value.trim();
 
-            if (!username || !email || !password || !confirmPassword || !role || !province || !school || !cls) {
-                alert("Vui lòng điền đầy đủ thông tin.");
+            if (!otpCode) {
+                alert("⚠️ Vui lòng nhập mã OTP đã gửi tới email trước khi tạo tài khoản!");
                 return;
             }
+
             if (password !== confirmPassword) {
-                alert("Mật khẩu xác nhận không đúng.");
+                alert("Mật khẩu xác nhận không đúng!");
                 return;
             }
 
-            // Gửi dữ liệu đăng ký lên backend
             try {
-                const response = await fetch('/api/register', {
+                const res = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -613,24 +637,22 @@
                         password,
                         role,
                         school,
-                        class: cls
+                        class: cls,
+                        otp: otpCode
                     })
                 });
 
-                const result = await response.json();
-                alert(result.message);
+                const data = await res.json();
+                alert(data.message);
 
-                if (response.ok) {
-                    registerForm.querySelector('form').reset();
-                    container.classList.remove('active'); // Chuyển về form đăng nhập
+                if (res.ok && data.message.includes("thành công")) {
+                    container.classList.remove('active');
                 }
-                
-            } catch (error) {
-                console.error("Lỗi đăng ký:", error);
-                alert("Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.");
+            } catch (err) {
+                console.error(err);
+                alert("❌ Lỗi khi tạo tài khoản!");
             }
         });
-
     </script>
 </body>
 </html>
