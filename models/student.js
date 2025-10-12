@@ -10,10 +10,10 @@ const scoreSchema = new mongoose.Schema({
 
 const studentSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
-  username: String,
-  fullname: String,
-  class: String,
-  dob: String,
+  username: { type: String, required: true },
+  fullname: { type: String, default: 'Student Default' },
+  class: { type: String, required: true },
+  dob: { type: String, default: '01/01/2000' },
   scores: {
     type: Map,
     of: scoreSchema
