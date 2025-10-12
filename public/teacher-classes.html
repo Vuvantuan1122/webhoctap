@@ -17,13 +17,12 @@
             --text-color: #343a40;
             --shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
             --shadow-hover: 0 7px 16px rgba(0, 0, 0, 0.1);
-            --border-radius: 10px; /* Tăng bo góc 1 chút cho mềm mại hơn */
+            --border-radius: 10px;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             margin: 0;
-            /* === THAY ĐỔI: TẠO KHÔNG GIAN CHO HEADER MỚI === */
             padding: 85px 40px 40px;
             background-color: #f7f9fc;
             background-image: linear-gradient(to bottom right, #f8f9fa, #e9ecef);
@@ -31,7 +30,6 @@
             line-height: 1.6;
         }
 
-        /* === CSS HEADER MỚI === */
         .header {
             position: fixed;
             top: 0; left: 0; width: 100%;
@@ -42,7 +40,7 @@
             align-items: center;
             z-index: 1000;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            box-sizing: border-box; /* Đảm bảo padding không làm tăng width */
+            box-sizing: border-box;
         }
         .logo {
             display: flex;
@@ -85,7 +83,6 @@
             transition: all 0.3s ease;
         }
         .navbar a:hover::after { width: 100%; }
-        /* === KẾT THÚC CSS HEADER === */
 
         .container {
             max-width: 1400px;
@@ -99,7 +96,6 @@
             flex: 1;
             min-width: 380px;
             position: sticky;
-            /* === THAY ĐỔI: CẬP NHẬT VỊ TRÍ STICKY CHO KHỚP VỚI HEADER MỚI === */
             top: 85px;
         }
 
@@ -131,178 +127,98 @@
             padding-bottom: 10px;
             transition: text-shadow 0.3s ease;
         }
-        
         h1:hover, h2:hover {
             text-shadow: 0 0 8px rgba(23, 162, 184, 0.7);
         }
-        
         h1 { font-size: 2.1em; text-align: center; margin-bottom: 15px; }
         h2 { font-size: 1.7em; }
         h3 { font-size: 1.3em; margin-bottom: 5px; color: #2c5663; }
         h4 { font-size: 1.1em; margin-top: 15px; color: #555; }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; }
         input[type="text"], textarea {
-            width: 100%;
-            padding: 12px;
+            width: 100%; padding: 12px;
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            box-sizing: border-box;
+            border-radius: 6px; box-sizing: border-box;
             transition: border-color 0.3s, box-shadow 0.3s;
         }
-
-        input[type="text"]:hover, textarea:hover {
-            border-color: var(--primary-color);
-        }
-
+        input[type="text"]:hover, textarea:hover { border-color: var(--primary-color); }
         input[type="text"]:focus, textarea:focus {
-            outline: none;
-            border-color: var(--primary-color);
+            outline: none; border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(23, 162, 184, 0.25);
         }
-
-        textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
+        textarea { resize: vertical; min-height: 80px; }
 
         .btn {
-            padding: 12px 20px;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: 600;
+            padding: 12px 20px; color: white; border: none; border-radius: 6px;
+            cursor: pointer; font-size: 1em; font-weight: 600;
             transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
-            margin-right: 10px;
-            text-align: center;
+            margin-right: 10px; text-align: center;
         }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-hover);
-        }
-        
-        #main-controls .btn-primary {
-             width: 100%;
-             margin-top: 10px;
-        }
+        .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+        #main-controls .btn-primary { width: 100%; margin-top: 10px; }
 
         .btn.btn-primary { background-color: var(--primary-color); }
         .btn.btn-primary:hover { background-color: var(--primary-hover); }
         .btn.btn-danger { background-color: var(--danger-color); }
         .btn.btn-danger:hover { background-color: var(--danger-hover); }
 
-        .btn-sm {
-             padding: 5px 10px;
-             font-size: 0.85em;
-             margin: 0 5px;
-        }
+        .btn-sm { padding: 5px 10px; font-size: 0.85em; margin: 0 5px; }
 
         #my-classrooms {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
             gap: 25px;
         }
-        
+
         .classroom-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            flex-wrap: wrap;
-            gap: 10px;
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 10px;
+            flex-wrap: wrap; gap: 10px;
         }
         .classroom-header .join-code {
             background-color: var(--light-bg);
             color: var(--primary-color);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9em;
+            padding: 5px 12px; border-radius: 20px;
+            font-weight: bold; font-size: 0.9em;
             border: 1px solid var(--border-color);
         }
 
-        .classroom-details p {
-            margin: 5px 0;
-            color: #6c757d;
-        }
-        
-        .pending-list {
-            margin-top: 20px;
-            border-top: 1px solid var(--border-color);
-            padding-top: 15px;
-        }
-        .pending-list ul {
-            list-style: none;
-            padding: 0;
-        }
+        .classroom-details p { margin: 5px 0; color: #6c757d; }
+
+        .pending-list { margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px; }
+        .pending-list ul { list-style: none; padding: 0; }
         .pending-list li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            background-color: var(--light-bg);
-            border-radius: 6px;
-            margin-bottom: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px; background-color: var(--light-bg);
+            border-radius: 6px; margin-bottom: 8px;
         }
 
         .message {
-            margin-top: 15px;
-            padding: 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            display: none;
-            animation: fadeIn 0.3s;
+            margin-top: 15px; padding: 12px;
+            border-radius: 6px; font-weight: bold;
+            display: none; animation: fadeIn 0.3s;
         }
         .message.show { display: block; }
         .message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        
+
         .loader {
             border: 4px solid #f3f3f3;
             border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
+            border-radius: 50%; width: 30px; height: 30px;
+            animation: spin 1s linear infinite; margin: 20px auto;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
         @media (max-width: 1024px) {
-            body {
-                padding: 80px 15px 20px;
-            }
-            .container {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            #main-controls {
-                position: static;
-                top: auto;
-                min-width: unset;
-            }
-            #my-classrooms {
-                grid-template-columns: 1fr;
-            }
+            body { padding: 80px 15px 20px; }
+            .container { flex-direction: column; align-items: stretch; }
+            #main-controls { position: static; top: auto; min-width: unset; }
+            #my-classrooms { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -323,7 +239,9 @@
     <div class="container">
         <div id="main-controls" class="card">
             <h1>Quản Lý 📚</h1>
-            <p id="user-info" style="text-align: center; color: #6c757d; margin-bottom: 30px;">🟢 Chế độ thử nghiệm không cần đăng nhập.</p>
+            <p id="user-info" style="text-align: center; color: #6c757d; margin-bottom: 30px;">
+                🟢 Chế độ thử nghiệm không cần đăng nhập.
+            </p>
 
             <h2>Tạo Lớp Học Mới</h2>
             <div class="form-group">
@@ -340,26 +258,38 @@
 
         <div id="manage-class-section" class="card">
             <h2>Các Lớp Của Tôi</h2>
-            <div id="my-classrooms">
-                </div>
+            <div id="my-classrooms"></div>
         </div>
     </div>
 
     <script>
         const API_URL = 'http://localhost:3000/api';
 
+        // 🔒 KIỂM TRA ĐĂNG NHẬP & PHÂN QUYỀN GIÁO VIÊN
+        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+        const isLoggedIn = localStorage.getItem("isLoggedIn");
+
+        if (!isLoggedIn || !userData.role) {
+            alert("⚠️ Bạn cần đăng nhập để truy cập trang này!");
+            window.location.href = "1.html";
+        } else if (userData.role !== "teacher") {
+            alert("🚫 Chỉ giáo viên mới có quyền truy cập trang quản lý lớp học!");
+            window.location.href = "student-classes.html";
+        } else {
+            document.getElementById("user-info").innerText = `👩‍🏫 Xin chào, ${userData.username}! (Tài khoản giáo viên)`;
+            console.log("✅ Đăng nhập giáo viên:", userData.username);
+        }
+
         window.onload = () => {
             loadMyClassrooms();
         };
-        
+
         function showMessage(elementId, message, type) {
             const messageDiv = document.getElementById(elementId);
             messageDiv.innerHTML = message;
             messageDiv.className = `message ${type} show`;
             setTimeout(() => {
-                if (messageDiv.classList.contains('show')) {
-                     messageDiv.className = 'message';
-                }
+                if (messageDiv.classList.contains('show')) messageDiv.className = 'message';
             }, 5000);
         }
 
@@ -419,7 +349,7 @@
                 listDiv.innerHTML = '';
                 classrooms.forEach(classroom => {
                     const item = document.createElement('div');
-                    item.className = 'card'; // Mỗi lớp học cũng là một card
+                    item.className = 'card';
                     item.innerHTML = `
                         <div class="classroom-header">
                             <h3>${classroom.name}</h3>
@@ -445,7 +375,6 @@
             }
 
             let html = `<div class="pending-list"><h4>${classroom.pendingStudents.length} Yêu cầu tham gia:</h4><ul>`;
-            
             classroom.pendingStudents.forEach(username => {
                 html += `
                     <li>
@@ -463,9 +392,7 @@
 
         async function approveStudent(event, classroomId, studentUsername, action) {
             const actionText = action === 'approve' ? 'DUYỆT' : 'TỪ CHỐI';
-            if (!confirm(`Bạn có chắc chắn muốn ${actionText} học sinh ${studentUsername} không?`)) {
-                return;
-            }
+            if (!confirm(`Bạn có chắc chắn muốn ${actionText} học sinh ${studentUsername} không?`)) return;
 
             const actionBtn = event.target;
             actionBtn.disabled = true;
@@ -479,7 +406,7 @@
                 });
 
                 if (res.ok) {
-                    loadMyClassrooms(); 
+                    loadMyClassrooms();
                 } else {
                     const data = await res.json();
                     alert(`❌ Lỗi xử lý: ${data.message}`);
