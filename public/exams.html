@@ -110,15 +110,30 @@
   <script>
     async function loadExams() {
       try {
-        let res = await fetch("/api/exams");
+        // ✅ API MỚI: Lấy đề thi theo lớp học mà học sinh đang tham gia
+        let res = await fetch("/api/exams/by-class"); 
+        
+        // Đoạn code dự phòng (chỉ dành cho giáo viên/admin)
         if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
+            console.warn("Lỗi tải đề thi theo lớp. Thử tải tất cả đề thi.");
+            res = await fetch("/api/exams");
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
         }
+        
         let data = await res.json();
 
         let html = "";
         if (data && data.length > 0) {
             data.forEach(exam => {
+                // ✅ HIỂN THỊ TÊN LỚP (TRƯỜNG className ĐÃ ĐƯỢC THÊM VÀO RESPONSE CỦA SERVER)
+                const classHtml = exam.className ? 
+                    `<li class="info-list">
+                      <i class="bi bi-person-badge-fill"></i>
+                      <span><b>Lớp học:</b> ${exam.className}</span>
+                    </li>` : '';
+
                 html += `
                   <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
                     <div class="card exam-card h-100">
@@ -136,7 +151,7 @@
                             <i class="bi bi-person-check-fill"></i>
                             <span><b>GV ra đề:</b> ${exam.createdBy}</span>
                           </li>
-                        </ul>
+                          ${classHtml} </ul>
                         <a href="thi.html?id=${exam._id}" class="btn btn-primary btn-start-exam w-100">
                           Vào thi <i class="bi bi-arrow-right-circle-fill ms-2"></i>
                         </a>
@@ -172,5 +187,6 @@
 
     loadExams();
   </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

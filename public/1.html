@@ -540,7 +540,7 @@
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password, role }),
+                    body: JSON.stringify({ username, password }),
                     credentials: 'include'
                 });
 
@@ -549,13 +549,13 @@
                 if (response.ok) {
                     localStorage.setItem('isLoggedIn', 'true');
                     localStorage.setItem('userData', JSON.stringify({
-                        username: data.username,
-                        role: data.role
+                        username: data.user.username,
+                        role: data.user.role
                     }));
 
-                    if (data.role === 'teacher') {
+                    if (data.user.role === 'teacher') {
                         window.location.href = 'giaovien.html';
-                    } else if (data.role === 'student') {
+                    } else if (data.user.role === 'student') {
                         window.location.href = 'index.html';
                     } else {
                         alert("Vai trò không hợp lệ.");

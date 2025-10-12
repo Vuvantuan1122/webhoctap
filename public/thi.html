@@ -132,6 +132,10 @@
   .scrollable-pane::-webkit-scrollbar-thumb:hover { background: #555; }
 }
   </style>
+  <!-- KaTeX CSS & JS (auto-render). Không dùng integrity để tránh lỗi hash sai -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 </head>
 <body>
 
@@ -200,7 +204,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    const examId = new URLSearchParams(window.location.search).get("id");
+    const urlParams = new URLSearchParams(window.location.search);
+    const examId = urlParams.get("id");
     let examData = null;
     let timeLeft = 0;
     let timerInterval = null;
@@ -208,11 +213,41 @@
     const confirmModal = new bootstrap.Modal(document.getElementById('confirmSubmitModal'));
     const resultModal = new bootstrap.Modal(document.getElementById('resultModal'));
 
+    // ✅ THÊM: Check examId ngay từ đầu
+    if (!examId) {
+      document.body.innerHTML = `
+        <div class="container mt-5 text-center">
+          <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle fs-1 mb-3"></i>
+            <h4>Thiếu ID bài thi!</h4>
+            <p>Vui lòng chọn bài thi từ <a href="exams.html">danh sách đề thi</a>.</p>
+          </div>
+        </div>
+      `;
+      throw new Error("Thiếu ID bài thi trong URL");
+    }
+
+    console.log("Loading exam with ID:", examId);  // ✅ Log cho debug
+
     async function loadExam() {
       try {
-        let res = await fetch(`/api/exams/${examId}`);
-        if (!res.ok) throw new Error("Không thể tải dữ liệu bài thi.");
+        // ✅ THÊM: credentials cho session
+        let res = await fetch(`/api/exams/${examId}`, { credentials: 'include' });
+        
+        // ✅ THÊM: Log status cho debug
+        console.log("Exam fetch status:", res.status, res.statusText);
+        
+        if (!res.ok) {
+          let errorMsg = "Không thể tải dữ liệu bài thi.";
+          if (res.status === 401) errorMsg = "Bạn cần đăng nhập lại.";
+          else if (res.status === 403) errorMsg = "Bạn không có quyền làm bài thi này (kiểm tra lớp học).";
+          else if (res.status === 404) errorMsg = "Bài thi không tồn tại hoặc đã bị xóa.";
+          else if (res.status === 400) errorMsg = "ID bài thi không hợp lệ.";
+          throw new Error(errorMsg);
+        }
+        
         examData = await res.json();
+        console.log("Exam data loaded:", examData);  // Log data cho debug
         
         document.getElementById('examTitle').textContent = `✏️ ${examData.title}`;
         timeLeft = examData.duration * 60;
@@ -222,7 +257,7 @@
           document.getElementById('passage-content').innerHTML = `<p>${examData.passage.replace(/\n/g, '<br>')}</p>`;
         } else {
           document.getElementById("passageColumn").style.display = "none";
-          document.getElementById("questionColumn").classList.remove("col-md-7", "col-md-5");
+          document.getElementById("questionColumn").classList.remove("col-md-7");
           document.getElementById("questionColumn").classList.add("col-12");
         }
 
@@ -259,12 +294,62 @@
         });
 
         document.getElementById("examForm").innerHTML = html;
+
+        // --- RENDER LaTeX ở đây, sau khi nội dung đã có trong DOM ---
+        const renderOptions = {
+          delimiters: [
+            {left: "$$", right: "$$", display: true},
+            {left: "\\[", right: "\\]", display: true},
+            {left: "$", right: "$", display: false},
+            {left: "\\(", right: "\\)", display: false}
+          ],
+          throwOnError: false
+        };
+
+        function tryRender() {
+          if (window.renderMathInElement) {
+            try {
+              const passageEl = document.getElementById('passage-content');
+              const formEl = document.getElementById('examForm');
+              if (passageEl) renderMathInElement(passageEl, renderOptions);
+              if (formEl) renderMathInElement(formEl, renderOptions);
+            } catch (err) {
+              console.error("Lỗi khi render LaTeX:", err);
+            }
+          } else {
+            // nếu auto-render chưa sẵn sàng thì thử lại sau 200ms (vài lần)
+            setTimeout(() => {
+              if (window.renderMathInElement) {
+                tryRender();
+              } else {
+                // một lần nữa thử sau 400ms
+                setTimeout(() => {
+                  if (window.renderMathInElement) tryRender();
+                  else console.warn("renderMathInElement không tìm thấy — KaTeX có thể chưa load.");
+                }, 400);
+              }
+            }, 200);
+          }
+        }
+        tryRender();
+
+        // ✅ THÊM: Gọi startTimer ở đây, sau khi load thành công
         startTimer();
       } catch (error) {
-        document.body.innerHTML = `<div class="alert alert-danger m-5">${error.message}</div>`;
+        console.error("Load exam error:", error);  // ✅ Log đầy đủ lỗi
+        document.body.innerHTML = `
+          <div class="container mt-5 text-center">
+            <div class="alert alert-danger">
+              <i class="bi bi-exclamation-triangle fs-1 mb-3"></i>
+              <h4>${error.message}</h4>
+              <p>Vui lòng quay lại <a href="exams.html">danh sách đề thi</a> và thử lại.</p>
+            </div>
+          </div>
+        `;
       }
     }
 
+    // ✅ ĐỊNH NGHĨA FUNCTION startTimer (THIẾU TRONG CODE CŨ)
     function startTimer() {
       const timerEl = document.getElementById("timer");
       timerInterval = setInterval(() => {
@@ -310,6 +395,7 @@
         const res = await fetch(`/api/exams/${examId}/submit`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",  // ✅ Thêm credentials cho session
           body: JSON.stringify({ answers })
         });
         const data = await res.json();
@@ -317,7 +403,7 @@
         const autoGradedCount = examData.questions.filter(q => q.type !== 'shortanswer').length;
         document.getElementById('resultTitle').innerHTML = isAutoSubmit ? '🔔 Hết giờ!' : '✅ Nộp bài thành công!';
         document.getElementById('resultText').textContent =
-  `Điểm của bạn là: ${data.score.toFixed(1)}/10 (Các câu trả lời tự luận sẽ được chấm sau).`;
+          `Điểm của bạn là: ${data.score.toFixed(1)}/10 (Các câu trả lời tự luận sẽ được chấm sau).`;
 
         resultModal.show();
       } catch (error) {
@@ -356,32 +442,34 @@
       }
     }
 
-    loadExam();
     async function reportExit(reason) {
-  try {
-    await fetch(`/api/exams/${examId}/exit-log`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reason })
+      try {
+        await fetch(`/api/exams/${examId}/exit-log`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",  // ✅ Thêm credentials
+          body: JSON.stringify({ reason })
+        });
+      } catch (err) {
+        console.error("Không ghi được log thoát:", err);
+      }
+    }
+
+    // Khi đóng tab hoặc reload
+    window.addEventListener("beforeunload", function (e) {
+      reportExit("Đóng tab hoặc tải lại");
+      e.preventDefault();
+      e.returnValue = "Bạn có chắc chắn muốn thoát? Lịch sử sẽ bị ghi lại.";
     });
-  } catch (err) {
-    console.error("Không ghi được log thoát:", err);
-  }
-}
-// Khi đóng tab hoặc reload
-window.addEventListener("beforeunload", function (e) {
-  reportExit("Đóng tab hoặc tải lại");
-  e.preventDefault();
-  e.returnValue = "Bạn có chắc chắn muốn thoát? Lịch sử sẽ bị ghi lại.";
-});
 
-// Khi chuyển tab hoặc ẩn cửa sổ
-document.addEventListener("visibilitychange", function () {
-  if (document.hidden && !examSubmitted) {
-    reportExit("Chuyển tab hoặc ẩn cửa sổ");
-  }
-});
+    // Khi chuyển tab hoặc ẩn cửa sổ
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden && !examSubmitted) {
+        reportExit("Chuyển tab hoặc ẩn cửa sổ");
+      }
+    });
 
+    loadExam();
   </script>
 </body>
 </html>

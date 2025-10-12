@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tham Gia Lớp Học - Học Sinh</title>
+    <style>
+        :root {
+            --primary-color: #17a2b8;
+            --primary-color-light: #67d2e3;
+            --primary-hover: #138496;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --danger-hover: #c82333;
+            --light-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --text-color: #343a40;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 7px 16px rgba(0, 0, 0, 0.1);
+            --border-radius: 10px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 85px 40px 40px;
+            background-color: #f7f9fc;
+            background-image: linear-gradient(to bottom right, #f8f9fa, #e9ecef);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .header {
+            position: fixed;
+            top: 0; left: 0; width: 100%;
+            padding: 15px 5%;
+            background: linear-gradient(90deg, #6c99c6, #67d2e3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .logo img {
+            width: 35px;
+            height: 35px;
+            object-fit: contain;
+            border-radius: 50%;
+            background: white;
+            padding: 2px;
+        }
+        .navbar {
+            display: flex;
+            gap: 30px;
+        }
+        .navbar a {
+            position: relative;
+            font-size: 1rem;
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .navbar a:hover { opacity: 0.8; }
+        .navbar a::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -6px;
+            width: 0;
+            height: 2px;
+            background: white;
+            transition: all 0.3s ease;
+        }
+        .navbar a:hover::after { width: 100%; }
+
+        .container {
+            max-width: 1400px;
+            margin: auto;
+            display: flex;
+            gap: 40px;
+            align-items: flex-start;
+        }
+
+        #main-controls {
+            flex: 1;
+            min-width: 380px;
+            position: sticky;
+            top: 85px;
+        }
+
+        #my-classes-section {
+            flex: 2;
+        }
+
+        .card {
+            background: white;
+            padding: 25px 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            animation: fadeIn 0.6s ease-out;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            border-top: 4px solid var(--primary-color-light);
+        }
+
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--primary-color);
+        }
+
+        h1, h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--light-bg);
+            padding-bottom: 10px;
+            transition: text-shadow 0.3s ease;
+        }
+
+        h1:hover, h2:hover {
+            text-shadow: 0 0 8px rgba(23, 162, 184, 0.7);
+        }
+
+        h1 { font-size: 2.1em; text-align: center; margin-bottom: 15px; }
+        h2 { font-size: 1.7em; }
+        h3 { font-size: 1.3em; margin-bottom: 5px; color: #2c5663; }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            text-transform: uppercase;
+        }
+
+        input[type="text"]:hover {
+            border-color: var(--primary-color);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(23, 162, 184, 0.25);
+        }
+
+        .btn {
+            padding: 12px 20px;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+            margin-right: 10px;
+            text-align: center;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        #main-controls .btn-primary {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn.btn-primary { background-color: var(--primary-color); }
+        .btn.btn-primary:hover { background-color: var(--primary-hover); }
+
+        #my-classrooms {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+        }
+
+        .classroom-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .classroom-header .join-code {
+            background-color: var(--light-bg);
+            color: var(--primary-color);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            border: 1px solid var(--border-color);
+        }
+
+        .classroom-details p {
+            margin: 5px 0;
+            color: #6c757d;
+        }
+
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        .message.show { display: block; }
+        .message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .message.pending { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 1024px) {
+            body {
+                padding: 80px 15px 20px;
+            }
+            .container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            #main-controls {
+                position: static;
+                top: auto;
+                min-width: unset;
+            }
+            #my-classrooms {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="#" class="logo">
+            <img src="https://i.imgur.com/your-logo.png" alt="Logo NT">
+            <span>NT Education</span>
+        </a>
+        <nav class="navbar">
+            <a href="#"><i class="fas fa-home"></i> Trang chủ</a>
+            <a href="#"><i class="fas fa-tools"></i> Tiện ích</a>
+            <a href="#"><i class="fas fa-envelope"></i> Liên hệ</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div id="main-controls" class="card">
+            <h1>Tham Gia Lớp 🧑‍🎓</h1>
+            <p id="user-info" style="text-align: center; color: #6c757d; margin-bottom: 30px;">Đang kiểm tra đăng nhập...</p>
+
+            <h2>Gửi Yêu Cầu Tham Gia</h2>
+            <div class="form-group">
+                <label for="joinCode">Mã Lớp Học (6 ký tự):</label>
+                <input type="text" id="joinCode" maxlength="6" placeholder="Nhập mã lớp học...">
+            </div>
+            <button onclick="joinClassroom()" class="btn btn-primary">✨ Gửi Yêu Cầu</button>
+            <div id="join-message" class="message"></div>
+        </div>
+
+        <div id="my-classes-section" class="card">
+            <h2>Lớp Đã Tham Gia / Chờ Duyệt</h2>
+            <div id="my-classrooms"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+
+        window.onload = () => {
+            checkAuth().then((user) => {
+                currentUser = user;
+                if (currentUser) loadMyClassrooms();
+            });
+        };
+
+        let currentUser = null;
+
+        function showMessage(elementId, message, type) {
+            const messageDiv = document.getElementById(elementId);
+            messageDiv.innerHTML = message;
+            messageDiv.className = `message ${type} show`;
+            setTimeout(() => {
+                if (messageDiv.classList.contains('show')) {
+                    messageDiv.className = 'message';
+                }
+            }, 5000);
+        }
+
+        async function checkAuth() {
+            try {
+                const res = await fetch(`${API_URL.replace("/api", "")}/me`, {
+                    method: "GET",
+                    credentials: "include",
+                });
+
+                if (res.status !== 200) {
+                    document.getElementById("user-info").innerHTML =
+                        '❌ <b>Lỗi:</b> Bạn cần đăng nhập với vai trò <b>Học sinh</b> để truy cập trang này. <a href="/">Đăng nhập</a>';
+                    return null;
+                }
+
+                const user = await res.json();
+                if (user.role !== "student") {
+                    document.getElementById("user-info").innerHTML =
+                        "❌ <b>Lỗi:</b> Tài khoản của bạn không phải Học sinh.";
+                    return null;
+                }
+
+                document.getElementById("user-info").innerHTML = 
+                    `✅ Đã đăng nhập: <b>${user.username}</b> (${user.role})`;
+                document.getElementById("main-controls").style.display = "block";
+                document.getElementById("my-classes-section").style.display = "block";
+                return user;
+            } catch (error) {
+                document.getElementById("user-info").innerHTML =
+                    "❌ Lỗi kết nối máy chủ.";
+                return null;
+            }
+        }
+
+        async function joinClassroom() {
+            const joinCode = document.getElementById("joinCode").value.trim();
+            const messageDiv = document.getElementById("join-message");
+            const joinBtn = document.querySelector("#main-controls .btn-primary");
+            const originalBtnText = joinBtn.innerHTML;
+            joinBtn.disabled = true;
+            joinBtn.innerHTML = 'Đang gửi...';
+
+            if (joinCode.length !== 6) {
+                showMessage('join-message', 'Mã lớp phải có đúng 6 ký tự.', 'error');
+                joinBtn.disabled = false;
+                joinBtn.innerHTML = originalBtnText;
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/classrooms/join`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ joinCode }),
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    showMessage('join-message', `✅ ${data.message}`, 'success');
+                    document.getElementById("joinCode").value = "";
+                    loadMyClassrooms();
+                } else {
+                    showMessage('join-message', `❌ ${data.message || "Không gửi được yêu cầu."}`, 'error');
+                }
+            } catch (error) {
+                showMessage('join-message', '❌ Lỗi kết nối máy chủ.', 'error');
+            } finally {
+                joinBtn.disabled = false;
+                joinBtn.innerHTML = originalBtnText;
+            }
+        }
+
+        async function loadMyClassrooms() {
+            const listDiv = document.getElementById("my-classrooms");
+            listDiv.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const res = await fetch(`${API_URL}/classrooms/my`, {
+                    method: "GET",
+                    credentials: "include",
+                });
+
+                if (!res.ok) throw new Error("Không thể tải lớp học.");
+                const classrooms = await res.json();
+
+                if (!Array.isArray(classrooms) || classrooms.length === 0) {
+                    listDiv.innerHTML = '<p>Bạn chưa tham gia lớp học nào. Hãy nhập mã lớp ở bên để tham gia!</p>';
+                    return;
+                }
+
+                listDiv.innerHTML = "";
+                classrooms.forEach((classroom) => {
+                    const isApproved = (classroom.students || []).includes(currentUser?.username);
+                    const isPending = (classroom.pendingStudents || []).includes(currentUser?.username);
+
+                    let statusClass = "pending";
+                    let statusText = "Chờ duyệt";
+
+                    if (isApproved) {
+                        statusClass = "success";
+                        statusText = "Đã duyệt";
+                    } else if (!isApproved && !isPending) {
+                        statusClass = "error";
+                        statusText = "Không rõ trạng thái";
+                    }
+
+                    const item = document.createElement("div");
+                    item.className = "card";
+                    item.innerHTML = `
+                        <div class="classroom-header">
+                            <h3>${classroom.name || "Không có tên lớp"}</h3>
+                            <span class="join-code">Mã: ${classroom.joinCode || "N/A"}</span>
+                        </div>
+                        <div class="classroom-details">
+                            <p><strong>Giáo viên:</strong> ${classroom.teacherUsername || "Chưa rõ"}</p>
+                            <p><strong>Trạng thái:</strong> <span class="${statusClass}">${statusText}</span></p>
+                        </div>
+                    `;
+                    listDiv.appendChild(item);
+                });
+            } catch (error) {
+                listDiv.innerHTML = `<div class="message error show">❌ Lỗi tải lớp: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

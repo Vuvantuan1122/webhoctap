@@ -148,6 +148,8 @@
           <div class="card-body p-4">
             <h3 class="card-title mb-4 border-bottom pb-2">Thông tin đề thi</h3>
             <form id="createExamForm">
+              
+</div>
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">Tên đề thi</label>
@@ -165,7 +167,13 @@
                   <label class="form-label">Đoạn văn đọc hiểu (nếu có)</label>
                   <textarea id="passage" class="form-control" rows="5" placeholder="Nhập đoạn văn cho các câu hỏi đọc hiểu..."></textarea>
                 </div>
-              </div>
+                <div class="col-12 mt-4">
+                    <label class="form-label fw-bold"><i class="bi bi-people-fill me-2"></i>Phân bổ cho lớp học (Bắt buộc chọn)</label>
+                    <div id="classroomCheckboxes" class="border p-3 rounded bg-light">
+                        <div class="text-center text-muted" id="classroomLoading">Đang tải danh sách lớp học...</div>
+                        </div>
+                </div>
+                </div>
               
               <h4 class="mt-5 border-bottom pb-2 mb-4">Danh sách câu hỏi</h4>
               <div id="questionsContainer"></div>
@@ -188,6 +196,9 @@
                     <button class="btn btn-info text-white" onclick="loadResults()"><i class="bi bi-search"></i> Xem điểm</button>
                     <button class="btn btn-warning text-dark" onclick="loadExitLogs()"><i class="bi bi-shield-exclamation"></i> Xem lịch sử thoát</button>
                 </div>
+                <button class="btn btn-success mb-3" onclick="loadAllResults()">
+  <i class="bi bi-collection"></i> Xem tất cả kết quả
+</button>
                 <div id="loadingSpinner" class="text-center my-4 d-none">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
@@ -204,6 +215,39 @@
 
 <script>
 let questionIndex = 0;
+let teacherClassrooms = []; // ✅ Mảng lưu trữ dữ liệu lớp học
+
+// ✅ HÀM MỚI: Tải danh sách lớp học của giáo viên
+async function loadTeacherClassrooms() {
+    try {
+        const res = await fetch("/api/classrooms/my");
+        if (!res.ok) throw new Error("Không thể tải danh sách lớp học.");
+        teacherClassrooms = await res.json();
+
+        const container = document.getElementById("classroomCheckboxes");
+        container.innerHTML = ""; // Xóa thông báo "Đang tải"
+
+        if (teacherClassrooms.length === 0) {
+            container.innerHTML = "<div class='alert alert-warning mb-0'>⚠️ Bạn chưa tạo/quản lý lớp học nào. Vui lòng tạo lớp trước.</div>";
+            return;
+        }
+
+        teacherClassrooms.forEach(cls => {
+            container.innerHTML += `
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input classroom-checkbox" type="checkbox" id="class-${cls._id}" value="${cls._id}">
+                    <label class="form-check-label" for="class-${cls._id}">
+                        ${cls.name} <span class="text-muted">(${cls.students.length} HS)</span>
+                    </label>
+                </div>
+            `;
+        });
+
+    } catch (error) {
+        console.error("Lỗi khi tải lớp học:", error);
+        document.getElementById("classroomCheckboxes").innerHTML = "<div class='alert alert-danger mb-0'>❌ Lỗi khi tải danh sách lớp học.</div>";
+    }
+}
 
 function addQuestion() {
   const qId = "q" + Date.now();
@@ -291,6 +335,15 @@ document.getElementById("createExamForm").addEventListener("submit", async (e) =
   const subject = document.getElementById("subject").value;
   const duration = parseInt(document.getElementById("duration").value);
   const passage = document.getElementById("passage").value;
+  
+  // ✅ Lấy danh sách ID lớp đã chọn
+  const selectedClassrooms = Array.from(document.querySelectorAll(".classroom-checkbox:checked")).map(cb => cb.value);
+
+  if (selectedClassrooms.length === 0) {
+      alert("⚠️ Vui lòng chọn ít nhất một lớp học để phân bổ đề thi!");
+      return;
+  }
+  
   const questions = [];
 
   document.querySelectorAll("#questionsContainer .card").forEach(card => {
@@ -315,7 +368,15 @@ document.getElementById("createExamForm").addEventListener("submit", async (e) =
     let res = await fetch("/api/exams", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, subject, duration, passage, questions })
+      body: JSON.stringify({ 
+          title, 
+          subject, 
+          duration, 
+          passage, 
+          questions,
+          // ✅ GỬI DANH SÁCH LỚP ĐÃ CHỌN
+          classrooms: selectedClassrooms
+      })
     });
     let data = await res.json();
     if (data.exam) {
@@ -377,6 +438,58 @@ async function loadResults() {
   } finally {
     spinner.classList.add("d-none");
   }
+}
+async function loadAllResults() {
+  const resultsDiv = document.getElementById("results");
+  const exitLogsDiv = document.getElementById("exitLogs");
+  const spinner = document.getElementById("loadingSpinner");
+
+  spinner.classList.remove("d-none");
+  resultsDiv.innerHTML = "";
+  exitLogsDiv.innerHTML = "";
+
+  try {
+    let res = await fetch("/api/results");
+    let data = await res.json();
+
+    if (!data.length) {
+      resultsDiv.innerHTML = "<div class='alert alert-info'>Chưa có kết quả nào.</div>";
+      return;
+    }
+
+    let html = `<table class="table table-hover table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Học sinh</th>
+          <th>Đề thi</th>
+          <th>Môn học</th>
+          <th>Điểm</th>
+          <th>Ngày nộp</th>
+          <th>Xem chi tiết</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    data.forEach(r => {
+      const time = new Date(r.createdAt).toLocaleString("vi-VN");
+      html += `<tr>
+        <td>${r.userId}</td>
+        <td>${r.examId?.title || "-"}</td>
+        <td>${r.examId?.subject || "-"}</td>
+        <td><span class="badge bg-primary fs-6">${r.score ?? "Chưa chấm"}</span></td>
+        <td>${time}</td>
+        <td><button class="btn btn-sm btn-outline-info" onclick='viewDetail(${JSON.stringify(r)})'>
+          <i class="bi bi-eye"></i> Xem</button></td>
+      </tr>`;
+    });
+
+    html += "</tbody></table>";
+    resultsDiv.innerHTML = html;
+  } catch (error) {
+    resultsDiv.innerHTML = `<div class="alert alert-danger">Không thể tải tất cả kết quả.</div>`;
+  } finally {
+    spinner.classList.add("d-none");
+  } 
 }
 
 async function loadExitLogs() {
@@ -468,10 +581,17 @@ function viewDetail(result) {
   correct = a.options?.[correctIndex] ?? "-";
   status = (studentIndex !== null && studentIndex === correctIndex) ? "✅ Đúng" : "❌ Sai";
 } else if (a.type === "shortanswer") {
-  studentAns = (a.answer && a.answer.trim() !== "") ? a.answer : "<i class='text-muted'>(chưa trả lời)</i>";
-  correct = (typeof a.correctAnswer === "string" && a.correctAnswer.trim() !== "")
-    ? a.correctAnswer
+  const ansText = (a.answer !== null && a.answer !== undefined) ? String(a.answer) : "";
+  const correctText = (a.correctAnswer !== null && a.correctAnswer !== undefined) ? String(a.correctAnswer) : "";
+
+  studentAns = ansText.trim() !== ""
+    ? ansText
+    : "<i class='text-muted'>(chưa trả lời)</i>";
+
+  correct = correctText.trim() !== ""
+    ? correctText
     : "<i class='text-muted'>(GV chấm)</i>";
+
   status = "📝 Tự luận (GV chấm)";
 }
     
@@ -519,6 +639,81 @@ async function gradeResult(resultId) {
       alert("❌ Đã xảy ra lỗi kết nối.");
   }
 }
+
+// ✅ THÊM DÒNG NÀY ĐỂ TẢI LỚP KHI TRANG LOAD
+loadTeacherClassrooms();
+// ✅ THÊM MỚI: Load danh sách lớp cho teacher khi tạo đề thi
+async function loadTeacherClassroomsForExam() {
+  try {
+    const res = await fetch('/api/classrooms/my');
+    if (!res.ok) throw new Error('Không tải được lớp học.');
+    const classrooms = await res.json();
+
+    const select = document.getElementById('classrooms');
+    select.innerHTML = ''; // Clear options
+
+    classrooms.forEach(cls => {
+      const option = document.createElement('option');
+      option.value = cls._id;
+      option.textContent = `${cls.name} (Mã: ${cls.joinCode})`;
+      select.appendChild(option);
+    });
+
+    if (classrooms.length === 0) {
+      select.innerHTML = '<option disabled>Chưa có lớp nào. Tạo lớp trước!</option>';
+    }
+  } catch (error) {
+    console.error('Lỗi load lớp:', error);
+    document.getElementById('classrooms').innerHTML = '<option disabled>Lỗi tải lớp.</option>';
+  }
+}
+
+// ✅ Cập nhật function submit form tạo exam (giả sử có function handleCreateExam hoặc tương tự)
+async function handleCreateExam(event) {
+  event.preventDefault();
+  const formData = new FormData(event.target);
+  const title = document.getElementById('title').value;
+  const subject = document.getElementById('subject').value;
+  const duration = parseInt(document.getElementById('duration').value);
+  // ... lấy questions từ form (giả sử có)
+
+  // ✅ Lấy selected classrooms
+  const classroomsSelect = document.getElementById('classrooms');
+  const selectedClassrooms = Array.from(classroomsSelect.selectedOptions).map(opt => opt.value);
+
+  const examData = {
+    title,
+    subject,
+    duration,
+    questions: [], // Lấy từ form, ví dụ từ editor CKEditor hoặc input
+    classrooms: selectedClassrooms // Array _id
+  };
+
+  try {
+    const res = await fetch('/api/exams', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(examData)
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      alert('✅ Tạo đề thi thành công! Đã gán cho các lớp: ' + selectedClassrooms.length + ' lớp.');
+      document.getElementById('createExamForm').reset();
+      // Reload danh sách nếu có tab xem exams
+    } else {
+      alert('❌ Lỗi: ' + data.message);
+    }
+  } catch (error) {
+    alert('❌ Lỗi kết nối.');
+  }
+}
+
+// ✅ Gán event listener cho form
+document.getElementById('createExamForm').addEventListener('submit', handleCreateExam);
+
+// ✅ Load lớp khi trang load (thêm vào cuối)
+loadTeacherClassroomsForExam();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
