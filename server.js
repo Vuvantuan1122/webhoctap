@@ -14,6 +14,8 @@ const Exam = require("./models/Exam");
 const Result = require("./models/Result");
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const ExitLog = require("./models/ExitLog");
+// ✅ CLASSROOM MODEL MỚI
+const Classroom = require("./models/Classroom"); 
 // --- CHAT ---
 const http = require('http');
 const { Server } = require('socket.io');
@@ -175,7 +177,7 @@ app.get("/api/posts/:id/comments", async (req, res) => {
 });
 
 // =======================
-// ✅ API: Đăng ký tài khoản
+ // ✅ API: Đăng ký tài khoản
 // =======================
 const nodemailer = require('nodemailer'); 
 
@@ -204,12 +206,12 @@ app.post('/api/send-otp', async (req, res) => {
 
     // Gửi email
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
 
     await transporter.sendMail({
       from: `"Xác thực tài khoản" <${process.env.EMAIL_USER}>`,
@@ -267,6 +269,23 @@ app.post('/api/register', async (req, res) => {
 
     await newUser.save();
 
+    // ✅ FIX: Tạo Student document nếu role là 'student' – THÊM id nếu schema required
+    if (role === 'student') {
+      try {
+        const newStudent = new Student({
+          id: username,  // ✅ FIX: Set id = username (string, hoặc new mongoose.Types.ObjectId().toString() nếu schema ObjectId)
+          username: username,
+          school: school,
+          class: cls
+        });
+        await newStudent.save();
+        console.log('✅ Đã tạo Student document cho:', username);
+      } catch (studentErr) {
+        console.error('Lỗi tạo Student (không ảnh hưởng User):', studentErr);
+        // Không throw, chỉ log – User vẫn ok
+      }
+    }
+
     console.log("✅ Đã tạo tài khoản cho:", email);
     res.json({ message: "✅ Tạo tài khoản thành công!" });
   } catch (err) {
@@ -293,290 +312,449 @@ app.post('/api/verify-otp', async (req, res) => {
     res.status(500).json({ message: "Lỗi máy chủ khi xác thực OTP" });
   }
 });
+
+// ✅ THÊM MỚI: API Login
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+  
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Vui lòng nhập đầy đủ tài khoản và mật khẩu.' });
+  }
+
+  try {
+    // Tìm user theo username và password (plain text - khuyến nghị dùng bcrypt sau)
+    const user = await User.findOne({ username, password });
+    if (!user || !user.isVerified) {
+      return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không đúng.' });
+    }
+
+    // Set session
+    req.session.user = {
+      _id: user._id,
+      username: user.username,
+      role: user.role,
+      email: user.email
+    };
+
+    console.log(`✅ Đăng nhập thành công: ${username}`);
+    res.json({ 
+      message: 'Đăng nhập thành công!', 
+      user: { username: user.username, role: user.role } 
+    });
+  } catch (err) {
+    console.error('Lỗi login:', err);
+    res.status(500).json({ message: 'Lỗi máy chủ khi đăng nhập.' });
+  }
+});
+
+// ✅ THÊM MỚI: API Logout
+app.post('/api/logout', (req, res) => {
+  if (req.session.user) {
+    console.log(`❌ Đăng xuất: ${req.session.user.username}`);
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: 'Lỗi khi đăng xuất.' });
+      }
+    });
+  }
+  res.json({ message: 'Đăng xuất thành công!' });
+});
+
+// ✅ THÊM MỚI: API Check Auth (/me)
+app.get('/me', async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: 'Chưa đăng nhập.' });
+  }
+
+  try {
+    // Refresh user từ DB để lấy info mới nhất (nếu cần)
+    const user = await User.findById(req.session.user._id).select('username email role school class isVerified');
+    if (!user) {
+      return res.status(401).json({ message: 'Session hết hạn.' });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error('Lỗi /me:', err);
+    res.status(500).json({ message: 'Lỗi server.' });
+  }
+});
+
+// =======================
+// ✅ API CLASSROOM - THÊM MỚI
+// =======================
+const crypto = require('crypto');
+
+// POST /api/classrooms - Tạo lớp mới (chỉ teacher)
+app.post('/api/classrooms', async (req, res) => {
+  const user = req.session.user;
+  if (!user || user.role !== 'teacher') {
+    return res.status(403).json({ message: 'Chỉ giáo viên mới có quyền tạo lớp.' });
+  }
+
+  const { name, description } = req.body;
+  if (!name) {
+    return res.status(400).json({ message: 'Tên lớp là bắt buộc.' });
+  }
+
+  try {
+    // Tạo joinCode ngẫu nhiên 6 ký tự uppercase
+    const joinCode = crypto.randomBytes(3).toString('hex').toUpperCase().slice(0, 6);
+
+    const newClassroom = new Classroom({
+      name,
+      description,
+      teacherUsername: user.username,
+      joinCode,
+      students: [],
+      pendingStudents: []
+    });
+
+    await newClassroom.save();
+    console.log(`✅ Tạo lớp thành công: ${name} (Mã: ${joinCode})`);
+
+    res.json({ message: 'Tạo lớp thành công!', classroom: newClassroom });
+  } catch (err) {
+    console.error('Lỗi tạo lớp:', err);
+    res.status(500).json({ message: 'Lỗi server khi tạo lớp.' });
+  }
+});
+
+// GET /api/classrooms/my - Lấy lớp của user
+app.get('/api/classrooms/my', async (req, res) => {
+  const user = req.session.user;
+  if (!user) {
+    return res.status(401).json({ message: 'Bạn cần đăng nhập.' });
+  }
+
+  try {
+    let filter = {};
+
+    if (user.role === 'teacher') {
+      // Teacher: Chỉ thấy lớp mình tạo
+      filter.teacherUsername = user.username;
+    } else if (user.role === 'student') {
+      // Student: Thấy lớp đã join (students includes username) HOẶC pending (pendingStudents includes username)
+      filter.$or = [
+        { students: user.username },
+        { pendingStudents: user.username }
+      ];
+    } else {
+      // Admin: Thấy tất cả (nếu cần)
+      filter = {};
+    }
+
+    const classrooms = await Classroom.find(filter)
+      .sort({ createdAt: -1 })
+      .lean();  // lean() để tối ưu performance
+
+    // ✅ THÊM: Đảm bảo pendingStudents và students là array rỗng nếu undefined
+    const safeClassrooms = classrooms.map(cls => ({
+      ...cls,
+      students: cls.students || [],
+      pendingStudents: cls.pendingStudents || []
+    }));
+
+    res.json(safeClassrooms);
+  } catch (err) {
+    console.error('Lỗi lấy lớp của tôi:', err);
+    res.status(500).json({ message: 'Lỗi server khi lấy lớp học.' });
+  }
+});
+
+// POST /api/classrooms/join - Học sinh join lớp bằng mã
+app.post('/api/classrooms/join', async (req, res) => {
+  const user = req.session.user;
+  if (!user || user.role !== 'student') return res.status(403).json({ message: 'Chỉ học sinh mới join được.' });
+
+  const { joinCode } = req.body;
+  try {
+    const classroom = await Classroom.findOne({ joinCode });
+    if (!classroom) return res.status(404).json({ message: 'Mã lớp không tồn tại.' });
+
+    if (classroom.students.includes(user.username) || classroom.pendingStudents.includes(user.username)) {
+      return res.status(400).json({ message: 'Bạn đã tham gia hoặc đang chờ duyệt.' });
+    }
+
+    classroom.pendingStudents.push(user.username);  // ✅ Push string
+    await classroom.save();
+    res.json({ message: 'Yêu cầu tham gia đã gửi, chờ giáo viên duyệt.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi server.' });
+  }
+});
+// POST /api/classrooms/:id/approve - Giáo viên duyệt/từ chối
+app.post('/api/classrooms/:id/approve', async (req, res) => {
+  const { studentUsername, action } = req.body;
+  const classroom = await Classroom.findById(req.params.id);
+  if (!classroom) return res.status(404).json({ message: 'Lớp không tồn tại.' });
+
+  const pendingIndex = classroom.pendingStudents.indexOf(studentUsername);
+  if (pendingIndex === -1) return res.status(400).json({ message: 'Không tìm thấy yêu cầu.' });
+
+  if (action === 'approve') {
+    classroom.pendingStudents.splice(pendingIndex, 1);
+    classroom.students.push(studentUsername);  // ✅ Push string
+  } else {
+    classroom.pendingStudents.splice(pendingIndex, 1);
+  }
+  await classroom.save();
+  res.json({ message: `Đã ${action === 'approve' ? 'duyệt' : 'từ chối'}.` });
+});
+
 app.post("/api/chat", async (req, res) => {
   try {
     const { message } = req.body;
 
     // Gọi Gemini API
     const response = await fetch(
-      // ✅ SỬA Ở ĐÂY: Thay 'gemini-1.5-flash' bằng 'gemini-2.5-flash'
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: message }]
-            }
-          ]
+          contents: [{
+            parts: [{ text: message }]
+          }]
         })
       }
     );
 
+    if (!response.ok) throw new Error('Gemini API error');
     const data = await response.json();
-    console.log("Gemini response:", JSON.stringify(data, null, 2));
+    const aiReply = data.candidates[0].content.parts[0].text;
 
-    // Trích phản hồi
-    let reply = "⚠️ Không có phản hồi từ Gemini.";
-
-if (data?.candidates?.length > 0) {
-  const parts = data.candidates[0].content?.parts;
-  if (parts && parts.length > 0) {
-    reply = parts.map(p => p.text || "").join("\n");
-  }
-}
-    res.json({ reply });
+    res.json({ reply: aiReply });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ reply: "⚠️ Lỗi khi gọi Gemini API." });
+    console.error('Chat error:', err);
+    res.status(500).json({ error: 'Lỗi chat AI' });
   }
 });
 
-
 // =======================
-// ✅ API: Đăng nhập / Đăng xuất
+// ✅ API EXAMS - TẠO VÀ LẤY ĐỀ THI
 // =======================
-app.post('/api/login', async (req, res) => {
-  const { username, password, role } = req.body;
-
-  try {
-    const user = await User.findOne({ username, password, role, isVerified: true });
-    if (!user) return res.status(401).json({ message: 'Sai tài khoản hoặc mật khẩu.' });
-
-    // 📌 Lưu session
-    req.session.user = { username: user.username, role: user.role };
-
-    // 📌 Lưu IP vào lịch sử đăng nhập
-    const ip = getClientIp(req);
-    user.loginHistory = user.loginHistory || [];
-    user.loginHistory.push({ ip });
-    await user.save();
-
-    res.json({ message: 'Đăng nhập thành công', username: user.username, role: user.role });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Lỗi máy chủ.' });
-  }
-});
-
-app.post('/api/logout', (req, res) => {
-  req.session.destroy(err => {
-    if (err) return res.status(500).json({ success: false });
-    res.clearCookie('connect.sid');
-    res.json({ success: true });
-  });
-});
-
-app.get('/me', (req, res) => {
-  if (req.session.user) {
-    return res.json(req.session.user);
-  }
-  res.status(401).json({ message: 'Chưa đăng nhập' });
-});
-
-// =======================
-// ✅ API: Upload ảnh bài tập (Cloudinary)
-// =======================
-app.post('/upload', baiTapUpload.single('image'), (req, res) => {
-  if (!req.file || !req.file.path) return res.status(400).json({ message: 'Chưa có ảnh nào được gửi lên' });
-
-  const imageUrl = req.file.path;
-  const subject = req.body.subject || 'Không rõ'; // 👈 NEW: Lấy môn học từ body
-
-  const imagesFile = 'images.json';
-  const images = fs.existsSync(imagesFile) ? JSON.parse(fs.readFileSync(imagesFile)) : [];
-
-  images.push({ id: Date.now(), url: imageUrl, timestamp: Date.now(), subject: subject }); // 👈 NEW: Lưu môn học
-  fs.writeFileSync(imagesFile, JSON.stringify(images, null, 2));
-
-  res.json({ message: 'Tải lên thành công', imageUrl });
-});
-
-app.get('/api/images', (req, res) => {
-  const images = fs.existsSync('images.json') ? JSON.parse(fs.readFileSync('images.json')) : [];
-  res.json(images);
-});
-
-app.delete('/api/images/:filename', (req, res) => {
-  const filename = req.params.filename;
-  let images = fs.existsSync('images.json') ? JSON.parse(fs.readFileSync('images.json')) : [];
-  images = images.filter(img => !img.url.includes(filename));
-  fs.writeFileSync('images.json', JSON.stringify(images, null, 2));
-  res.json({ success: true });
-});
-
-// =======================
-// ✅ API: Quản lý tài khoản (admin)
-// =======================
-app.get('/api/users', async (req, res) => {
+// POST /api/exams - Tạo đề thi (teacher)
+app.post('/api/exams', async (req, res) => {
   const user = req.session.user;
-  if (!user || user.username !== 'Vuvantuan1122') {
-    return res.status(403).json({ message: 'Không có quyền truy cập' });
+  if (!user || user.role !== 'teacher') {
+    return res.status(403).json({ message: 'Chỉ giáo viên mới tạo được đề thi.' });
   }
+
+  const { title, subject, duration, questions, classrooms } = req.body; // classrooms: array ObjectId strings
 
   try {
-    const users = await User.find({}, '-password').lean();
+    // ✅ Validate classrooms: Chuyển string ids thành ObjectId nếu có
+    const classroomIds = classrooms ? classrooms.map(id => new mongoose.Types.ObjectId(id)) : [];
 
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ message: 'Lỗi máy chủ' });
-  }
-});
-app.get('/api/admin/login-ips', async (req, res) => {
-  const admin = req.session.user;
-  if (!admin || admin.username !== 'Vuvantuan1122') {
-    return res.status(403).json({ message: 'Không có quyền truy cập' });
-  }
-
-  const users = await User.find({}, 'username loginHistory');
-  res.json(users);
-});
-
-// ✅ Xoá bài (chỉ admin mới được xoá)
-app.delete("/api/posts/:id", async (req, res) => {
-  const user = req.session.user;
-  if (!user || user.username !== "Vuvantuan1122") {
-    return res.status(403).json({ message: "Không có quyền xoá bài" });
-  }
-
-  try {
-    await Post.findByIdAndDelete(req.params.id);
-    await Comment.deleteMany({ postId: req.params.id }); // xoá luôn comment
-    res.json({ success: true, message: "Đã xoá bài" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Lỗi server" });
-  }
-});
-app.post("/api/reports", async (req, res) => {
-  try {
-    if (!req.session.user) {
-      return res.status(401).json({ success: false, message: "Bạn phải đăng nhập" });
+    // ✅ Kiểm tra teacher có quyền tạo cho các lớp này không (tùy chọn, để an toàn)
+    if (classroomIds.length > 0) {
+      const validClassrooms = await Classroom.find({
+        _id: { $in: classroomIds },
+        teacherUsername: user.username
+      });
+      if (validClassrooms.length !== classroomIds.length) {
+        return res.status(403).json({ message: 'Bạn không có quyền tạo đề thi cho một số lớp.' });
+      }
     }
 
-    const { postId, reason } = req.body;
-    if (!postId || !reason) {
-      return res.status(400).json({ success: false, message: "Thiếu thông tin" });
+    const exam = new Exam({
+      title,
+      subject,
+      duration,
+      questions,
+      createdBy: user.username,
+      classrooms: classroomIds
+    });
+
+    await exam.save();
+    res.json({ success: true, exam });
+  } catch (err) {
+    console.error('Lỗi tạo đề thi:', err);
+    res.status(500).json({ message: 'Lỗi server khi tạo đề thi.' });
+  }
+});
+
+// ✅ GET /api/exams/by-class - List exams theo lớp (specific route TRƯỚC :id)
+app.get('/api/exams/by-class', async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ message: 'Bạn cần đăng nhập.' });
+
+    let filter = {};
+
+    if (user.role === 'student') {
+      // ✅ FIX: Dùng username string trực tiếp (không cần Student model)
+      const studentClassrooms = await Classroom.find({ students: user.username });
+      if (studentClassrooms.length === 0) {
+        return res.json([]);  // Không có lớp → Không có exam
+      }
+
+      const classroomIds = studentClassrooms.map(c => c._id);
+      filter.classrooms = { $in: classroomIds };  // Exams gán cho lớp này
+    } else if (user.role === 'teacher') {
+      // Teacher: Chỉ thấy đề của mình (không filter lớp)
+      filter.createdBy = user.username;
+    }
+    // Admin thấy tất cả
+
+    // ✅ Populate classrooms để lấy tên lớp
+    const exams = await Exam.find(filter)
+      .populate('classrooms', 'name')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const safeExams = exams.map(exam => {
+      const classNames = exam.classrooms ? exam.classrooms.map(cls => cls.name).join(', ') : 'Chưa phân bổ';
+      return {
+        _id: exam._id,
+        title: exam.title,
+        subject: exam.subject,
+        duration: exam.duration,
+        createdBy: exam.createdBy,
+        className: classNames,
+        createdAt: exam.createdAt
+      };
+    });
+
+    res.json(safeExams);
+  } catch (err) {
+    console.error('Lỗi lấy đề thi theo lớp:', err);
+    res.status(500).json({ message: 'Lỗi server khi lấy đề thi theo lớp.' });
+  }
+});
+
+// ✅ GET /api/exams - List exams (fallback, filter theo lớp)
+app.get("/api/exams", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ message: "Bạn cần đăng nhập." });
+
+    let filter = {};
+
+    if (user.role === "student") {
+      // ✅ FIX: Dùng username string trực tiếp
+      const studentClassrooms = await Classroom.find({ students: user.username });
+      const classroomIds = studentClassrooms.map(c => c._id);
+      filter.classrooms = { $in: classroomIds };
+    } else if (user.role === "teacher") {
+      filter.createdBy = user.username;
     }
 
-    const report = new Report({
-      postId,
-      reason,
-      reporter: req.session.user.username
+    const exams = await Exam.find(filter)
+      .populate('classrooms', 'name')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const safeExams = exams.map(exam => {
+      const classNames = exam.classrooms ? exam.classrooms.map(cls => cls.name).join(', ') : 'Chưa phân bổ';
+      return {
+        _id: exam._id,
+        title: exam.title,
+        subject: exam.subject,
+        duration: exam.duration,
+        createdBy: exam.createdBy,
+        className: classNames,
+        createdAt: exam.createdAt
+      };
     });
-    await report.save();
 
-    // 🔔 Thông báo realtime cho admin
-    io.emit("newReport", { 
-      id: report._id,
-      postId,
-      reason,
-      reporter: report.reporter,
-      createdAt: report.createdAt
-    });
-
-    res.json({ success: true });
+    res.json(safeExams);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Lỗi server" });
+    console.error('Lỗi lấy đề thi:', err);
+    res.status(500).json({ message: "Lỗi server", error: err.message });
   }
 });
 
-app.get("/api/reports", async (req, res) => {
-  if (!req.session.user || req.session.user.username !== "Vuvantuan1122") {
-    return res.status(403).json({ success: false, message: "Không có quyền" });
-  }
-
-  const reports = await Report.find().populate("postId").sort({ createdAt: -1 });
-  res.json(reports);
-});
-// =======================
-// ✅ API: Quản lý học sinh
-// =======================
-app.post('/api/students', async (req, res) => {
+// ✅ GET /api/exams/:id - Chi tiết exam (dynamic route SAU /by-class)
+app.get('/api/exams/:id', async (req, res) => {
   try {
-    const { username, fullname, class: studentClass, dob, scores } = req.body;
-    const existing = await Student.findOne({ username });
-    if (existing) return res.status(400).json({ message: 'Học sinh đã tồn tại.' });
+    const examId = req.params.id;
+    const user = req.session.user;
+    if (!user) {
+      return res.status(401).json({ message: 'Bạn cần đăng nhập để làm bài thi.' });
+    }
 
-    const student = new Student({ username, fullname, class: studentClass, dob, scores });
-    await student.save();
-    res.json({ message: 'Đã thêm học sinh.' });
+    // ✅ Validate ID: Tránh CastError nếu ID không phải ObjectId
+    if (!mongoose.Types.ObjectId.isValid(examId)) {
+      return res.status(400).json({ message: 'ID bài thi không hợp lệ.' });
+    }
+
+    // ✅ Tìm exam
+    let exam = await Exam.findById(examId)
+      .populate('classrooms', 'name')  // Populate tên lớp nếu cần
+      .lean();
+
+    if (!exam) {
+      return res.status(404).json({ message: 'Không tìm thấy bài thi này.' });
+    }
+
+    // ✅ Filter quyền: Student chỉ làm nếu trong lớp của exam
+    if (user.role === 'student') {
+      // ✅ FIX: Dùng username string trực tiếp (không cần Student model)
+      const studentClassrooms = await Classroom.find({ students: user.username });
+      const studentClassIds = studentClassrooms.map(c => c._id.toString());
+
+      // Kiểm tra exam có gán lớp của student không
+      const examClassIds = exam.classrooms ? exam.classrooms.map(c => c._id.toString()) : [];
+      if (examClassIds.length > 0 && !examClassIds.some(id => studentClassIds.includes(id))) {
+        return res.status(403).json({ message: 'Bạn không có quyền làm bài thi này (không thuộc lớp được gán).' });
+      }
+    } else if (user.role !== 'teacher' && user.role !== 'admin') {
+      return res.status(403).json({ message: 'Vai trò của bạn không được phép.' });
+    }
+
+    // Ẩn đáp án cho student (thêm safeExam như cũ)
+    const safeExam = {
+      _id: exam._id,
+      title: exam.title,
+      subject: exam.subject,
+      duration: exam.duration,
+      passage: exam.passage, 
+      questions: exam.questions.map(q => ({
+        _id: q._id,
+        question: q.question,
+        options: q.options,
+        type: q.type
+      }))
+    };
+
+    // ✅ Thêm className cho frontend
+    const classNames = exam.classrooms ? exam.classrooms.map(cls => cls.name).join(', ') : 'Chưa phân bổ lớp';
+    safeExam.className = classNames;
+
+    res.json(safeExam);
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi máy chủ.' });
+    if (err.name === 'CastError') {
+      console.error('CastError cho exam ID:', req.params.id);
+      return res.status(400).json({ message: 'ID bài thi không hợp lệ.' });
+    }
+    console.error('Lỗi lấy chi tiết bài thi:', err);
+    res.status(500).json({ message: 'Lỗi server khi tải bài thi.' });
   }
 });
 
-app.get('/api/students', async (req, res) => {
-  try {
-    const className = req.query.class;
-    const students = className
-      ? await Student.find({ class: className })
-      : await Student.find();
-    res.json(students);
-  } catch (err) {
-    res.status(500).json({ message: 'Lỗi máy chủ.' });
-  }
-});
-
-app.delete('/api/students/:id', async (req, res) => {
-  try {
-    await Student.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Đã xoá học sinh.' });
-  } catch (err) {
-    res.status(500).json({ message: 'Lỗi máy chủ.' });
-  }
-});
-
-app.put('/api/students/:id/scores', async (req, res) => {
-  try {
-    const { scores } = req.body;
-    await Student.findByIdAndUpdate(req.params.id, { scores });
-    res.json({ message: 'Đã cập nhật điểm.' });
-  } catch (err) {
-    res.status(500).json({ message: 'Lỗi máy chủ.' });
-  }
-});
-app.post("/api/exams", async (req, res) => {
-  if (!req.session.user || req.session.user.role !== "teacher") {
-    return res.status(403).json({ message: "Chỉ giáo viên được tạo đề thi" });
-  }
-  const exam = new Exam({ ...req.body, createdBy: req.session.user.username });
-  await exam.save();
-  res.json({ success: true, exam });
-});
-
-// Lấy đề thi (học sinh)
-app.get("/api/exams/:id", async (req, res) => {
-  const exam = await Exam.findById(req.params.id);
-  if (!exam) return res.status(404).json({ message: "Không tìm thấy đề thi" });
-
-  // ẩn đáp án đúng
-  const safeExam = {
-  _id: exam._id,
-  title: exam.title,
-  subject: exam.subject,
-  duration: exam.duration,
-  passage: exam.passage,   // 👈 thêm dòng này
-  questions: exam.questions.map(q => ({
-    _id: q._id,
-    question: q.question,
-    options: q.options,
-    type: q.type
-  }))
-};
-
-
-  res.json(safeExam);
-});
-
-// Nộp bài
 // Nộp bài
 app.post("/api/exams/:id/submit", async (req, res) => {
+  const user = req.session.user;
+  if (!user) return res.status(401).json({ message: "Bạn cần đăng nhập để nộp bài." });
+
   try {
     const exam = await Exam.findById(req.params.id);
     if (!exam) return res.status(404).json({ message: "Exam not found" });
+
+    // Kiểm tra phân quyền trước khi chấm
+    if (user.role === "student") {
+      // ✅ FIX: Dùng username string trực tiếp
+      const studentClassrooms = await Classroom.find({ students: user.username });
+      const studentClassroomIds = studentClassrooms.map(c => c._id.toString());
+      const isAuthorized = exam.classrooms.some(examClassId => 
+        studentClassroomIds.includes(examClassId.toString())
+      );
+      if (!isAuthorized) {
+        return res.status(403).json({ message: "Bạn không thuộc lớp được giao bài thi này." });
+      }
+    }
 
     const { answers } = req.body;
     let correctCount = 0;
@@ -602,7 +780,7 @@ app.post("/api/exams/:id/submit", async (req, res) => {
 
     // ✅ Tính điểm theo thang 10
     const totalQuestions = exam.questions.length; 
-const score = totalQuestions > 0 ? (correctCount / totalQuestions) * 10 : 0;
+    const score = totalQuestions > 0 ? (correctCount / totalQuestions) * 10 : 0;
 
     const result = new Result({
       examId: exam._id,
@@ -644,7 +822,6 @@ app.get("/api/exams/:id/exit-log", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
-
 
 // Giáo viên xem kết quả
 app.get("/api/exams/:id/results", async (req, res) => {
@@ -697,38 +874,7 @@ app.post('/chat-upload', chatUpload.single('file'), (req, res) => {
   }
   res.json({ url: req.file.path }); // Cloudinary trả về URL
 });
-// Lấy tất cả đề thi
-app.get("/api/exams", async (req, res) => {
-  try {
-    const exams = await Exam.find().sort({ createdAt: -1 });
-    const safeExams = exams.map(exam => ({
-      _id: exam._id,
-      title: exam.title,
-      subject: exam.subject,
-      duration: exam.duration,
-      createdBy: exam.createdBy,
-      createdAt: exam.createdAt
-    }));
-    res.json(safeExams);
-  } catch (err) {
-    res.status(500).json({ message: "Lỗi server", error: err.message });
-  }
-});
-app.get("/api/results", async (req, res) => {
-  try {
-    const results = await Result.find()
-      .populate("examId", "title subject createdAt") // lấy thêm thông tin đề thi
-      .sort({ createdAt: -1 })
-      .lean();
 
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ message: "Lỗi khi lấy tất cả kết quả", error: err.message });
-  }
-});
-// =======================
-// ✅ SOCKET.IO CHAT
-// =======================
 // =======================
 // ✅ SOCKET.IO CHAT
 // =======================
@@ -770,9 +916,6 @@ io.on("connection", (socket) => {
     io.emit("onlineCount", onlineUsers);
   });
 });
-
-
-
 
 // =======================
 // ✅ Khởi động server
