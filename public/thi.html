@@ -205,6 +205,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const urlParams = new URLSearchParams(window.location.search);
+    const API_BASE = "https://webhoctap-fixq.onrender.com"; // 🔧 Đặt đúng domain backend của bạn
     const examId = urlParams.get("id");
     let examData = null;
     let timeLeft = 0;
@@ -232,7 +233,7 @@
     async function loadExam() {
       try {
         // ✅ THÊM: credentials cho session
-        let res = await fetch(`https://webhoctap-fixq.onrender.com/api/exams/${examId}`, { credentials: 'include' });
+        let res = await fetch(`${API_BASE}/api/exams/${examId}`, { credentials: 'include' });
         
         // ✅ THÊM: Log status cho debug
         console.log("Exam fetch status:", res.status, res.statusText);
@@ -392,7 +393,8 @@
       });
 
       try {
-        const res = await fetch(`/api/exams/${examId}/submit`, {
+        const res = await fetch(`${API_BASE}/api/exams/${examId}/submit`, {
+
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",  // ✅ Thêm credentials cho session
@@ -444,8 +446,8 @@
 
     async function reportExit(reason) {
       try {
-        await fetch(`/api/exams/${examId}/exit-log`, {
-          method: "POST",
+        await fetch(`${API_BASE}/api/exams/${examId}/exit-log`, {
+          method: "POST", 
           headers: { "Content-Type": "application/json" },
           credentials: "include",  // ✅ Thêm credentials
           body: JSON.stringify({ reason })
@@ -472,5 +474,4 @@
     loadExam();
   </script>
 </body>
-
 </html>
