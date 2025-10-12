@@ -232,7 +232,7 @@
     async function loadExam() {
       try {
         // ✅ THÊM: credentials cho session
-        let res = await fetch(`/api/exams/${examId}`, { credentials: 'include' });
+        let res = await fetch(`https://webhoctap-fixq.onrender.com/api/exams/${examId}`, { credentials: 'include' });
         
         // ✅ THÊM: Log status cho debug
         console.log("Exam fetch status:", res.status, res.statusText);
@@ -472,4 +472,5 @@
     loadExam();
   </script>
 </body>
+
 </html>
