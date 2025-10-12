@@ -1,115 +1,282 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quản lý đề thi Pro</title>
-  
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <style>
-    :root {
-      --primary-color: #6f42c1; /* Màu tím chủ đạo */
-      --primary-hover: #59359a;
-      --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      --card-radius: 0.75rem;
+<style>
+  :root {
+    --primary-color: #6f42c1;
+    --primary-hover: #59359a;
+    --card-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    --card-radius: 0.75rem;
+    --transition-ease: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Ease-in-out mượt mà */
+  }
+
+  body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    overflow-x: hidden; /* Ngăn tràn ngang */
+  }
+
+  .navbar {
+    background: linear-gradient(90deg, var(--primary-color), #a98eda);
+    transition: var(--transition-ease);
+  }
+
+  .navbar:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Hiệu ứng shadow khi hover navbar */
+  }
+
+  .nav-tabs .nav-link {
+    font-weight: 500;
+    padding: 0.75rem 1.5rem;
+    transition: var(--transition-ease);
+    position: relative;
+  }
+
+  .nav-tabs .nav-link:hover {
+    background-color: rgba(111, 66, 193, 0.1); /* Hiệu ứng hover nhẹ */
+  }
+
+  .nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    border-color: var(--primary-color) var(--primary-color) #fff;
+    position: relative;
+  }
+
+  .nav-tabs .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--primary-color);
+    animation: slideIn 0.3s ease-in-out; /* Hiệu ứng trượt khi tab active */
+  }
+
+  @keyframes slideIn {
+    from { width: 0; }
+    to { width: 100%; }
+  }
+
+  .container {
+    max-width: 1200px;
+  }
+
+  .card {
+    border: none;
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+    transition: var(--transition-ease);
+    margin-bottom: 1.5rem;
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .card:hover {
+    transform: translateY(-5px); /* Nâng card nhẹ khi hover */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); /* Tăng shadow khi hover */
+  }
+
+  .card-body {
+    padding: 2rem;
+  }
+
+  .btn-primary, .btn-success, .btn-info, .btn-warning, .btn-outline-danger {
+    transition: var(--transition-ease);
+    padding: 0.6rem 1.5rem;
+    border-radius: 0.5rem;
+  }
+
+  .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+
+  .btn-primary:hover, .btn-success:hover, .btn-info:hover, .btn-warning:hover {
+    transform: translateY(-2px); /* Nâng nhẹ button khi hover */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-primary:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+  }
+
+  .form-control, .form-select {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    transition: var(--transition-ease);
+  }
+
+  .form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.25);
+    transform: scale(1.01); /* Phóng nhẹ khi focus */
+  }
+
+  .form-label {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  .form-check {
+    margin-bottom: 0.75rem;
+    transition: var(--transition-ease);
+  }
+
+  .form-check-label {
+    margin-left: 0.5rem;
+    transition: color 0.2s ease;
+  }
+
+  .form-check-input:checked + .form-check-label {
+    color: var(--primary-color); /* Đổi màu label khi checkbox được chọn */
+  }
+
+  /* Hiệu ứng cho card câu hỏi mới */
+  .question-card-new {
+    animation: slideDownFadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes slideDownFadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .question-card-removing {
+    animation: fadeOut 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes fadeOut {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.95); }
+  }
+
+  /* Hiệu ứng cho modal */
+  .modal-content {
+    border-radius: var(--card-radius);
+    transform: scale(0.9);
+    opacity: 0;
+    transition: var(--transition-ease);
+  }
+
+  .modal.show .modal-content {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  /* Tăng khoảng cách trong container câu hỏi */
+  #questionsContainer .card {
+    margin-bottom: 1.5rem;
+  }
+
+  #questionsContainer .card-body {
+    padding: 1.5rem;
+  }
+
+  /* Tăng khoảng cách trong checkbox lớp học */
+  #classroomCheckboxes .form-check {
+    margin-right: 1rem;
+  }
+
+  /* Tinh chỉnh bảng kết quả */
+  .table {
+    margin-top: 1rem;
+    border-collapse: separate;
+    border-spacing: 0 0.75rem;
+    background-color: #fff;
+    border-radius: var(--card-radius);
+    overflow: hidden;
+  }
+
+  .table th, .table td {
+    padding: 0.75rem 1.25rem;
+    vertical-align: middle;
+    transition: var(--transition-ease);
+  }
+
+  .table tbody tr {
+    transition: var(--transition-ease);
+  }
+
+  .table tbody tr:hover {
+    background-color: rgba(111, 66, 193, 0.05); /* Hiệu ứng hover nhẹ cho dòng bảng */
+    transform: translateX(5px); /* Dịch nhẹ sang phải khi hover */
+  }
+
+  /* Hiệu ứng loading spinner */
+  .spinner-border {
+    animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    border-width: 0.3rem;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  #loadingSpinner p {
+    transition: opacity 0.3s ease;
+  }
+
+  /* Hiệu ứng cho message box */
+  #message-box {
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    transform: translateX(20px);
+  }
+
+  #message-box.show {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .card-body {
+      padding: 1.5rem;
     }
 
-    body {
-      font-family: 'Poppins', sans-serif;
-      background-color: #f8f9fa;
+    .btn {
+      padding: 0.5rem 1rem;
     }
-    
-    .navbar {
-        background: linear-gradient(90deg, var(--primary-color), #a98eda);
+
+    .form-control, .form-select {
+      padding: 0.5rem;
     }
-    
+
+    .table th, .table td {
+      padding: 0.5rem 0.75rem;
+    }
+
     .nav-tabs .nav-link {
-        font-weight: 500;
-    }
-    
-    .nav-tabs .nav-link.active {
-        color: var(--primary-color);
-        border-color: var(--primary-color) var(--primary-color) #fff;
-    }
-    
-    .card {
-        border: none;
-        border-radius: var(--card-radius);
-        box-shadow: var(--card-shadow);
-        transition: transform 0.2s ease-in-out;
-    }
-    
-    .card:hover {
-        transform: translateY(-3px);
-    }
-    
-    .btn-primary, .btn-success, .btn-info {
-        transition: all 0.2s ease;
-    }
-    
-    .btn-primary {
-        background-color: var(--primary-color);
-        border-color: var(--primary-color);
-    }
-    
-    .btn-primary:hover {
-        background-color: var(--primary-hover);
-        border-color: var(--primary-hover);
-        transform: scale(1.03);
-    }
-    
-    .form-control:focus, .form-select:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.25);
+      padding: 0.5rem 1rem;
     }
 
-    /* Animation cho câu hỏi */
-    @keyframes slideDownFadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    .question-card-new {
-        animation: slideDownFadeIn 0.5s ease-out forwards;
-    }
-    
-    @keyframes fadeOut {
-        from {
-            opacity: 1;
-        }
-        to {
-            opacity: 0;
-            transform: scale(0.95);
-        }
-    }
-    .question-card-removing {
-        animation: fadeOut 0.4s ease-in forwards;
+    .modal-content {
+      transform: scale(0.95); /* Giảm scale trên mobile để tránh tràn */
     }
 
-  </style>
+    .modal.show .modal-content {
+      transform: scale(1);
+    }
+  }
+</style>
 </head>
 <body class="bg-gray-900 text-white antialiased">
+  <div id="message-box" class="hidden fixed top-5 right-5 z-50 px-6 py-3 rounded-lg text-white transition-opacity duration-300">
+    <p id="message-text"></p>
+  </div>
 
-    <div id="message-box" class="hidden fixed top-5 right-5 z-50 px-6 py-3 rounded-lg text-white transition-opacity duration-300">
-        <p id="message-text"></p>
-    </div>
-
-
-<body>
-  
   <div class="modal fade" id="detailModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
@@ -123,16 +290,15 @@
   </div>
 
   <nav class="navbar navbar-dark shadow-sm">
-      <div class="container-fluid">
-          <a class="navbar-brand" href="#">
-              <i class="bi bi-journal-bookmark-fill"></i>
-              <strong>ExamPro</strong> | Quản lý đề thi
-          </a>
-      </div>
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">
+        <i class="bi bi-journal-bookmark-fill"></i>
+        <strong>ExamPro</strong> | Quản lý đề thi
+      </a>
+    </div>
   </nav>
 
   <main class="container py-5">
-    
     <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
       <li class="nav-item" role="presentation">
         <button class="nav-link active" id="create-tab" data-bs-toggle="tab" data-bs-target="#create-tab-pane" type="button" role="tab" aria-controls="create-tab-pane" aria-selected="true"><i class="bi bi-pencil-square"></i> Tạo đề thi</button>
@@ -148,8 +314,6 @@
           <div class="card-body p-4">
             <h3 class="card-title mb-4 border-bottom pb-2">Thông tin đề thi</h3>
             <form id="createExamForm">
-              
-</div>
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">Tên đề thi</label>
@@ -168,12 +332,18 @@
                   <textarea id="passage" class="form-control" rows="5" placeholder="Nhập đoạn văn cho các câu hỏi đọc hiểu..."></textarea>
                 </div>
                 <div class="col-12 mt-4">
-                    <label class="form-label fw-bold"><i class="bi bi-people-fill me-2"></i>Phân bổ cho lớp học (Bắt buộc chọn)</label>
-                    <div id="classroomCheckboxes" class="border p-3 rounded bg-light">
-                        <div class="text-center text-muted" id="classroomLoading">Đang tải danh sách lớp học...</div>
-                        </div>
+                  <label class="form-label fw-bold"><i class="bi bi-people-fill me-2"></i>Phân bổ cho lớp học (Bắt buộc chọn)</label>
+                  <div id="classroomCheckboxes" class="border p-3 rounded bg-light">
+                    <div class="text-center text-muted" id="classroomLoading">Đang tải danh sách lớp học...</div>
+                  </div>
                 </div>
+                <div class="col-12 mt-3">
+                  <label class="form-label">Import câu hỏi từ file Word (.docx)</label>
+                  <input type="file" id="importFile" accept=".docx" class="form-control">
+                  <small class="form-text text-muted">Hỗ trợ định dạng: <br>- Trắc nghiệm: Câu 1: Nội dung? A. Opt1 B. Opt2 C. Opt3 D. Opt4<br>- Đúng/Sai: Câu 1: Nội dung? A. Đúng B. Sai<br>- Trả lời ngắn: Câu 1: Nội dung? (Tự luận) Đáp án: text<br>Sau khi import, chọn đáp án đúng.</small>
+                  <button type="button" class="btn btn-secondary mt-2" onclick="importQuestions()"><i class="bi bi-upload"></i> Import</button>
                 </div>
+              </div>
               
               <h4 class="mt-5 border-bottom pb-2 mb-4">Danh sách câu hỏi</h4>
               <div id="questionsContainer"></div>
@@ -188,534 +358,617 @@
 
       <div class="tab-pane fade" id="results-tab-pane" role="tabpanel" aria-labelledby="results-tab" tabindex="0">
         <div class="card">
-            <div class="card-body p-4">
-                <h3 class="card-title mb-4">Tra cứu kết quả</h3>
-                <div class="input-group mb-3">
-                    <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
-                    <input type="text" id="examId" class="form-control" placeholder="Nhập Exam ID để xem kết quả">
-                    <button class="btn btn-info text-white" onclick="loadResults()"><i class="bi bi-search"></i> Xem điểm</button>
-                    <button class="btn btn-warning text-dark" onclick="loadExitLogs()"><i class="bi bi-shield-exclamation"></i> Xem lịch sử thoát</button>
-                </div>
-                <button class="btn btn-success mb-3" onclick="loadAllResults()">
-  <i class="bi bi-collection"></i> Xem tất cả kết quả
-</button>
-                <div id="loadingSpinner" class="text-center my-4 d-none">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2">Đang tải dữ liệu...</p>
-                </div>
-                <div id="exitLogs"></div>
-                <div id="results"></div>
+          <div class="card-body p-4">
+            <h3 class="card-title mb-4">Tra cứu kết quả</h3>
+            <div class="input-group mb-3">
+              <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
+              <input type="text" id="examId" class="form-control" placeholder="Nhập Exam ID để xem kết quả">
+              <button class="btn btn-info text-white" onclick="loadResults()"><i class="bi bi-search"></i> Xem điểm</button>
+              <button class="btn btn-warning text-dark" onclick="loadExitLogs()"><i class="bi bi-shield-exclamation"></i> Xem lịch sử thoát</button>
             </div>
+            <button class="btn btn-success mb-3" onclick="loadAllResults()">
+              <i class="bi bi-collection"></i> Xem tất cả kết quả
+            </button>
+            <div id="loadingSpinner" class="text-center my-4 d-none">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Đang tải dữ liệu...</p>
+            </div>
+            <div id="exitLogs"></div>
+            <div id="results"></div>
+          </div>
         </div>
       </div>
     </div>
   </main>
 
-<script>
-let questionIndex = 0;
-let teacherClassrooms = []; // ✅ Mảng lưu trữ dữ liệu lớp học
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script>
+    let questionIndex = 0;
+    let teacherClassrooms = [];
 
-// ✅ HÀM MỚI: Tải danh sách lớp học của giáo viên
-async function loadTeacherClassrooms() {
-    try {
+    async function loadTeacherClassrooms() {
+      try {
         const res = await fetch("/api/classrooms/my");
         if (!res.ok) throw new Error("Không thể tải danh sách lớp học.");
         teacherClassrooms = await res.json();
 
         const container = document.getElementById("classroomCheckboxes");
-        container.innerHTML = ""; // Xóa thông báo "Đang tải"
+        container.innerHTML = "";
 
         if (teacherClassrooms.length === 0) {
-            container.innerHTML = "<div class='alert alert-warning mb-0'>⚠️ Bạn chưa tạo/quản lý lớp học nào. Vui lòng tạo lớp trước.</div>";
-            return;
+          container.innerHTML = "<div class='alert alert-warning mb-0'>⚠️ Bạn chưa tạo/quản lý lớp học nào. Vui lòng tạo lớp trước.</div>";
+          return;
         }
 
         teacherClassrooms.forEach(cls => {
-            container.innerHTML += `
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input classroom-checkbox" type="checkbox" id="class-${cls._id}" value="${cls._id}">
-                    <label class="form-check-label" for="class-${cls._id}">
-                        ${cls.name} <span class="text-muted">(${cls.students.length} HS)</span>
-                    </label>
-                </div>
-            `;
+          container.innerHTML += `
+            <div class="form-check form-check-inline">
+              <input class="form-check-input classroom-checkbox" type="checkbox" id="class-${cls._id}" value="${cls._id}">
+              <label class="form-check-label" for="class-${cls._id}">
+                ${cls.name} <span class="text-muted">(${cls.students.length} HS)</span>
+              </label>
+            </div>
+          `;
         });
-
-    } catch (error) {
+      } catch (error) {
         console.error("Lỗi khi tải lớp học:", error);
         document.getElementById("classroomCheckboxes").innerHTML = "<div class='alert alert-danger mb-0'>❌ Lỗi khi tải danh sách lớp học.</div>";
+      }
     }
-}
 
-function addQuestion() {
-  const qId = "q" + Date.now();
-  const container = document.createElement("div");
-  // Thêm class animation
-  container.classList.add("card", "p-3", "mb-3", "question-card-new"); 
-  questionIndex++;
-  
-  container.innerHTML = `
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h6 class="mb-0 text-primary">Câu hỏi ${questionIndex}</h6>
-      <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(this)">
-        <i class="bi bi-trash3"></i> Xóa
-      </button>
-    </div>
-    <div class="mb-2">
-      <label class="form-label">Nội dung câu hỏi</label>
-      <input type="text" class="form-control question-text">
-    </div>
-    <div class="mb-2">
-      <label class="form-label">Loại câu hỏi</label>
-      <select class="form-select question-type" onchange="renderOptions('${qId}', this.value)">
-        <option value="tracnghiem">Trắc nghiệm</option>
-        <option value="truefalse">Đúng / Sai</option>
-        <option value="shortanswer">Trả lời ngắn</option>
-      </select>
-    </div>
-    <div id="${qId}-options" class="mb-2"></div>
-  `;
-  document.getElementById("questionsContainer").appendChild(container);
-  renderOptions(qId, "tracnghiem");
-}
+    function addQuestion() {
+      const qId = "q" + Date.now();
+      const container = document.createElement("div");
+      container.classList.add("card", "p-3", "mb-3", "question-card-new");
+      questionIndex++;
+      
+      container.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0 text-primary">Câu hỏi ${questionIndex}</h6>
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(this)">
+            <i class="bi bi-trash3"></i> Xóa
+          </button>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Nội dung câu hỏi</label>
+          <input type="text" class="form-control question-text">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Loại câu hỏi</label>
+          <select class="form-select question-type" onchange="renderOptions('${qId}', this.value)">
+            <option value="tracnghiem">Trắc nghiệm</option>
+            <option value="truefalse">Đúng / Sai</option>
+            <option value="shortanswer">Trả lời ngắn</option>
+          </select>
+        </div>
+        <div id="${qId}-options" class="mb-2"></div>
+      `;
+      document.getElementById("questionsContainer").appendChild(container);
+      renderOptions(qId, "tracnghiem");
+    }
 
-function removeQuestion(button) {
-    const card = button.closest('.card');
-    card.classList.add('question-card-removing');
-    // Chờ animation hoàn tất rồi mới xóa element
-    card.addEventListener('animationend', () => {
+    function removeQuestion(button) {
+      const card = button.closest('.card');
+      card.classList.add('question-card-removing');
+      card.addEventListener('animationend', () => {
         card.remove();
-        // Cập nhật lại số thứ tự câu hỏi (tùy chọn, nếu muốn)
-    });
-}
-
-
-function renderOptions(qId, type) {
-  const optionsDiv = document.getElementById(`${qId}-options`);
-  optionsDiv.innerHTML = ''; // Xóa nội dung cũ
-
-  if (type === "tracnghiem") {
-    optionsDiv.innerHTML = `
-      <label class="form-label">Các lựa chọn và đáp án đúng:</label>
-      <div class="row g-2">
-        <div class="col-md-6"><input type="text" class="form-control option-input" placeholder="Lựa chọn 1"></div>
-        <div class="col-md-6"><input type="text" class="form-control option-input" placeholder="Lựa chọn 2"></div>
-        <div class="col-md-6"><input type="text" class="form-control option-input" placeholder="Lựa chọn 3 (tùy chọn)"></div>
-        <div class="col-md-6"><input type="text" class="form-control option-input" placeholder="Lựa chọn 4 (tùy chọn)"></div>
-      </div>
-      <input type="number" class="form-control correct-answer mt-2" placeholder="Nhập số thứ tự đáp án đúng (1-4)" min="1" max="4">
-      <div class="form-text">Ví dụ: nếu lựa chọn 2 là đúng, nhập số 2.</div>
-    `;
-  } else if (type === "truefalse") {
-    optionsDiv.innerHTML = `
-      <p class="mb-1">Chọn đáp án đúng:</p>
-      <div class="form-check form-check-inline">
-        <input class="form-check-input correct-answer" type="radio" name="${qId}-ans" value="0" id="${qId}-true" checked>
-        <label class="form-check-label" for="${qId}-true">Đúng</label>
-      </div>
-      <div class="form-check form-check-inline">
-        <input class="form-check-input correct-answer" type="radio" name="${qId}-ans" value="1" id="${qId}-false">
-        <label class="form-check-label" for="${qId}-false">Sai</label>
-      </div>
-    `;
-  } else if (type === "shortanswer") {
-    optionsDiv.innerHTML = `
-      <label class="form-label">Đáp án đúng</label>
-      <input type="text" class="form-control correct-answer" placeholder="Ví dụ: Hà Nội">
-      <div class="form-text">Bạn có thể bỏ trống để chấm thủ công sau.</div>
-    `;
-  }
-}
-
-document.getElementById("createExamForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const title = document.getElementById("title").value;
-  const subject = document.getElementById("subject").value;
-  const duration = parseInt(document.getElementById("duration").value);
-  const passage = document.getElementById("passage").value;
-  
-  // ✅ Lấy danh sách ID lớp đã chọn
-  const selectedClassrooms = Array.from(document.querySelectorAll(".classroom-checkbox:checked")).map(cb => cb.value);
-
-  if (selectedClassrooms.length === 0) {
-      alert("⚠️ Vui lòng chọn ít nhất một lớp học để phân bổ đề thi!");
-      return;
-  }
-  
-  const questions = [];
-
-  document.querySelectorAll("#questionsContainer .card").forEach(card => {
-    const question = card.querySelector(".question-text").value;
-    const type = card.querySelector(".question-type").value;
-    let options = [];
-    let correctAnswer = null;
-
-    if (type === "tracnghiem") {
-      options = Array.from(card.querySelectorAll(".option-input")).map(opt => opt.value).filter(v => v);
-      correctAnswer = parseInt(card.querySelector(".correct-answer").value);
-    } else if (type === "truefalse") {
-      options = ["Đúng", "Sai"];
-      correctAnswer = parseInt(card.querySelector(".correct-answer:checked").value);
-    } else if (type === "shortanswer") {
-      correctAnswer = card.querySelector(".correct-answer").value || null;
+      });
     }
-    questions.push({ question, type, options, correctAnswer });
-  });
 
-  try {
-    let res = await fetch("/api/exams", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-          title, 
-          subject, 
-          duration, 
-          passage, 
-          questions,
-          // ✅ GỬI DANH SÁCH LỚP ĐÃ CHỌN
-          classrooms: selectedClassrooms
-      })
-    });
-    let data = await res.json();
-    if (data.exam) {
-      alert("✅ Tạo đề thi thành công!\nExam ID: " + data.exam._id);
-    } else {
-      alert("❌ Lỗi: " + (data.message || "Không tạo được đề thi"));
+    function renderOptions(qId, type) {
+      const optionsDiv = document.getElementById(`${qId}-options`);
+      optionsDiv.innerHTML = '';
+
+      if (type === "tracnghiem") {
+        optionsDiv.innerHTML = `
+          <label class="form-label">Các lựa chọn và đáp án đúng:</label>
+          <div class="row g-2">
+            <div class="col-md-6 d-flex align-items-center">
+              <span class="me-2 fw-bold">A.</span>
+              <input type="text" class="form-control option-input" placeholder="Lựa chọn 1">
+            </div>
+            <div class="col-md-6 d-flex align-items-center">
+              <span class="me-2 fw-bold">B.</span>
+              <input type="text" class="form-control option-input" placeholder="Lựa chọn 2">
+            </div>
+            <div class="col-md-6 d-flex align-items-center">
+              <span class="me-2 fw-bold">C.</span>
+              <input type="text" class="form-control option-input" placeholder="Lựa chọn 3 (tùy chọn)">
+            </div>
+            <div class="col-md-6 d-flex align-items-center">
+              <span class="me-2 fw-bold">D.</span>
+              <input type="text" class="form-control option-input" placeholder="Lựa chọn 4 (tùy chọn)">
+            </div>
+          </div>
+          <select class="form-select correct-answer mt-2" required>
+            <option value="" disabled selected>Chọn đáp án đúng (A, B, C, D)</option>
+            <option value="0">A</option>
+            <option value="1">B</option>
+            <option value="2">C</option>
+            <option value="3">D</option>
+          </select>
+          <div class="form-text">Chọn ký tự tương ứng với đáp án đúng (A, B, C, D).</div>
+        `;
+      } else if (type === "truefalse") {
+        optionsDiv.innerHTML = `
+          <label class="form-label">Các lựa chọn và đáp án đúng:</label>
+          <div class="row g-2">
+            <div class="col-md-6 d-flex align-items-center">
+              <span class="me-2 fw-bold">A.</span>
+              <div class="form-check">
+                <input class="form-check-input correct-answer" type="radio" name="${qId}-ans" value="0" id="${qId}-true" checked>
+                <label class="form-check-label" for="${qId}-true">Đúng</label>
+              </div>
+            </div>
+            <div class="col-md-6 d-flex align-items-center">
+              <span class="me-2 fw-bold">B.</span>
+              <div class="form-check">
+                <input class="form-check-input correct-answer" type="radio" name="${qId}-ans" value="1" id="${qId}-false">
+                <label class="form-check-label" for="${qId}-false">Sai</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-text">Chọn đáp án đúng (A=Đúng, B=Sai).</div>
+        `;
+      } else if (type === "shortanswer") {
+        optionsDiv.innerHTML = `
+          <label class="form-label">Đáp án đúng</label>
+          <input type="text" class="form-control correct-answer" placeholder="Ví dụ: Hà Nội">
+          <div class="form-text">Bạn có thể bỏ trống để chấm thủ công sau.</div>
+        `;
+      }
     }
-  } catch (error) {
-    alert("❌ Đã xảy ra lỗi kết nối. Vui lòng thử lại.");
-  }
-});
 
-async function loadResults() {
-  let examId = document.getElementById("examId").value.trim();
-  if (!examId) {
-      alert("⚠️ Vui lòng nhập Exam ID!");
-      return;
-  }
-  
-  const spinner = document.getElementById("loadingSpinner");
-  const resultsDiv = document.getElementById("results");
-  const exitLogsDiv = document.getElementById("exitLogs");
+    document.getElementById("createExamForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("title").value;
+      const subject = document.getElementById("subject").value;
+      const duration = parseInt(document.getElementById("duration").value);
+      const passage = document.getElementById("passage").value;
+      
+      const selectedClassrooms = Array.from(document.querySelectorAll(".classroom-checkbox:checked")).map(cb => cb.value);
 
-  spinner.classList.remove("d-none");
-  resultsDiv.innerHTML = "";
-  exitLogsDiv.innerHTML = "";
+      if (selectedClassrooms.length === 0) {
+        alert("⚠️ Vui lòng chọn ít nhất một lớp học để phân bổ đề thi!");
+        return;
+      }
+      
+      const questions = [];
 
-  try {
-    let res = await fetch(`/api/exams/${examId}/results`);
-    let data = await res.json();
-    let html = `
-      <table class="table table-hover table-bordered align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>Học sinh</th>
-            <th>Điểm</th>
-            <th>Xem chi tiết</th>
-            <th>Chấm điểm</th>
-          </tr>
-        </thead>
-        <tbody>`;
-    
-    if (data.length === 0) {
-        html += `<tr><td colspan="4" class="text-center">Chưa có kết quả nào cho đề thi này.</td></tr>`;
-    } else {
+      document.querySelectorAll("#questionsContainer .card").forEach(card => {
+        const question = card.querySelector(".question-text").value;
+        const type = card.querySelector(".question-type").value;
+        let options = [];
+        let correctAnswer = null;
+
+        if (type === "tracnghiem") {
+          options = Array.from(card.querySelectorAll(".option-input")).map(opt => opt.value).filter(v => v);
+          correctAnswer = parseInt(card.querySelector(".correct-answer").value);
+        } else if (type === "truefalse") {
+          options = ["Đúng", "Sai"];
+          correctAnswer = parseInt(card.querySelector(".correct-answer:checked").value);
+        } else if (type === "shortanswer") {
+          correctAnswer = card.querySelector(".correct-answer").value || null;
+        }
+        questions.push({ question, type, options, correctAnswer });
+      });
+
+      try {
+        let res = await fetch("/api/exams", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            title, 
+            subject, 
+            duration, 
+            passage, 
+            questions,
+            classrooms: selectedClassrooms
+          })
+        });
+        let data = await res.json();
+        if (data.exam) {
+          alert("✅ Tạo đề thi thành công!\nExam ID: " + data.exam._id);
+        } else {
+          alert("❌ Lỗi: " + (data.message || "Không tạo được đề thi"));
+        }
+      } catch (error) {
+        alert("❌ Đã xảy ra lỗi kết nối. Vui lòng thử lại.");
+      }
+    });
+
+    async function loadResults() {
+      let examId = document.getElementById("examId").value.trim();
+      if (!examId) {
+        alert("⚠️ Vui lòng nhập Exam ID!");
+        return;
+      }
+      
+      const spinner = document.getElementById("loadingSpinner");
+      const resultsDiv = document.getElementById("results");
+      const exitLogsDiv = document.getElementById("exitLogs");
+
+      spinner.classList.remove("d-none");
+      resultsDiv.innerHTML = "";
+      exitLogsDiv.innerHTML = "";
+
+      try {
+        let res = await fetch(`/api/exams/${examId}/results`);
+        let data = await res.json();
+        let html = `
+          <table class="table table-hover table-bordered align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Học sinh</th>
+                <th>Điểm</th>
+                <th>Xem chi tiết</th>
+                <th>Chấm điểm</th>
+              </tr>
+            </thead>
+            <tbody>`;
+        
+        if (data.length === 0) {
+          html += `<tr><td colspan="4" class="text-center">Chưa có kết quả nào cho đề thi này.</td></tr>`;
+        } else {
+          data.forEach(r => {
+            html += `<tr>
+              <td>${r.userId}</td>
+              <td><span class="badge bg-primary fs-6">${r.score ?? "Chưa chấm"}</span></td>
+              <td><button class="btn btn-sm btn-outline-info" onclick='viewDetail(${JSON.stringify(r)})'><i class="bi bi-eye"></i> Xem</button></td>
+              <td><button class="btn btn-sm btn-primary" onclick="gradeResult('${r._id}')"><i class="bi bi-check2-circle"></i> Chấm</button></td>
+            </tr>`;
+          });
+        }
+        html += "</tbody></table>";
+        resultsDiv.innerHTML = html;
+      } catch (error) {
+        resultsDiv.innerHTML = `<div class="alert alert-danger">Không thể tải kết quả. Vui lòng kiểm tra lại Exam ID.</div>`;
+      } finally {
+        spinner.classList.add("d-none");
+      }
+    }
+
+    async function loadAllResults() {
+      const resultsDiv = document.getElementById("results");
+      const exitLogsDiv = document.getElementById("exitLogs");
+      const spinner = document.getElementById("loadingSpinner");
+
+      spinner.classList.remove("d-none");
+      resultsDiv.innerHTML = "";
+      exitLogsDiv.innerHTML = "";
+
+      try {
+        let res = await fetch("/api/results");
+        let data = await res.json();
+
+        if (!data.length) {
+          resultsDiv.innerHTML = "<div class='alert alert-info'>Chưa có kết quả nào.</div>";
+          return;
+        }
+
+        let html = `<table class="table table-hover table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Học sinh</th>
+              <th>Đề thi</th>
+              <th>Môn học</th>
+              <th>Điểm</th>
+              <th>Ngày nộp</th>
+              <th>Xem chi tiết</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
         data.forEach(r => {
+          const time = new Date(r.createdAt).toLocaleString("vi-VN");
           html += `<tr>
             <td>${r.userId}</td>
+            <td>${r.examId?.title || "-"}</td>
+            <td>${r.examId?.subject || "-"}</td>
             <td><span class="badge bg-primary fs-6">${r.score ?? "Chưa chấm"}</span></td>
-            <td><button class="btn btn-sm btn-outline-info" onclick='viewDetail(${JSON.stringify(r)})'><i class="bi bi-eye"></i> Xem</button></td>
-            <td><button class="btn btn-sm btn-primary" onclick="gradeResult('${r._id}')"><i class="bi bi-check2-circle"></i> Chấm</button></td>
+            <td>${time}</td>
+            <td><button class="btn btn-sm btn-outline-info" onclick='viewDetail(${JSON.stringify(r)})'>
+              <i class="bi bi-eye"></i> Xem</button></td>
           </tr>`;
         });
-    }
-    html += "</tbody></table>";
-    resultsDiv.innerHTML = html;
-  } catch (error) {
-    resultsDiv.innerHTML = `<div class="alert alert-danger">Không thể tải kết quả. Vui lòng kiểm tra lại Exam ID.</div>`;
-  } finally {
-    spinner.classList.add("d-none");
-  }
-}
-async function loadAllResults() {
-  const resultsDiv = document.getElementById("results");
-  const exitLogsDiv = document.getElementById("exitLogs");
-  const spinner = document.getElementById("loadingSpinner");
 
-  spinner.classList.remove("d-none");
-  resultsDiv.innerHTML = "";
-  exitLogsDiv.innerHTML = "";
-
-  try {
-    let res = await fetch("/api/results");
-    let data = await res.json();
-
-    if (!data.length) {
-      resultsDiv.innerHTML = "<div class='alert alert-info'>Chưa có kết quả nào.</div>";
-      return;
+        html += "</tbody></table>";
+        resultsDiv.innerHTML = html;
+      } catch (error) {
+        resultsDiv.innerHTML = `<div class="alert alert-danger">Không thể tải tất cả kết quả.</div>`;
+      } finally {
+        spinner.classList.add("d-none");
+      } 
     }
 
-    let html = `<table class="table table-hover table-bordered align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>Học sinh</th>
-          <th>Đề thi</th>
-          <th>Môn học</th>
-          <th>Điểm</th>
-          <th>Ngày nộp</th>
-          <th>Xem chi tiết</th>
-        </tr>
-      </thead>
-      <tbody>`;
-
-    data.forEach(r => {
-      const time = new Date(r.createdAt).toLocaleString("vi-VN");
-      html += `<tr>
-        <td>${r.userId}</td>
-        <td>${r.examId?.title || "-"}</td>
-        <td>${r.examId?.subject || "-"}</td>
-        <td><span class="badge bg-primary fs-6">${r.score ?? "Chưa chấm"}</span></td>
-        <td>${time}</td>
-        <td><button class="btn btn-sm btn-outline-info" onclick='viewDetail(${JSON.stringify(r)})'>
-          <i class="bi bi-eye"></i> Xem</button></td>
-      </tr>`;
-    });
-
-    html += "</tbody></table>";
-    resultsDiv.innerHTML = html;
-  } catch (error) {
-    resultsDiv.innerHTML = `<div class="alert alert-danger">Không thể tải tất cả kết quả.</div>`;
-  } finally {
-    spinner.classList.add("d-none");
-  } 
-}
-
-async function loadExitLogs() {
-  let examId = document.getElementById("examId").value.trim();
-  if (!examId) {
-    alert("⚠️ Vui lòng nhập Exam ID!");
-    return;
-  }
-
-  const spinner = document.getElementById("loadingSpinner");
-  const exitLogsDiv = document.getElementById("exitLogs");
-  const resultsDiv = document.getElementById("results");
-  
-  spinner.classList.remove("d-none");
-  exitLogsDiv.innerHTML = "";
-  resultsDiv.innerHTML = "";
-
-
-  try {
-    let res = await fetch(`/api/exams/${examId}/exit-log`);
-    let logs = await res.json();
-
-    if (!logs.length) {
-      exitLogsDiv.innerHTML = "<div class='alert alert-success'><i class='bi bi-check-circle-fill'></i> Không có học sinh nào thoát ra trong quá trình làm bài.</div>";
-      return;
-    }
-
-    let html = `
-      <h5 class="mb-3"><i class="bi bi-file-earmark-text"></i> Lịch sử thoát</h5>
-      <div class="table-responsive">
-      <table class="table table-bordered table-striped">
-        <thead class="table-light">
-          <tr><th>Học sinh</th><th>Lý do</th><th>Thời gian</th></tr>
-        </thead>
-        <tbody>`;
-    
-    logs.forEach(l => {
-      const time = new Date(l.timestamp).toLocaleString("vi-VN");
-      html += `
-        <tr>
-          <td>${l.userId}</td>
-          <td><span class="badge bg-danger">${l.reason}</span></td>
-          <td>${time}</td>
-        </tr>`;
-    });
-    html += "</tbody></table></div>";
-    exitLogsDiv.innerHTML = html;
-  } catch (error) {
-      exitLogsDiv.innerHTML = `<div class="alert alert-danger">Không thể tải lịch sử thoát. Vui lòng kiểm tra lại Exam ID.</div>`;
-  } finally {
-      spinner.classList.add("d-none");
-  }
-}
-
-function getStatusBadge(studentAnswer, correctAnswer, type, options) {
-    if (type === 'shortanswer') {
-        return `<span class="badge bg-warning text-dark">📝 GV Chấm</span>`;
-    }
-    if (studentAnswer === null || studentAnswer === undefined) {
-        return `<span class="badge bg-secondary">Chưa trả lời</span>`;
-    }
-    if (parseInt(studentAnswer) === parseInt(correctAnswer)) {
-        return `<span class="badge bg-success">✅ Đúng</span>`;
-    }
-    return `<span class="badge bg-danger">❌ Sai</span>`;
-}
-
-function viewDetail(result) {
-  let html = `<h5><i class="bi bi-person-fill"></i> Học sinh: <strong>${result.userId}</strong></h5>`;
-  html += `<div class="table-responsive"><table class="table table-sm table-bordered">
-    <thead class="table-light">
-      <tr>
-        <th>Câu</th>
-        <th>Câu hỏi</th>
-        <th>Lựa chọn của HS</th>
-        <th>Đáp án đúng</th>
-        <th>Kết quả</th>
-      </tr>
-    </thead><tbody>`;
-
-  result.answers.forEach((a, i) => {
-    let studentAns, correct, status;
-
-    if (a.type === "tracnghiem" || a.type === "truefalse") {
-  const studentIndex = (a.answer !== null && a.answer !== undefined) ? parseInt(a.answer) : null;
-  const correctIndex = (a.correctAnswer !== null && a.correctAnswer !== undefined) ? parseInt(a.correctAnswer) : null;
-
-  studentAns = a.options?.[studentIndex] ?? "<i class='text-muted'>(không chọn)</i>";
-  correct = a.options?.[correctIndex] ?? "-";
-  status = (studentIndex !== null && studentIndex === correctIndex) ? "✅ Đúng" : "❌ Sai";
-} else if (a.type === "shortanswer") {
-  const ansText = (a.answer !== null && a.answer !== undefined) ? String(a.answer) : "";
-  const correctText = (a.correctAnswer !== null && a.correctAnswer !== undefined) ? String(a.correctAnswer) : "";
-
-  studentAns = ansText.trim() !== ""
-    ? ansText
-    : "<i class='text-muted'>(chưa trả lời)</i>";
-
-  correct = correctText.trim() !== ""
-    ? correctText
-    : "<i class='text-muted'>(GV chấm)</i>";
-
-  status = "📝 Tự luận (GV chấm)";
-}
-    
-    status = getStatusBadge(a.answer, a.correctAnswer, a.type, a.options);
-    
-    html += `<tr>
-      <td>${i+1}</td>
-      <td>${a.question}</td>
-      <td>${studentAns}</td>
-      <td><strong>${correct}</strong></td>
-      <td>${status}</td>
-    </tr>`;
-  });
-
-  html += "</tbody></table></div>";
-
-  document.getElementById("detailBody").innerHTML = html;
-  new bootstrap.Modal(document.getElementById('detailModal')).show();
-}
-
-async function gradeResult(resultId) {
-  let score = prompt("Nhập điểm cho bài làm này (thang 10):");
-  if (score === null || score.trim() === "") return;
-
-  const scoreValue = parseFloat(score);
-  if (isNaN(scoreValue) || scoreValue < 0 || scoreValue > 10) {
-      alert("Điểm không hợp lệ. Vui lòng nhập một số từ 0 đến 10.");
-      return;
-  }
-
-  try {
-      let res = await fetch(`/api/results/${resultId}/grade`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ score: scoreValue })
-      });
-      let data = await res.json();
-      if(res.ok) {
-        alert("✅ Đã chấm điểm thành công: " + data.result.score);
-        loadResults();
-      } else {
-        alert("❌ Lỗi: " + (data.message || "Không thể chấm điểm"));
+    async function loadExitLogs() {
+      let examId = document.getElementById("examId").value.trim();
+      if (!examId) {
+        alert("⚠️ Vui lòng nhập Exam ID!");
+        return;
       }
-  } catch(error) {
-      alert("❌ Đã xảy ra lỗi kết nối.");
-  }
-}
 
-// ✅ THÊM DÒNG NÀY ĐỂ TẢI LỚP KHI TRANG LOAD
-loadTeacherClassrooms();
-// ✅ THÊM MỚI: Load danh sách lớp cho teacher khi tạo đề thi
-async function loadTeacherClassroomsForExam() {
-  try {
-    const res = await fetch('/api/classrooms/my');
-    if (!res.ok) throw new Error('Không tải được lớp học.');
-    const classrooms = await res.json();
+      const spinner = document.getElementById("loadingSpinner");
+      const exitLogsDiv = document.getElementById("exitLogs");
+      const resultsDiv = document.getElementById("results");
+      
+      spinner.classList.remove("d-none");
+      exitLogsDiv.innerHTML = "";
+      resultsDiv.innerHTML = "";
 
-    const select = document.getElementById('classrooms');
-    select.innerHTML = ''; // Clear options
+      try {
+        let res = await fetch(`/api/exams/${examId}/exit-log`);
+        let logs = await res.json();
 
-    classrooms.forEach(cls => {
-      const option = document.createElement('option');
-      option.value = cls._id;
-      option.textContent = `${cls.name} (Mã: ${cls.joinCode})`;
-      select.appendChild(option);
-    });
+        if (!logs.length) {
+          exitLogsDiv.innerHTML = "<div class='alert alert-success'><i class='bi bi-check-circle-fill'></i> Không có học sinh nào thoát ra trong quá trình làm bài.</div>";
+          return;
+        }
 
-    if (classrooms.length === 0) {
-      select.innerHTML = '<option disabled>Chưa có lớp nào. Tạo lớp trước!</option>';
+        let html = `
+          <h5 class="mb-3"><i class="bi bi-file-earmark-text"></i> Lịch sử thoát</h5>
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+              <thead class="table-light">
+                <tr><th>Học sinh</th><th>Lý do</th><th>Thời gian</th></tr>
+              </thead>
+              <tbody>`;
+        
+        logs.forEach(l => {
+          const time = new Date(l.timestamp).toLocaleString("vi-VN");
+          html += `
+            <tr>
+              <td>${l.userId}</td>
+              <td><span class="badge bg-danger">${l.reason}</span></td>
+              <td>${time}</td>
+            </tr>`;
+        });
+        html += "</tbody></table></div>";
+        exitLogsDiv.innerHTML = html;
+      } catch (error) {
+        exitLogsDiv.innerHTML = `<div class="alert alert-danger">Không thể tải lịch sử thoát. Vui lòng kiểm tra lại Exam ID.</div>`;
+      } finally {
+        spinner.classList.add("d-none");
+      }
     }
-  } catch (error) {
-    console.error('Lỗi load lớp:', error);
-    document.getElementById('classrooms').innerHTML = '<option disabled>Lỗi tải lớp.</option>';
-  }
-}
 
-// ✅ Cập nhật function submit form tạo exam (giả sử có function handleCreateExam hoặc tương tự)
-async function handleCreateExam(event) {
-  event.preventDefault();
-  const formData = new FormData(event.target);
-  const title = document.getElementById('title').value;
-  const subject = document.getElementById('subject').value;
-  const duration = parseInt(document.getElementById('duration').value);
-  // ... lấy questions từ form (giả sử có)
-
-  // ✅ Lấy selected classrooms
-  const classroomsSelect = document.getElementById('classrooms');
-  const selectedClassrooms = Array.from(classroomsSelect.selectedOptions).map(opt => opt.value);
-
-  const examData = {
-    title,
-    subject,
-    duration,
-    questions: [], // Lấy từ form, ví dụ từ editor CKEditor hoặc input
-    classrooms: selectedClassrooms // Array _id
-  };
-
-  try {
-    const res = await fetch('/api/exams', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(examData)
-    });
-
-    const data = await res.json();
-    if (res.ok) {
-      alert('✅ Tạo đề thi thành công! Đã gán cho các lớp: ' + selectedClassrooms.length + ' lớp.');
-      document.getElementById('createExamForm').reset();
-      // Reload danh sách nếu có tab xem exams
-    } else {
-      alert('❌ Lỗi: ' + data.message);
+    function getStatusBadge(studentAnswer, correctAnswer, type, options) {
+      if (type === 'shortanswer') {
+        return `<span class="badge bg-warning text-dark">📝 GV Chấm</span>`;
+      }
+      if (studentAnswer === null || studentAnswer === undefined) {
+        return `<span class="badge bg-secondary">Chưa trả lời</span>`;
+      }
+      if (parseInt(studentAnswer) === parseInt(correctAnswer)) {
+        return `<span class="badge bg-success">✅ Đúng</span>`;
+      }
+      return `<span class="badge bg-danger">❌ Sai</span>`;
     }
-  } catch (error) {
-    alert('❌ Lỗi kết nối.');
-  }
-}
 
-// ✅ Gán event listener cho form
-document.getElementById('createExamForm').addEventListener('submit', handleCreateExam);
+    function viewDetail(result) {
+      let html = `<h5><i class="bi bi-person-fill"></i> Học sinh: <strong>${result.userId}</strong></h5>`;
+      html += `<div class="table-responsive"><table class="table table-sm table-bordered">
+        <thead class="table-light">
+          <tr>
+            <th>Câu</th>
+            <th>Câu hỏi</th>
+            <th>Lựa chọn của HS</th>
+            <th>Đáp án đúng</th>
+            <th>Kết quả</th>
+          </tr>
+        </thead><tbody>`;
 
-// ✅ Load lớp khi trang load (thêm vào cuối)
-loadTeacherClassroomsForExam();
-</script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+      result.answers.forEach((a, i) => {
+        let studentAns, correct, status;
 
+        if (a.type === "tracnghiem" || a.type === "truefalse") {
+          const studentIndex = (a.answer !== null && a.answer !== undefined) ? parseInt(a.answer) : null;
+          const correctIndex = (a.correctAnswer !== null && a.correctAnswer !== undefined) ? parseInt(a.correctAnswer) : null;
+          studentAns = a.options?.[studentIndex] ?? "<i class='text-muted'>(không chọn)</i>";
+          correct = a.options?.[correctIndex] ?? "-";
+          status = (studentIndex !== null && studentIndex === correctIndex) ? "✅ Đúng" : "❌ Sai";
+        } else if (a.type === "shortanswer") {
+          const ansText = (a.answer !== null && a.answer !== undefined) ? String(a.answer) : "";
+          const correctText = (a.correctAnswer !== null && a.correctAnswer !== undefined) ? String(a.correctAnswer) : "";
+          studentAns = ansText.trim() !== "" ? ansText : "<i class='text-muted'>(chưa trả lời)</i>";
+          correct = correctText.trim() !== "" ? correctText : "<i class='text-muted'>(GV chấm)</i>";
+          status = "📝 Tự luận (GV chấm)";
+        }
+        
+        status = getStatusBadge(a.answer, a.correctAnswer, a.type, a.options);
+        
+        html += `<tr>
+          <td>${i+1}</td>
+          <td>${a.question}</td>
+          <td>${studentAns}</td>
+          <td><strong>${correct}</strong></td>
+          <td>${status}</td>
+        </tr>`;
+      });
+
+      html += "</tbody></table></div>";
+      document.getElementById("detailBody").innerHTML = html;
+      new bootstrap.Modal(document.getElementById('detailModal')).show();
+    }
+
+    async function gradeResult(resultId) {
+      let score = prompt("Nhập điểm cho bài làm này (thang 10):");
+      if (score === null || score.trim() === "") return;
+
+      const scoreValue = parseFloat(score);
+      if (isNaN(scoreValue) || scoreValue < 0 || scoreValue > 10) {
+        alert("Điểm không hợp lệ. Vui lòng nhập một số từ 0 đến 10.");
+        return;
+      }
+
+      try {
+        let res = await fetch(`/api/results/${resultId}/grade`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ score: scoreValue })
+        });
+        let data = await res.json();
+        if (res.ok) {
+          alert("✅ Đã chấm điểm thành công: " + data.result.score);
+          loadResults();
+        } else {
+          alert("❌ Lỗi: " + (data.message || "Không thể chấm điểm"));
+        }
+      } catch (error) {
+        alert("❌ Đã xảy ra lỗi kết nối.");
+      }
+    }
+
+    function importQuestions() {
+      const fileInput = document.getElementById('importFile');
+      const file = fileInput.files[0];
+      if (!file) {
+        alert('⚠️ Vui lòng chọn file .docx!');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const arrayBuffer = e.target.result;
+        mammoth.extractRawText({arrayBuffer: arrayBuffer})
+          .then(function(result) {
+            const text = result.value;
+            parseAndAddQuestions(text);
+          })
+          .catch(function(err) {
+            console.error('Lỗi đọc file:', err);
+            alert('❌ Lỗi khi đọc file .docx. Vui lòng kiểm tra định dạng.');
+          });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function parseAndAddQuestions(text) {
+      const lines = text.split('\n').filter(line => line.trim());
+      let currentQuestion = null;
+
+      lines.forEach((line, index) => {
+        const trimmed = line.trim();
+        if (trimmed.match(/^Câu \d+:/i)) {
+          if (currentQuestion) {
+            addImportedQuestion(currentQuestion);
+          }
+          const questionText = trimmed.replace(/^Câu \d+:/i, '').trim();
+          const isTrueFalse = questionText.match(/Đúng hay Sai\??$/i) || questionText.match(/True or False\??$/i);
+          const isShortAnswer = questionText.match(/\(Tự luận\)$/i) || questionText.match(/\(Trả lời ngắn\)$/i);
+          currentQuestion = {
+            question: questionText.replace(/\(Tự luận\)$/i, '').replace(/\(Trả lời ngắn\)$/i, '').trim(),
+            options: [],
+            type: isTrueFalse ? 'truefalse' : isShortAnswer ? 'shortanswer' : 'tracnghiem',
+            correctAnswer: null
+          };
+        } else if (currentQuestion && currentQuestion.type === 'tracnghiem' && trimmed.match(/^[A-D]\./i)) {
+          currentQuestion.options.push(trimmed.replace(/^[A-D]\./i, '').trim());
+        } else if (currentQuestion && currentQuestion.type === 'truefalse' && trimmed.match(/^[A-B]\./i)) {
+          const optionText = trimmed.replace(/^[A-B]\./i, '').trim();
+          if (optionText.match(/^Đúng$/i) || optionText.match(/^True$/i) || optionText.match(/^Sai$/i) || optionText.match(/^False$/i)) {
+            currentQuestion.options.push(optionText);
+          }
+        } else if (currentQuestion && currentQuestion.type === 'shortanswer' && trimmed.match(/^Đáp án:/i)) {
+          currentQuestion.correctAnswer = trimmed.replace(/^Đáp án:/i, '').trim() || null;
+        }
+      });
+
+      if (currentQuestion) {
+        if (currentQuestion.type === 'tracnghiem' && currentQuestion.options.length >= 2) {
+          addImportedQuestion(currentQuestion);
+        } else if (currentQuestion.type === 'truefalse' && currentQuestion.options.length === 2 && 
+                   currentQuestion.options[0].match(/^Đúng$/i) && currentQuestion.options[1].match(/^Sai$/i)) {
+          addImportedQuestion(currentQuestion);
+        } else if (currentQuestion.type === 'shortanswer') {
+          addImportedQuestion(currentQuestion);
+        }
+      }
+
+      if (questionIndex === 0) {
+        alert('❌ Không tìm thấy câu hỏi nào trong file. Đảm bảo định dạng đúng.');
+      } else {
+        alert(`✅ Đã import thành công ${questionIndex} câu hỏi. Vui lòng chọn đáp án đúng cho Trắc nghiệm và Đúng/Sai.`);
+      }
+    }
+
+    function addImportedQuestion(q) {
+      const qId = "q" + Date.now();
+      const container = document.createElement("div");
+      container.classList.add("card", "p-3", "mb-3", "question-card-new");
+      questionIndex++;
+
+      let optionsHtml = '';
+      if (q.type === 'tracnghiem') {
+        optionsHtml = q.options.map((opt, index) => `
+          <div class="col-md-6 d-flex align-items-center">
+            <span class="me-2 fw-bold">${String.fromCharCode(65 + index)}.</span>
+            <input type="text" class="form-control option-input" value="${opt}" readonly>
+          </div>
+        `).join('');
+      } else if (q.type === 'truefalse') {
+        optionsHtml = `
+          <div class="col-md-6 d-flex align-items-center">
+            <span class="me-2 fw-bold">A.</span>
+            <div class="form-check">
+              <input class="form-check-input correct-answer" type="radio" name="${qId}-ans" value="0" id="${qId}-true" checked>
+              <label class="form-check-label" for="${qId}-true">Đúng</label>
+            </div>
+          </div>
+          <div class="col-md-6 d-flex align-items-center">
+            <span class="me-2 fw-bold">B.</span>
+            <div class="form-check">
+              <input class="form-check-input correct-answer" type="radio" name="${qId}-ans" value="1" id="${qId}-false">
+              <label class="form-check-label" for="${qId}-false">Sai</label>
+            </div>
+          </div>
+        `;
+      } else if (q.type === 'shortanswer') {
+        optionsHtml = `
+          <label class="form-label">Đáp án đúng</label>
+          <input type="text" class="form-control correct-answer" value="${q.correctAnswer || ''}" readonly>
+          <div class="form-text">Bạn có thể bỏ trống để chấm thủ công sau.</div>
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0 text-primary">Câu hỏi ${questionIndex}</h6>
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(this)">
+            <i class="bi bi-trash3"></i> Xóa
+          </button>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Nội dung câu hỏi</label>
+          <input type="text" class="form-control question-text" value="${q.question}" readonly>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Loại câu hỏi</label>
+          <select class="form-select question-type" disabled>
+            <option value="${q.type}" selected>${q.type === 'tracnghiem' ? 'Trắc nghiệm' : q.type === 'truefalse' ? 'Đúng / Sai' : 'Trả lời ngắn'}</option>
+          </select>
+        </div>
+        <div id="${qId}-options" class="mb-2">
+          <label class="form-label">${q.type === 'shortanswer' ? 'Đáp án đúng' : 'Các lựa chọn:'}</label>
+          <div class="row g-2">${optionsHtml}</div>
+          ${q.type === 'tracnghiem' ? `
+            <select class="form-select correct-answer mt-2" required>
+              <option value="" disabled selected>Chọn đáp án đúng (A, B, C, D)</option>
+              ${q.options.map((_, index) => `<option value="${index}">${String.fromCharCode(65 + index)}</option>`).join('')}
+            </select>
+            <div class="form-text text-danger">Bắt buộc chọn đáp án đúng!</div>
+          ` : q.type === 'truefalse' ? `
+            <div class="form-text text-danger">Chọn đáp án đúng (A=Đúng, B=Sai).</div>
+          ` : ''}
+        </div>
+      `;
+      document.getElementById("questionsContainer").appendChild(container);
+    }
+
+    loadTeacherClassrooms();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
