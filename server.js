@@ -21,6 +21,7 @@ const { sendVerificationEmail } = require('./utils/mailer');
 const User = require('./models/user');
 const Student = require('./models/student');
 
+
 const app = express();
 const server = http.createServer(app);
 app.set('trust proxy', true);
@@ -1015,6 +1016,13 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 // Khởi động server
-server.listen(PORT, () => {
-  console.log(`✅ Server đang chạy tại http://localhost:${PORT}`);
+const PORT = process.env.PORT || 3000;
+
+// Route test cho Render nhận biết server đã sẵn sàng
+app.get('/', (req, res) => {
+  res.send('✅ Server Render đang hoạt động!');
+});
+
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server đang chạy trên Render - PORT: ${PORT}`);
 });
