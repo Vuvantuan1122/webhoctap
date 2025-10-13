@@ -279,14 +279,13 @@ app.get("/api/posts/:id/comments", async (req, res) => {
 });
 
 // API: Đăng ký tài khoản
-const nodemailer = require('nodemailer');
 
 // ===================== GỬI OTP QUA RESEND =====================
-const { Resend } = require("resend");
-const resend = new Resend(process.env.RESEND_API_KEY);
+const nodemailer = require("nodemailer");
 
 app.post("/api/send-otp", async (req, res) => {
   const { email } = req.body;
+
   try {
     if (!email || !email.includes("@")) {
       return res.status(400).json({ message: "Email không hợp lệ." });
@@ -299,26 +298,37 @@ app.post("/api/send-otp", async (req, res) => {
       JSON.stringify({ email, otpCode, time: Date.now() })
     );
 
-    const result = await resend.emails.send({
-      from: "Noah <no-reply@webhoctap-fixq.onrender.com>",
+    // Cấu hình transporter Gmail
+    const transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      secure: true,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
 
+    const mailOptions = {
+      from: `"Noah Web" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Mã xác thực đăng ký (Noah)",
       html: `
         <h2>Mã xác thực của bạn là:</h2>
         <h1 style="color:#007bff;">${otpCode}</h1>
         <p>⏰ Mã này có hiệu lực trong 10 phút.</p>
-      `
-    });
+      `,
+    };
 
-    console.log("✅ Đã gửi OTP qua Resend:", result);
+    await transporter.sendMail(mailOptions);
+
+    console.log("✅ Đã gửi OTP:", otpCode, "→", email);
     res.json({ message: "✅ Mã OTP đã được gửi qua email!", needVerify: true });
   } catch (err) {
     console.error("❌ Lỗi gửi OTP:", err);
     res.status(500).json({ message: "❌ Lỗi khi gửi OTP, vui lòng thử lại." });
   }
 });
-
 
 // Xác minh OTP và tạo tài khoản
 app.post('/api/register', async (req, res) => {
