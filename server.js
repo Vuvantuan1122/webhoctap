@@ -281,48 +281,44 @@ app.get("/api/posts/:id/comments", async (req, res) => {
 // API: Đăng ký tài khoản
 const nodemailer = require('nodemailer');
 
-app.post('/api/send-otp', async (req, res) => {
+// ===================== GỬI OTP QUA RESEND =====================
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+app.post("/api/send-otp", async (req, res) => {
   const { email } = req.body;
-
   try {
-    if (!email || !email.includes('@')) {
+    if (!email || !email.includes("@")) {
       return res.status(400).json({ message: "Email không hợp lệ." });
-    }
-
-    const existingUser = await User.findOne({ email, isVerified: true });
-    if (existingUser) {
-      return res.json({ message: 'Email đã được đăng ký tài khoản.' });
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     fs.writeFileSync(
-      'temp-otp.json',
+      "temp-otp.json",
       JSON.stringify({ email, otpCode, time: Date.now() })
     );
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
+    const result = await resend.emails.send({
+      from: "Noah <no-reply@webhoctap-fixq.onrender.com>",
 
-    await transporter.sendMail({
-      from: `"Xác thực tài khoản" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: "Mã xác thực đăng ký",
-      text: `Mã xác nhận của bạn là: ${otpCode}`
+      subject: "Mã xác thực đăng ký (Noah)",
+      html: `
+        <h2>Mã xác thực của bạn là:</h2>
+        <h1 style="color:#007bff;">${otpCode}</h1>
+        <p>⏰ Mã này có hiệu lực trong 10 phút.</p>
+      `
     });
 
-    console.log("✅ Đã gửi mã OTP tới:", email);
-    res.json({ message: "Mã xác thực đã được gửi qua email." });
+    console.log("✅ Đã gửi OTP qua Resend:", result);
+    res.json({ message: "✅ Mã OTP đã được gửi qua email!", needVerify: true });
   } catch (err) {
     console.error("❌ Lỗi gửi OTP:", err);
-    res.status(500).json({ message: "Lỗi máy chủ khi gửi OTP." });
+    res.status(500).json({ message: "❌ Lỗi khi gửi OTP, vui lòng thử lại." });
   }
 });
+
 
 // Xác minh OTP và tạo tài khoản
 app.post('/api/register', async (req, res) => {
@@ -1024,5 +1020,4 @@ app.get('/', (req, res) => {
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server đang chạy trên Render - PORT: ${PORT}`);
-
 });
