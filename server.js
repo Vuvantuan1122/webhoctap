@@ -298,31 +298,32 @@ app.post("/api/send-otp", async (req, res) => {
       JSON.stringify({ email, otpCode, time: Date.now() })
     );
 
-    // Cấu hình transporter Gmail
+    // ⚙️ Cấu hình SMTP Brevo
     const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      secure: true,
+      host: process.env.SMTP_HOST || "smtp-relay.brevo.com",
+      port: 587,
+      secure: false,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.BREVO_USER,
+        pass: process.env.BREVO_PASS,
       },
     });
 
-    const mailOptions = {
-      from: `"Noah Web" <${process.env.EMAIL_USER}>`,
+    // 📩 Gửi mail
+    await transporter.sendMail({
+      from: `"Web Học Tập" <${process.env.BREVO_USER}>`,
       to: email,
       subject: "Mã xác thực đăng ký (Noah)",
       html: `
-        <h2>Mã xác thực của bạn là:</h2>
-        <h1 style="color:#007bff;">${otpCode}</h1>
-        <p>⏰ Mã này có hiệu lực trong 10 phút.</p>
+        <div style="font-family:sans-serif;line-height:1.6">
+          <h2>Mã xác thực của bạn là:</h2>
+          <h1 style="color:#007bff;">${otpCode}</h1>
+          <p>⏰ Mã này có hiệu lực trong 10 phút.</p>
+        </div>
       `,
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
-
-    console.log("✅ Đã gửi OTP:", otpCode, "→", email);
+    console.log(`✅ Đã gửi OTP tới ${email}`);
     res.json({ message: "✅ Mã OTP đã được gửi qua email!", needVerify: true });
   } catch (err) {
     console.error("❌ Lỗi gửi OTP:", err);
