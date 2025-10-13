@@ -1016,7 +1016,6 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 // Khởi động server
-const PORT = process.env.PORT || 3000;
 
 // Route test cho Render nhận biết server đã sẵn sàng
 app.get('/', (req, res) => {
@@ -1025,4 +1024,5 @@ app.get('/', (req, res) => {
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server đang chạy trên Render - PORT: ${PORT}`);
+
 });
