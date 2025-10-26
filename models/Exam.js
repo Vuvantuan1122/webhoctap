@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const QuestionSchema = new mongoose.Schema({
   question: String,
   options: [String],
-  correctAnswer: Number, // Dùng cho trắc nghiệm
+  correctAnswer: { type: mongoose.Schema.Types.Mixed },
   type: { type: String, enum: ["tracnghiem", "truefalse", "shortanswer"], default: "tracnghiem" }
 });
 
