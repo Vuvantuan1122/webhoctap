@@ -233,11 +233,11 @@ app.post('/api/upload', baiTapUpload.array('images', 10), async (req, res) => { 
 
     // Lưu thông tin bài nộp vào MongoDB
     const submissions = req.files.map(file => ({
-      userId: user.username,
-      classId: classId,
-      fileUrl: file.path,
-      fileName: file.originalname,
-    }));
+  userId: user.username,
+  classId: new mongoose.Types.ObjectId(classId), // ✅ Lưu đúng dạng ObjectId
+  fileUrl: file.path,
+  fileName: file.originalname,
+}));
     
     await Submission.insertMany(submissions); // Lưu nhiều bản ghi cùng lúc
 
@@ -407,54 +407,60 @@ app.get('/api/images', async (req, res) => {
     const { classId } = req.query;
     let filter = {};
 
-    // 1. Lọc theo ClassId nếu có
-    if (classId && classId !== 'all') {
-      if (!mongoose.Types.ObjectId.isValid(classId)) {
+    // 🧩 Nếu giáo viên lọc theo lớp
+    if (user.role === "teacher") {
+      if (classId && classId !== "all") {
+        if (!mongoose.Types.ObjectId.isValid(classId)) {
           return res.status(400).json({ message: "ID lớp không hợp lệ." });
-      }
-      filter.classId = new mongoose.Types.ObjectId(classId);
-    }
-
-    // 2. Phân quyền xem
-    if (user.role === 'student') {
-        // Học sinh chỉ xem bài nộp của chính mình
-        filter.userId = user.username;
-        // Nếu không có classId được lọc, ta không thể xác định lớp của bài nộp, 
-        // nhưng front-end đã đảm bảo luôn có classId khi gọi loadImages.
-    } 
-    else if (user.role === 'teacher') {
-        // Giáo viên chỉ xem bài nộp trong các lớp mình dạy
-        if (classId && classId !== 'all') {
-            const classroom = await Classroom.findById(classId);
-            if (!classroom || classroom.teacherUsername !== user.username) {
-                return res.status(403).json({ message: "Bạn không có quyền xem bài nộp của lớp này." });
-            }
-        } else if (classId === 'all') {
-            const myClassrooms = await Classroom.find({ teacherUsername: user.username });
-            const myClassIds = myClassrooms.map(c => c._id);
-            filter.classId = { $in: myClassIds };
         }
+
+        // Kiểm tra quyền xem lớp
+        const classroom = await Classroom.findById(classId);
+        if (!classroom || classroom.teacherUsername !== user.username) {
+          return res.status(403).json({ message: "Bạn không có quyền xem lớp này." });
+        }
+
+        filter.classId = new mongoose.Types.ObjectId(classId);
+      } else if (classId === "all") {
+        const myClassrooms = await Classroom.find({ teacherUsername: user.username });
+        filter.classId = { $in: myClassrooms.map(c => c._id) };
+      }
     }
 
-    const submissions = await Submission.find(filter)
-        .sort({ timestamp: -1 })
-        .lean();
+    // 🧩 Nếu học sinh xem bài
+    if (user.role === "student") {
+      const myClasses = await Classroom.find({ students: user.username });
+      const myClassIds = myClasses.map(c => c._id);
 
+      if (classId && classId !== "all") {
+        if (!mongoose.Types.ObjectId.isValid(classId)) {
+          return res.status(400).json({ message: "ID lớp không hợp lệ." });
+        }
+        filter.classId = new mongoose.Types.ObjectId(classId);
+      } else {
+        filter.classId = { $in: myClassIds };
+      }
+    }
+
+    // 📦 Lấy danh sách bài tập
+    const submissions = await Submission.find(filter)
+      .sort({ timestamp: -1 })
+      .lean();
+
+    // 🖼️ Chuẩn hóa dữ liệu trả về
     const images = submissions.map(sub => ({
       url: sub.fileUrl,
-      classId: sub.classId.toString(),
+      classId: sub.classId?.toString(),
       userId: sub.userId,
       timestamp: sub.timestamp
     }));
 
     res.json(images);
-
   } catch (err) {
-    console.error("❌ Lỗi khi tải ảnh bài nộp:", err);
-    res.status(500).json({ message: "Lỗi server khi tải ảnh bài nộp." });
+    console.error("❌ Lỗi khi tải ảnh bài tập:", err);
+    res.status(500).json({ message: "Lỗi server khi tải ảnh bài tập." });
   }
 });
-
 // XÓA ĐOẠN CODE CŨ VÀ KHÔNG SỬ DỤNG:
 // app.post('/api/upload-baitap', baiTapUpload.single('file'), async (req, res) => { /* ... */ });
 
