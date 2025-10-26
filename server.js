@@ -1,4 +1,5 @@
 require('dotenv').config();
+const ExamVideo = require("./models/ExamVideo");
 const mongoose = require('mongoose');
 const express = require('express');
 const session = require('express-session');
@@ -9,7 +10,7 @@ const multer = require('multer');
 const cors = require('cors');
 const Post = require("./models/Post");
 const Comment = require("./models/Comment");
-const Report = require("./models/Report");
+const Report = require('./models/Report');
 const Exam = require("./models/Exam");
 const Result = require("./models/Result");
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
@@ -21,8 +22,25 @@ const { sendVerificationEmail } = require('./utils/mailer');
 const User = require('./models/user');
 const Student = require('./models/student');
 
+// =================================================================
+// THÊM: Định nghĩa Submission Model (Bài nộp)
+// =================================================================
+const submissionSchema = new mongoose.Schema({
+    userId: { type: String, required: true },
+    classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Classroom', required: true },
+    fileUrl: { type: String, required: true },
+    fileName: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now },
+});
+const Submission = mongoose.model("Submission", submissionSchema);
+
 
 const app = express();
+app.use(express.json());
+const resultRoutes = require('./routes/results');
+app.use('/api', resultRoutes);
+
+
 const server = http.createServer(app);
 app.set('trust proxy', true);
 const io = new Server(server, {
@@ -34,7 +52,7 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// Tạo thư mục uploads彬
+// Tạo thư mục uploads
 if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
 if (!fs.existsSync('uploads/chat')) fs.mkdirSync('uploads/chat');
 if (!fs.existsSync('public/uploads')) fs.mkdirSync('public/uploads');
@@ -187,10 +205,259 @@ const baiTapStorage = new CloudinaryStorage({
   cloudinary,
   params: {
     folder: "bai_tap_hoc_sinh",
-    allowed_formats: ["jpg", "png", "jpeg"]
+    allowed_formats: ["jpg", "png", "jpeg", "pdf"] // ĐÃ THÊM PDF
   }
 });
 const baiTapUpload = multer({ storage: baiTapStorage });
+
+
+// =================================================================
+// SỬA & THAY THẾ: API Nộp Bài Tập (Fix lỗi tải ảnh và thêm classId)
+// =================================================================
+app.post('/api/upload', baiTapUpload.array('images', 10), async (req, res) => { // SỬA: Dùng .array('images')
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ message: "Bạn cần đăng nhập để nộp bài." });
+    }
+
+    const user = req.session.user;
+    const { classId } = req.body; // THÊM: Lấy classId từ form data
+
+    if (!classId || !mongoose.Types.ObjectId.isValid(classId)) {
+      return res.status(400).json({ message: "Vui lòng chọn lớp học hợp lệ." });
+    }
+    
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "Chưa có file được tải lên." });
+    }
+
+    // Lưu thông tin bài nộp vào MongoDB
+    const submissions = req.files.map(file => ({
+      userId: user.username,
+      classId: classId,
+      fileUrl: file.path,
+      fileName: file.originalname,
+    }));
+    
+    await Submission.insertMany(submissions); // Lưu nhiều bản ghi cùng lúc
+
+    res.json({ message: "✅ Nộp bài thành công!", count: submissions.length });
+  } catch (err) {
+    console.error("❌ Lỗi khi nộp bài:", err);
+    res.status(500).json({ message: "Lỗi máy chủ khi nộp bài.", error: err.message });
+  }
+});
+// =================================================================
+// 🎥 API: Upload video thi (ghi lại quá trình làm bài)
+// =================================================================
+
+const examVideoStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "exam_videos",
+    resource_type: "video"
+  }
+});
+
+const videoUpload = multer({ storage: examVideoStorage });
+
+app.post("/api/upload-exam-video",
+  videoUpload.single("video"),
+  async (req, res) => {
+    console.log("🎥 Server vừa nhận video:", req.file?.path);
+    try {
+      const { examId, classId, userId } = req.body;
+      if (!req.file) {
+        console.warn("⚠️ Không có file trong request");
+        return res.status(400).json({ message: "Không có video" });
+      }
+
+      const newVideo = new ExamVideo({
+        userId,
+        examId: new mongoose.Types.ObjectId(examId),
+        classId: classId ? new mongoose.Types.ObjectId(classId) : null,
+        videoUrl: req.file.path.trim() // Loại bỏ khoảng trắng thừa
+      });
+      await newVideo.save();
+      console.log("✅ Đã lưu ExamVideo:", newVideo);
+
+      res.json({ message: "✅ Upload thành công!", url: req.file.path });
+    } catch (e) {
+      console.error("❌ Lỗi upload video:", e);
+      res.status(500).json({ message: "Lỗi server" });
+    }
+  });
+
+// =================================================================
+// SỬA LỖI: API tải danh sách video (Sử dụng ObjectId cho examId)
+// =================================================================
+app.get("/api/exam-videos", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user || user.role !== "teacher") {
+      return res.status(403).json({ message: "Chỉ giáo viên được phép xem video thi." });
+    }
+
+    const { examId } = req.query;
+    let filter = {};
+    
+    // SỬA LỖI QUAN TRỌNG: Chuyển examId sang ObjectId nếu tồn tại
+    if (examId && examId !== 'all') { // Bỏ qua khi chọn 'Tất cả bài thi'
+        if (!mongoose.Types.ObjectId.isValid(examId)) {
+            return res.status(400).json({ message: "ID bài thi không hợp lệ." });
+        }
+        filter.examId = new mongoose.Types.ObjectId(examId); // ✅ ĐÃ SỬA LỖI
+    }
+    
+    const videos = await ExamVideo.find(filter)
+      .populate("examId", "title")
+      .populate("classId", "name")
+      .sort({ uploadedAt: -1 })
+      .lean();
+      
+    res.json(videos);
+  } catch (err) {
+    console.error("❌ Lỗi khi tải danh sách video giám sát:", err);
+    res.status(500).json({ message: "Lỗi máy chủ khi tải danh sách video giám sát." });
+  }
+});
+
+
+app.post("/api/upload-exam-video",
+  videoUpload.single("video"),
+  async (req, res) => {
+    console.log("🎥 Server vừa nhận video:", req.file?.path); // ← thêm
+    try {
+      const { examId, classId, userId } = req.body;
+      if (!req.file) {
+        console.warn("⚠️ Không có file trong request"); // ← thêm
+        return res.status(400).json({ message: "Không có video" });
+      }
+
+      const newVideo = new ExamVideo({
+        userId,
+        examId: new mongoose.Types.ObjectId(examId),
+        classId: classId ? new mongoose.Types.ObjectId(classId) : null,
+        videoUrl: req.file.path
+      });
+      await newVideo.save();
+      console.log("✅ Đã lưu ExamVideo:", newVideo); // ← thêm
+
+      res.json({ message: "✅ Upload thành công!", url: req.file.path });
+    } catch (e) {
+      console.error("❌ Lỗi upload video:", e); // ← thêm
+      res.status(500).json({ message: "Lỗi server" });
+    }
+  });
+// Đảm bảo bạn đã import mongoose ở đầu file, ví dụ: const mongoose = require('mongoose');
+
+// =================================================================
+// SỬA LỖI: API tải danh sách video (Sử dụng ObjectId cho examId)
+// =================================================================
+app.get("/api/exam-videos", async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user || user.role !== "teacher") {
+      return res.status(403).json({ message: "Chỉ giáo viên được phép xem video thi." });
+    }
+
+    const { examId } = req.query;
+    let filter = {};
+    
+    // SỬA LỖI QUAN TRỌNG: Chuyển examId sang ObjectId nếu tồn tại
+    if (examId) {
+        if (!mongoose.Types.ObjectId.isValid(examId)) {
+            // Trường hợp: người dùng chọn "Tất cả bài thi" (examId = 'all')
+            if (examId !== 'all') { 
+                return res.status(400).json({ message: "ID bài thi không hợp lệ." });
+            }
+        } else {
+            // Trường hợp: ID hợp lệ, thêm vào filter
+            filter.examId = new mongoose.Types.ObjectId(examId);
+        }
+    }
+    
+    // Nếu có thêm filter classId, có thể thêm ở đây:
+    // const { classId } = req.query;
+    // if (classId && classId !== 'all') {
+    //     if (mongoose.Types.ObjectId.isValid(classId)) {
+    //         filter.classId = new mongoose.Types.ObjectId(classId);
+    //     }
+    // }
+
+    const videos = await ExamVideo.find(filter)
+      .populate("examId", "title")
+      .populate("classId", "name")
+      .sort({ uploadedAt: -1 })
+      .lean();
+      
+    res.json(videos);
+  } catch (err) {
+    console.error("❌ Lỗi khi tải danh sách video giám sát:", err);
+    res.status(500).json({ message: "Lỗi máy chủ khi tải danh sách video giám sát." });
+  }
+});
+app.get('/api/images', async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ message: "Bạn cần đăng nhập." });
+    }
+
+    const user = req.session.user;
+    const { classId } = req.query;
+    let filter = {};
+
+    // 1. Lọc theo ClassId nếu có
+    if (classId && classId !== 'all') {
+      if (!mongoose.Types.ObjectId.isValid(classId)) {
+          return res.status(400).json({ message: "ID lớp không hợp lệ." });
+      }
+      filter.classId = new mongoose.Types.ObjectId(classId);
+    }
+
+    // 2. Phân quyền xem
+    if (user.role === 'student') {
+        // Học sinh chỉ xem bài nộp của chính mình
+        filter.userId = user.username;
+        // Nếu không có classId được lọc, ta không thể xác định lớp của bài nộp, 
+        // nhưng front-end đã đảm bảo luôn có classId khi gọi loadImages.
+    } 
+    else if (user.role === 'teacher') {
+        // Giáo viên chỉ xem bài nộp trong các lớp mình dạy
+        if (classId && classId !== 'all') {
+            const classroom = await Classroom.findById(classId);
+            if (!classroom || classroom.teacherUsername !== user.username) {
+                return res.status(403).json({ message: "Bạn không có quyền xem bài nộp của lớp này." });
+            }
+        } else if (classId === 'all') {
+            const myClassrooms = await Classroom.find({ teacherUsername: user.username });
+            const myClassIds = myClassrooms.map(c => c._id);
+            filter.classId = { $in: myClassIds };
+        }
+    }
+
+    const submissions = await Submission.find(filter)
+        .sort({ timestamp: -1 })
+        .lean();
+
+    const images = submissions.map(sub => ({
+      url: sub.fileUrl,
+      classId: sub.classId.toString(),
+      userId: sub.userId,
+      timestamp: sub.timestamp
+    }));
+
+    res.json(images);
+
+  } catch (err) {
+    console.error("❌ Lỗi khi tải ảnh bài nộp:", err);
+    res.status(500).json({ message: "Lỗi server khi tải ảnh bài nộp." });
+  }
+});
+
+// XÓA ĐOẠN CODE CŨ VÀ KHÔNG SỬ DỤNG:
+// app.post('/api/upload-baitap', baiTapUpload.single('file'), async (req, res) => { /* ... */ });
+
 
 // Upload chat (Cloudinary)
 const chatStorage = new CloudinaryStorage({
@@ -782,23 +1049,27 @@ app.get('/api/exams/:id', async (req, res) => {
     }
 
     const safeExam = {
-      _id: exam._id,
-      title: exam.title,
-      subject: exam.subject,
-      duration: exam.duration,
-      passage: exam.passage,
-      questions: exam.questions.map(q => ({
-        _id: q._id,
-        question: q.question,
-        options: q.options,
-        type: q.type
-      }))
-    };
+  _id: exam._id,
+  title: exam.title,
+  subject: exam.subject,
+  duration: exam.duration,
+  passage: exam.passage,
+  questions: exam.questions.map(q => ({
+    _id: q._id,
+    question: q.question,
+    options: q.options,
+    type: q.type
+    // correctAnswer: q.correctAnswer  ← không gửi
+  }))
+};
+res.json(safeExam);
+
+    
 
     const classNames = exam.classrooms ? exam.classrooms.map(cls => cls.name).join(', ') : 'Chưa phân bổ';
     safeExam.className = classNames;
 
-    res.json(safeExam);
+    
   } catch (err) {
     if (err.name === 'CastError') {
       console.error('CastError cho exam ID:', req.params.id);
@@ -817,73 +1088,76 @@ app.post("/api/exams/:id/submit", async (req, res) => {
     const exam = await Exam.findById(req.params.id);
     if (!exam) return res.status(404).json({ message: "Không tìm thấy bài thi." });
 
+    // Kiểm tra quyền làm bài... (giữ nguyên)
     if (user.role === "student") {
       const studentClassrooms = await Classroom.find({ students: user.username });
-      const studentClassroomIds = studentClassrooms.map(c => c._id.toString());
-      const isAuthorized = exam.classrooms.some(examClassId => 
-        studentClassroomIds.includes(examClassId.toString())
-      );
-      if (!isAuthorized) {
+      const studentIds = studentClassrooms.map(c => c._id.toString());
+      const examIds = exam.classrooms.map(c => c.toString());
+      if (!examIds.some(id => studentIds.includes(id)))
         return res.status(403).json({ message: "Bạn không thuộc lớp được giao bài thi này." });
-      }
     }
 
-    const { answers } = req.body;
-    if (!answers || answers.length !== exam.questions.length) {
+    // Kiểm tra cấu trúc answers... (giữ nguyên)
+    let { answers } = req.body;
+    if (!Array.isArray(answers) || answers.length !== exam.questions.length)
       return res.status(400).json({ message: "Danh sách câu trả lời không hợp lệ." });
-    }
 
-    let correctCount = 0;
-    let hasShortAnswer = false;
-    const detailedAnswers = [];
-
-    exam.questions.forEach((q, i) => {
+    // Chấm điểm
+    let correctCount = 0, hasShortAnswer = false; // <--- KHAI BÁO BIẾN correctCount Ở ĐÂY
+    const detailedAnswers = exam.questions.map((q, i) => {
+// ... (Giữ nguyên logic tính detailedAnswers)
       const studentAns = answers[i];
+      const isShort = q.type === "shortanswer";
 
-      if (q.type === 'tracnghiem' || q.type === 'truefalse') {
-        if (studentAns !== null && studentAns !== undefined && !Number.isInteger(Number(studentAns))) {
-          throw new Error(`Câu trả lời cho câu ${i+1} phải là số nguyên hoặc null.`);
-        }
-        if (studentAns !== null && parseInt(studentAns) === parseInt(q.correctAnswer)) {
-          correctCount++;
-        }
-      } else if (q.type === 'shortanswer') {
+      if (isShort) {
         hasShortAnswer = true;
-        if (studentAns !== null && typeof studentAns !== 'string') {
-          throw new Error(`Câu trả lời cho câu ${i+1} phải là chuỗi hoặc null.`);
-        }
+        return {
+          question: q.question,
+          type: q.type,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          answer: (studentAns === null || studentAns === undefined) ? "" : String(studentAns)
+        };
       }
 
-      detailedAnswers.push({
+      // Trắc nghiệm / Đúng sai
+      const ansIndex = (studentAns !== null && studentAns !== undefined) ? Number(studentAns) : NaN;
+      const correctIndex = Number(q.correctAnswer);
+
+      if (!Number.isNaN(ansIndex) && ansIndex === correctIndex) correctCount++;
+      return {
         question: q.question,
         type: q.type,
         options: q.options,
         correctAnswer: q.correctAnswer,
-        answer: studentAns
-      });
+        answer: Number.isNaN(ansIndex) ? null : ansIndex
+      };
     });
-
-    const autoGradedQuestions = exam.questions.filter(q => q.type !== 'shortanswer').length;
-    const score = autoGradedQuestions > 0 ? (correctCount / autoGradedQuestions) * 10 : null;
+// ... (Phần tính score)
+    const autoGradedQuestions = exam.questions.filter(q => q.type !== "shortanswer").length;
+    const score = autoGradedQuestions > 0
+      ? Math.round((correctCount / autoGradedQuestions) * 10 * 10) / 10
+      : null;
 
     const result = new Result({
       examId: exam._id,
-      userId: req.session.user?.username || "anonymous",
+      userId: user.username,
       answers: detailedAnswers,
-      score: hasShortAnswer ? null : Math.round(score * 10) / 10,
+      score: hasShortAnswer ? null : score,
       status: hasShortAnswer ? "pending" : "graded"
     });
 
     await result.save();
 
-    res.json({ 
-      message: "Nộp bài thành công", 
-      score: result.score, 
-      status: result.status, 
-      result 
+    // SỬA: Thay score (điểm trên thang 10) bằng correctCount (số câu đúng) cho frontend
+    res.json({
+      message: "Nộp bài thành công",
+      correctCount: correctCount, // <--- THÊM correctCount
+      status: result.status,
+      submittedAt: result.createdAt,
     });
   } catch (err) {
-    console.error('Lỗi nộp bài:', err);
+    console.error("❌ Lỗi nộp bài:", err);
     res.status(500).json({ message: `Lỗi khi nộp bài: ${err.message}` });
   }
 });
@@ -911,37 +1185,39 @@ app.get("/api/exams/:id/exit-log", async (req, res) => {
   }
 });
 
-app.get("/api/exams/:id/results", async (req, res) => {
-  try {
-    const examId = req.params.id;
-    const results = await Result.find({ examId }).lean();
-    const exam = await Exam.findById(examId).lean();
+// server.js
 
-    const detailedResults = results.map(r => {
-      return {
-        _id: r._id,
-        userId: r.userId,
-        score: r.score,
-        answers: r.answers.map((ans, i) => {
-          const q = exam.questions[i];
-          return {
-            type: q.type,
-            question: q.question,
-            options: q.options,
-            answer: ans.answer,
-            correctAnswer: q.correctAnswer
-          };
-        })
-      };
-    });
+// server.js (Trong route app.get('/api/exams/:examId/results', ...))
 
-    res.json(detailedResults);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Lỗi khi lấy kết quả" });
-  }
+app.get('/api/exams/:examId/results', async (req, res) => {
+    try {
+        const { examId } = req.params;
+        const results = await Result.find({ examId: examId }).lean();
+
+        if (results.length === 0) {
+            return res.json([]);
+        }
+
+        const detailedResults = await Promise.all(
+            results.map(async (r) => {
+                const video = await ExamVideo.findOne({ 
+                    examId: new mongoose.Types.ObjectId(examId), 
+                    userId: r.userId 
+                }).lean();
+
+                return {
+                    ...r, 
+                    videoUrl: video ? video.videoUrl : null, 
+                };
+            })
+        );
+
+        res.json(detailedResults);
+    } catch (error) {
+        console.error("Lỗi khi tải kết quả:", error);
+        res.status(500).json({ message: "Lỗi Server khi tải kết quả." });
+    }
 });
-
 app.post("/api/results/:id/grade", async (req, res) => {
   const { score } = req.body;
   if (!req.session.user || req.session.user.role !== "teacher") {
@@ -1023,6 +1299,46 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 // Khởi động server
+app.post('/api/submitExam', async (req, res) => {
+  try {
+    const { examId, answers, shortAnswers, userId } = req.body;
+
+    if (!examId || (!answers && !shortAnswers)) {
+      return res.status(400).json({ error: 'Thiếu dữ liệu bài thi.' });
+    }
+
+    console.log('📩 Dữ liệu bài thi nhận được:', { examId, userId, answers, shortAnswers });
+
+    // Lưu tạm xuống file (hoặc có thể lưu MongoDB nếu bạn có model)
+    const fs = require('fs');
+    const path = require('path');
+    const dir = path.join(__dirname, 'data');
+    const filePath = path.join(dir, `exam_${examId}.json`);
+
+    fs.mkdirSync(dir, { recursive: true });
+
+    let all = [];
+    if (fs.existsSync(filePath)) {
+      all = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    }
+
+    all.push({
+      userId,
+      examId,
+      answers,
+      shortAnswers,
+      submittedAt: new Date()
+    });
+
+    await ExamSubmission.create({ examId, userId, answers, shortAnswers });
+
+
+    res.json({ success: true, message: 'Nộp bài thi thành công!' });
+  } catch (err) {
+    console.error('❌ Lỗi khi nộp bài thi:', err);
+    res.status(500).json({ error: 'Lỗi server khi nộp bài thi.' });
+  }
+});
 
 // Route test cho Render nhận biết server đã sẵn sàng
 app.get('/', (req, res) => {
