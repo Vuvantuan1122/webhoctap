@@ -760,18 +760,6 @@
         </div>
     </div>
 
-    <div class="modal" id="subjectMenu">
-        <h2>Chọn Môn Học</h2>
-        <div class="subject-list">
-            <button class="subject-btn" data-subject="toan">Toán</button>
-            <button class="subject-btn" data-subject="vatly">Vật Lý</button>
-            <button class="subject-btn" data-subject="hoahoc">Hoá Học</button>
-            <button class="subject-btn" data-subject="sinhhoc">Sinh Học</button>
-            <button class="subject-btn" data-subject="nguvan">Ngữ Văn</button>
-            <button class="subject-btn" data-subject="lichsu">Lịch Sử</button>
-        </div>
-        <button id="closeSubjectMenu" class="btn-close-modal">Đóng</button>
-    </div>
 
 
     <div id="chat-widget">
@@ -1050,7 +1038,9 @@
         document.getElementById("streak-count").textContent = streak;
 
         // === Phần Menu Môn Học ===
-        const homeworkBtn = document.getElementById('homeworkBtn');
+        document.getElementById('homeworkBtn').addEventListener('click', () => {
+  window.location.href = 'bai tap.html';
+});
         const subjectMenu = document.getElementById('subjectMenu');
 
         homeworkBtn.addEventListener('click', (e) => {

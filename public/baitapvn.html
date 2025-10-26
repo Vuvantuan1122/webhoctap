@@ -6,7 +6,7 @@
   <title>Ảnh đã nộp</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Poppins', sans-serif;
       background: #eee;
       margin: 0;
       padding: 20px;
@@ -14,12 +14,34 @@
     }
     h1 {
       margin-bottom: 30px;
+      color: #333;
     }
+    
+    /* THÊM: CSS cho Controls */
+    .controls {
+        margin-bottom: 20px;
+        text-align: left;
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    #classFilter {
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        font-size: 16px;
+        width: 300px;
+        max-width: 90%;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    /* KẾT THÚC THÊM */
+    
     .gallery {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 30px;
+      min-height: 100px; /* Giúp giao diện ổn định */
     }
     .card {
       background: white;
@@ -28,76 +50,168 @@
       padding: 10px;
       width: 200px;
       transition: 0.3s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
     }
     .card img {
       width: 100%;
-      border-radius: 10px;
+      height: 150px; /* Chiều cao cố định để card đều nhau */
+      object-fit: cover; /* Đảm bảo ảnh vừa vặn */
+      border-radius: 8px;
       cursor: pointer;
+      margin-bottom: 10px;
     }
     .timestamp {
       font-size: 0.85em;
       color: #555;
       margin-top: 5px;
+      text-align: center;
+      word-break: break-word; /* Đảm bảo tên người dùng dài không làm vỡ bố cục */
     }
 
     /* Lightbox popup */
     #lightbox {
-      display: none;
       position: fixed;
-      top: 0; left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0,0,0,0.85);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
       justify-content: center;
       align-items: center;
-      z-index: 9999;
+      z-index: 1000;
     }
-    #lightbox img {
-      max-width: 90vw;
-      max-height: 90vh;
-      border-radius: 10px;
-      box-shadow: 0 0 20px #000;
+
+    #lightbox-img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 5px;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
     }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <h1>Ảnh đã nộp</h1>
-  <div class="gallery" id="gallery"></div>
+  <h1>Ảnh bài tập đã nộp</h1>
+  
+  <div class="controls">
+      <select id="classFilter" onchange="loadImages()">
+          <option value="" disabled selected>-- Đang tải lớp học... --</option>
+          <option value="all">Tất cả bài nộp (Nếu có quyền)</option>
+      </select>
+  </div>
+  <div id="gallery" class="gallery">
+      <p>Vui lòng chọn lớp học để xem bài nộp.</p>
+  </div>
 
-  <!-- Lightbox -->
-  <div id="lightbox">
+  <div id="lightbox" onclick="hideFullImage()">
     <img id="lightbox-img" src="" />
   </div>
 
   <script>
-    async function loadImages() {
-      const res = await fetch('/api/images');
-      const images = await res.json();
-      const gallery = document.getElementById('gallery');
+    
+    // Hàm tải danh sách lớp học
+    async function loadClassrooms() {
+        const select = document.getElementById('classFilter');
+        select.innerHTML = '<option value="" disabled selected>-- Đang tải lớp học... --</option>';
 
-      if (!images.length) {
-        gallery.innerHTML = "<p>Chưa có ảnh nào được nộp.</p>";
-        return;
+        try {
+            const res = await fetch('/api/classrooms/my'); 
+            if (!res.ok) throw new Error("Không thể tải danh sách lớp học. Vui lòng kiểm tra đăng nhập.");
+            
+            const classrooms = await res.json();
+            
+            select.innerHTML = '<option value="" disabled selected>-- Chọn lớp để xem bài nộp --</option>';
+            select.innerHTML += '<option value="all">Tất cả bài nộp (Nếu có quyền)</option>';
+
+            if (classrooms && classrooms.length > 0) {
+                classrooms.forEach(cls => {
+                    const option = document.createElement('option');
+                    option.value = cls._id;
+                    option.textContent = cls.name;
+                    select.appendChild(option);
+                });
+            } else {
+                 // Nếu không có lớp, chọn "Tất cả bài nộp" làm mặc định nếu có thể
+                 select.value = 'all';
+                 loadImages();
+            }
+
+        } catch (error) {
+            console.error("Lỗi khi tải lớp học:", error);
+            select.innerHTML = '<option value="" disabled selected>Lỗi tải lớp học</option>';
+            document.getElementById('gallery').innerHTML = `<p style="color: red;">❌ Lỗi: ${error.message}</p>`;
+        }
+    }
+
+    // SỬA: Hàm tải ảnh, thêm logic lọc theo lớp học và xử lý lỗi rõ ràng hơn
+    async function loadImages() {
+      const gallery = document.getElementById('gallery');
+      const classId = document.getElementById('classFilter').value;
+      
+      let apiUrl = '/api/images';
+
+      if (!classId || classId === '') {
+          gallery.innerHTML = "<p>Vui lòng chọn lớp học để xem bài nộp.</p>";
+          return;
+      }
+      
+      gallery.innerHTML = "<p>Đang tải ảnh...</p>";
+
+      if (classId !== 'all') {
+          // Lọc theo lớp đã chọn
+          apiUrl = `/api/images?classId=${classId}`;
       }
 
-      images.reverse().forEach(img => {
-        const card = document.createElement('div');
-        card.className = 'card';
+      try {
+          const res = await fetch(apiUrl);
+          
+          if (!res.ok) {
+              const errorData = await res.json();
+              throw new Error(errorData.message || `Lỗi không xác định (${res.status})`);
+          }
+          
+          const images = await res.json();
+          
+          gallery.innerHTML = '';
 
-        const image = document.createElement('img');
-        image.src = img.url;
-        image.alt = "Bài đã nộp";
-        image.onclick = () => showFullImage(img.url);
+          if (!images || images.length === 0) {
+              gallery.innerHTML = "<p>Chưa có ảnh nào được nộp cho lớp này.</p>";
+              return;
+          }
 
-        const time = document.createElement('div');
-        time.className = 'timestamp';
-        const date = new Date(img.timestamp);
-        time.textContent = date.toLocaleTimeString() + " " + date.toLocaleDateString();
+          // Hiển thị ảnh
+          images.forEach(img => {
+              const card = document.createElement('div');
+              card.className = 'card';
 
-        card.appendChild(image);
-        card.appendChild(time);
-        gallery.appendChild(card);
-      });
+              const image = document.createElement('img');
+              image.src = img.url;
+              image.alt = "Bài đã nộp";
+              image.onclick = () => showFullImage(img.url);
+
+              const time = document.createElement('div');
+              time.className = 'timestamp';
+              const date = new Date(img.timestamp);
+              // Hiển thị userId (tên học sinh)
+              time.textContent = (img.userId ? `${img.userId} - ` : '') + date.toLocaleTimeString() + " " + date.toLocaleDateString();
+
+              card.appendChild(image);
+              card.appendChild(time);
+              gallery.appendChild(card);
+          });
+      } catch (error) {
+          gallery.innerHTML = `<p style="color: red;">❌ Lỗi khi tải ảnh: ${error.message}. Vui lòng kiểm tra quyền truy cập hoặc ID lớp.</p>`;
+          console.error("Lỗi tải ảnh BTVN:", error);
+      }
     }
 
     function showFullImage(src) {
@@ -107,11 +221,17 @@
       lightbox.style.display = "flex";
     }
 
-    document.getElementById("lightbox").addEventListener("click", function () {
-      this.style.display = "none";
-    });
+    function hideFullImage() {
+        document.getElementById("lightbox").style.display = "none";
+    }
+    
+    // Khởi tạo
+    window.onload = () => {
+        loadClassrooms(); 
+        // loadImages() sẽ được gọi sau khi loadClassrooms() thành công 
+        // và người dùng chọn lớp, hoặc nếu không có lớp nào được tải.
+    };
 
-    window.onload = loadImages;
   </script>
 </body>
 </html>
