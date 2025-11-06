@@ -557,51 +557,51 @@ app.get("/api/posts/:id/comments", async (req, res) => {
 const nodemailer = require("nodemailer");
 
 app.post("/api/send-otp", async (req, res) => {
-  const { email } = req.body;
+  const { email } = req.body;
 
-  try {
-    if (!email || !email.includes("@")) {
-      return res.status(400).json({ message: "Email không hợp lệ." });
-    }
+  try {
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ message: "Email không hợp lệ." });
+    }
 
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    fs.writeFileSync(
-      "temp-otp.json",
-      JSON.stringify({ email, otpCode, time: Date.now() })
-    );
+    // 💡 LƯU Ý: Lưu OTP vào MongoDB (hoặc Redis) tốt hơn là vào file temp-otp.json 
+    // vì ghi file không an toàn và không hoạt động tốt trong môi trường đa luồng/cloud.
+    fs.writeFileSync( 
+      "temp-otp.json",
+      JSON.stringify({ email, otpCode, time: Date.now() })
+    );
 
-    // ⚙️ Cấu hình SMTP Brevo
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp-relay.brevo.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.BREVO_USER,
-        pass: process.env.BREVO_PASS,
-      },
-    });
+    // ⚙️ Cấu hình SMTP GMAIL
+    const transporter = nodemailer.createTransport({
+      service: 'gmail', // Dùng service 'gmail' để Nodemailer tự động cấu hình host/port/secure
+      auth: {
+        user: process.env.MAIL_USER, // SỬ DỤNG MAIL_USER (Gmail Address)
+        pass: process.env.MAIL_APP_PASSWORD, // SỬ DỤNG MAIL_APP_PASSWORD (Mật khẩu Ứng dụng 16 ký tự)
+      },
+    });
 
-    // 📩 Gửi mail
-    await transporter.sendMail({
-      from: `"Web Học Tập" <${process.env.BREVO_USER}>`,
-      to: email,
-      subject: "Mã xác thực đăng ký (Noah)",
-      html: `
-        <div style="font-family:sans-serif;line-height:1.6">
-          <h2>Mã xác thực của bạn là:</h2>
-          <h1 style="color:#007bff;">${otpCode}</h1>
-          <p>⏰ Mã này có hiệu lực trong 10 phút.</p>
-        </div>
-      `,
-    });
+    // 📩 Gửi mail
+    await transporter.sendMail({
+      from: `"Web Học Tập" <${process.env.SENDER_EMAIL}>`, // SỬ DỤNG SENDER_EMAIL
+      to: email,
+      subject: "Mã xác thực đăng ký (Noah)",
+      html: `
+        <div style="font-family:sans-serif;line-height:1.6">
+          <h2>Mã xác thực của bạn là:</h2>
+          <h1 style="color:#007bff;">${otpCode}</h1>
+          <p>⏰ Mã này có hiệu lực trong 10 phút.</p>
+        </div>
+      `,
+    });
 
-    console.log(`✅ Đã gửi OTP tới ${email}`);
-    res.json({ message: "✅ Mã OTP đã được gửi qua email!", needVerify: true });
-  } catch (err) {
-    console.error("❌ Lỗi gửi OTP:", err);
-    res.status(500).json({ message: "❌ Lỗi khi gửi OTP, vui lòng thử lại." });
-  }
+    console.log(`✅ Đã gửi OTP tới ${email}`);
+    res.json({ message: "✅ Mã OTP đã được gửi qua email!", needVerify: true });
+  } catch (err) {
+    console.error("❌ Lỗi gửi OTP:", err);
+    res.status(500).json({ message: "❌ Lỗi khi gửi OTP, vui lòng thử lại." });
+  }
 });
 
 // Xác minh OTP và tạo tài khoản
