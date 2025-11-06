@@ -182,7 +182,7 @@
   </head>
   <body>
 
-    <div id="cameraContainer" class="text-center">
+    <div id="cameraContainer" class="text-center" style="display:none;">
         <video id="examCamera" autoplay playsinline
           style="border-radius: 10px; border: 2px solid #007bff;"></video>
         <p class="text-muted">🎥 Camera đang ghi hình quá trình làm bài</p>
@@ -323,7 +323,14 @@
       }
 
       console.log("Loading exam with ID:", examId);  // ✅ Log cho debug
-
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    document.getElementById("examCamera").srcObject = stream;
+  } catch (err) {
+    console.warn("Không thể truy cập camera:", err);
+  }
+}
       async function loadExam() {
         try {
           // ✅ THÊM: credentials cho session
@@ -342,6 +349,13 @@
           }
           
           examData = await res.json();
+          if (examData.enableCamera) {
+  document.getElementById("cameraContainer").style.display = "block";
+  initCamera(); // ✅ chỉ bật khi enableCamera = true
+} else {
+  console.log("🎥 Camera bị tắt cho bài thi này — không kích hoạt initCamera()");
+}
+
           console.log("Exam data loaded:", examData);  // Log data cho debug
           
           document.getElementById('examTitle').textContent = `✏️ ${examData.title}`;
@@ -663,7 +677,6 @@ function startRecording(stream) {
 }
 
 // Gọi hàm khi trang vừa load
-initCamera();
 
 function stopRecording() {
   return new Promise((resolve) => {
