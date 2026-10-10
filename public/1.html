@@ -407,10 +407,6 @@
                         <i class='bx bxs-envelope'></i>
                         <input type="email" id="email" placeholder="Email" required />
                     </div>
-                    <div class="mb-3 d-flex">
-                        <input type="text" id="otp" class="form-control me-2" placeholder="Nhập mã xác thực" disabled>
-                        <button type="button" id="sendOtpBtn" class="btn btn-primary">Gửi mã</button>
-                    </div>
                     <div class="input-box">
                         <i class='bx bxs-lock-alt'></i>
                         <input type="password" id="password" placeholder="Password" required />
@@ -499,7 +495,6 @@
                         <i class='bx bxs-chalkboard'></i>
                         <input type="text" id="registerClass" placeholder="Nhập lớp (VD: 10A1)" required />
                     </div>
-                    <div class="input-box" id="otpBox" style="display:none;"></div>
                     <button type="submit" id="registerBtn" class="btn">Register</button>
                     <div class="login-register">
                         <p>Already have an account? <a href="#" id="showLogin" class="login-link">Login</a></p>
@@ -569,42 +564,7 @@
             }
         });
 
-        // === Gửi mã OTP ===
-        document.getElementById("sendOtpBtn").addEventListener("click", async () => {
-            const email = document.getElementById("email").value.trim();
-            const username = document.getElementById("username").value.trim();
-            const password = document.getElementById("password").value.trim();
-            const role = document.getElementById("role").value;
-
-            if (!email || !username || !password || !role) {
-                alert("⚠️ Vui lòng nhập đầy đủ Username, Email, Password và chọn Vai trò trước khi gửi mã!");
-                return;
-            }
-
-            try {
-                const res = await fetch("/api/send-otp", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email })
-                });
-
-                const data = await res.json();
-                alert(data.message);
-
-                if (res.ok) {
-                    const otpInput = document.getElementById("otp");
-                    otpInput.disabled = false;
-                    otpInput.focus();
-                    document.getElementById("registerBtn").style.background = "#28a745";
-                    document.getElementById("registerBtn").textContent = "Register (Xác nhận OTP)";
-                }
-            } catch (err) {
-                console.error(err);
-                alert("❌ Lỗi máy chủ khi gửi mã!");
-            }
-        });
-
-        // === Đăng ký (Xác nhận OTP) ===
+        // === Đăng ký ===
         registerForm.querySelector('#registerBtn').addEventListener('click', async e => {
             e.preventDefault();
 
@@ -615,10 +575,9 @@
             const role = document.getElementById('role').value;
             const school = document.getElementById('registerSchool').value.trim();
             const cls = document.getElementById('registerClass').value.trim();
-            const otpCode = document.getElementById('otp').value.trim();
 
-            if (!otpCode) {
-                alert("⚠️ Vui lòng nhập mã OTP đã gửi tới email trước khi tạo tài khoản!");
+            if (!username || !email || !password || !role) {
+                alert("⚠️ Vui lòng nhập đầy đủ Username, Email, Password và chọn Vai trò!");
                 return;
             }
 
@@ -637,8 +596,7 @@
                         password,
                         role,
                         school,
-                        class: cls,
-                        otp: otpCode
+                        class: cls
                     })
                 });
 

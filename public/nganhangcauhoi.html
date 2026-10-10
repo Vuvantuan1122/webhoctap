@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ngân hàng câu hỏi</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- KaTeX: hiển thị công thức toán (cùng cấu hình với thi.html) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --secondary: #7c3aed;
+      --bg-color: #f4f7fe;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* --- Header Sang trọng --- */
+    .page-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: #fff;
+      padding: 3.5rem 0;
+      border-radius: 0 0 40px 40px;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 10px 30px rgba(79, 70, 229, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    .page-header::before {
+      content: '';
+      position: absolute;
+      top: -50%; left: -10%;
+      width: 50%; height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+      transform: rotate(30deg);
+    }
+    .page-header h1 { font-weight: 700; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .page-header p { font-weight: 400; opacity: 0.9; }
+
+    /* --- Tabs Navigation --- */
+    #tabs {
+      background: #fff;
+      padding: 0.5rem;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+      display: inline-flex;
+      margin: 0 auto;
+    }
+    .nav-pills .nav-link {
+      color: var(--text-muted);
+      font-weight: 500;
+      border-radius: 14px;
+      padding: 0.6rem 1.25rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .nav-pills .nav-link:hover { color: var(--primary); background: rgba(79, 70, 229, 0.05); }
+    .nav-pills .nav-link.active {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+      transform: translateY(-1px);
+    }
+
+    /* --- Form Controls & Panels --- */
+    .panel {
+      background: var(--card-bg);
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+      padding: 2rem;
+      border: 1px solid rgba(0,0,0,0.02);
+    }
+    .form-control, .form-select {
+      border-radius: 12px;
+      padding: 0.6rem 1rem;
+      border: 1px solid #e2e8f0;
+      transition: all 0.2s;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    }
+    .form-label { font-weight: 500; color: #475569; font-size: 0.95rem; }
+    .btn { border-radius: 12px; font-weight: 500; padding: 0.6rem 1.25rem; transition: all 0.3s; }
+    .btn-primary { background: var(--primary); border: none; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2); }
+    .btn-primary:hover { background: #4338ca; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(79, 70, 229, 0.3); }
+
+    /* --- Question Cards --- */
+    .q-card {
+      border: 1px solid rgba(0,0,0,0.04);
+      border-radius: 20px;
+      background: var(--card-bg);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .q-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 25px rgba(0,0,0,0.08);
+      border-color: rgba(79, 70, 229, 0.1);
+    }
+    .q-text { font-weight: 600; color: var(--text-main); white-space: pre-wrap; font-size: 1.1rem; line-height: 1.6; }
+    
+    /* Options styles */
+    .opt {
+      padding: 0.6rem 1rem;
+      border-radius: 12px;
+      margin-top: 0.6rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .opt:hover { background: #f1f5f9; border-color: #cbd5e1; }
+    .opt-btn { width: 100%; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+    .opt-btn:disabled { cursor: default; opacity: 1; }
+    .opt-btn:not(:disabled):hover { border-color: var(--primary); background: #eef2ff; }
+    .opt.wrong { background: #fef2f2; border-color: #fecaca; color: #991b1b; font-weight: 500; }
+    .expl-text { white-space: pre-wrap; }
+    .practice-fb .alert { border-radius: 14px; }
+    .opt.correct {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #166534;
+      font-weight: 500;
+      box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
+    }
+    .meta { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+    .badge { padding: 0.4em 0.8em; border-radius: 8px; font-weight: 500; }
+
+    /* --- Animations --- */
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    section:not(.d-none) {
+      animation: fadeSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+  
+    /* --- Thanh chèn ký hiệu toán & xem trước --- */
+    .math-toolbar { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .math-toolbar .btn {
+      padding: .25rem .6rem; font-size: .95rem; border-radius: 10px;
+      background: #f8fafc; border: 1px solid #e2e8f0; color: var(--text-main);
+      font-family: 'Times New Roman', serif;
+    }
+    .math-toolbar .btn:hover { background: #eef2ff; border-color: var(--primary); color: var(--primary); transform: none; }
+    .math-preview {
+      background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 14px;
+      padding: 1rem 1.25rem; min-height: 3rem;
+    }
+    .math-preview .pv-q { font-weight: 600; white-space: pre-wrap; }
+    .katex { font-size: 1.08em; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; padding: .25rem 0; }
+  </style>
+</head>
+<body>
+
+<header class="page-header text-center">
+  <div class="container relative">
+    <h1 class="display-6 mb-2">🗂️ Ngân hàng câu hỏi</h1>
+    <p class="mb-4">Không gian đóng góp tri thức chung. Mọi câu hỏi đều được kiểm duyệt kỹ lưỡng.</p>
+    <a href="index.html" class="btn btn-light btn-sm px-4 rounded-pill shadow-sm text-primary fw-bold">
+      <i class="bi bi-house-door-fill me-1"></i> Về trang chủ
+    </a>
+  </div>
+</header>
+
+<main class="container pb-5">
+  <div id="alertBox"></div>
+
+  <div class="d-flex justify-content-center mb-4">
+    <ul class="nav nav-pills gap-2 flex-wrap justify-content-center" id="tabs">
+      <li class="nav-item"><button class="nav-link active" data-tab="bank"><i class="bi bi-collection-play me-1"></i> Ngân hàng</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="contribute"><i class="bi bi-plus-circle-dotted me-1"></i> Đóng góp</button></li>
+      <li class="nav-item"><button class="nav-link" data-tab="mine"><i class="bi bi-person-badge me-1"></i> Của tôi</button></li>
+      <li class="nav-item d-none" id="pendingTabItem">
+        <button class="nav-link" data-tab="pending">
+          <i class="bi bi-hourglass-split me-1"></i> Chờ duyệt <span class="badge bg-danger ms-1 rounded-pill" id="pendingCount">0</span>
+        </button>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Tab: Ngân hàng -->
+  <section id="tab-bank">
+    <div class="panel mb-4">
+      <div class="row g-3">
+        <div class="col-md-5">
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input id="fSearch" class="form-control border-start-0 ps-0" placeholder="Tìm kiếm câu hỏi...">
+          </div>
+        </div>
+        <div class="col-md-3">
+          <select id="fType" class="form-select">
+            <option value="">Tất cả loại hình</option>
+            <option value="tracnghiem">Trắc nghiệm</option>
+            <option value="truefalse">Đúng / Sai</option>
+            <option value="shortanswer">Trả lời ngắn</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <!-- Danh sách môn được nạp từ server (loadSubjects) -->
+          <select id="fSubject" class="form-select">
+            <option value="">Tất cả môn học</option>
+          </select>
+        </div>
+        <div class="col-md-1 d-grid">
+          <button class="btn btn-primary" id="btnFilter" title="Lọc"><i class="bi bi-funnel-fill"></i></button>
+        </div>
+      </div>
+    </div>
+    <div id="wrongBanner" class="d-none alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2 border-0 rounded-4">
+      <div><i class="bi bi-arrow-repeat"></i> <strong>Đang ôn lại các câu bạn làm sai</strong> <span id="wrongSubject"></span></div>
+      <button type="button" class="btn btn-light btn-sm border" onclick="exitWrongMode()">Xem tất cả câu</button>
+    </div>
+    <div id="practiceStats" class="d-none d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 px-1">
+      <div class="fw-semibold"><i class="bi bi-bar-chart-line text-primary"></i>
+        Đã làm <span id="stDone">0</span> câu · Đúng <span id="stRight" class="text-success">0</span>
+      </div>
+      <button type="button" class="btn btn-light btn-sm border" onclick="resetPracticeStats()"><i class="bi bi-arrow-counterclockwise"></i> Làm lại từ đầu</button>
+    </div>
+    <div id="bankList"></div>
+  </section>
+
+  <!-- Tab: Đóng góp -->
+  <section id="tab-contribute" class="d-none">
+    <div class="panel">
+      <div class="d-flex align-items-center mb-4">
+        <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3 text-primary">
+          <i class="bi bi-pencil-square fs-4"></i>
+        </div>
+        <h5 class="mb-0 fw-bold">Soạn thảo câu hỏi mới</h5>
+      </div>
+      
+      <div class="row g-4">
+        <div class="col-md-4">
+          <label class="form-label">Loại câu hỏi</label>
+          <select id="cType" class="form-select">
+            <option value="tracnghiem">Trắc nghiệm nhiều lựa chọn</option>
+            <option value="truefalse">Đúng / Sai</option>
+            <option value="shortanswer">Trả lời ngắn</option>
+          </select>
+        </div>
+        <div class="col-md-8">
+          <label class="form-label">Môn học</label>
+          <!-- Danh sách môn được nạp từ server (loadSubjects) -->
+          <select id="cSubject" class="form-select">
+            <option value="" disabled selected>-- Chọn môn học --</option>
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Chèn ký hiệu toán
+            <span class="text-muted fw-normal">(bấm để chèn vào ô câu hỏi / lựa chọn / giải thích đang nhập)</span>
+          </label>
+          <div class="math-toolbar" id="mathToolbar"></div>
+          <div class="form-text">
+            Viết công thức giữa hai dấu <code>$</code>, ví dụ <code>$x^2 + 1 = 0$</code> hoặc <code>$\frac{a}{b}$</code>.
+            Dùng <code>$$...$$</code> để hiện công thức ở dòng riêng.
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Nội dung câu hỏi</label>
+          <textarea id="cQuestion" class="form-control" rows="4" placeholder="Nhập chi tiết nội dung câu hỏi..." maxlength="2000"></textarea>
+        </div>
+
+        <!-- Trắc nghiệm -->
+        <div class="col-12" id="boxMc">
+          <label class="form-label">4 phương án A, B, C, D <span class="text-muted fw-normal">(chọn nút tròn ở đáp án đúng)</span></label>
+          <div id="mcOptions" class="d-flex flex-column gap-2"></div>
+        </div>
+
+        <!-- Đúng / Sai -->
+        <div class="col-12 d-none" id="boxTf">
+          <label class="form-label d-block">Đáp án chuẩn</label>
+          <div class="d-flex gap-4">
+            <div class="form-check">
+              <input class="form-check-input fs-5" type="radio" name="tf" id="tf0" value="0" checked>
+              <label class="form-check-label mt-1 fw-medium" for="tf0">Mệnh đề Đúng</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input fs-5" type="radio" name="tf" id="tf1" value="1">
+              <label class="form-check-label mt-1 fw-medium" for="tf1">Mệnh đề Sai</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trả lời ngắn -->
+        <div class="col-12 d-none" id="boxSa">
+          <label class="form-label">Đáp án</label>
+          <input id="saAnswer" class="form-control" placeholder="Nhập câu trả lời ngắn chuẩn xác..." maxlength="300">
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Giải thích đáp án <span class="text-muted fw-normal">(nên có, sẽ hiện ra khi người học làm bài)</span></label>
+          <div class="math-toolbar mb-2" id="explainToolbar"></div>
+          <textarea id="cExplain" class="form-control" rows="3" placeholder="Giúp người học hiểu rõ hơn tại sao lại chọn đáp án này... Có thể dùng công thức, ví dụ $x^2 = 4$" maxlength="1000"></textarea>
+        </div>
+        <div class="col-12 d-none" id="previewWrap">
+          <label class="form-label"><i class="bi bi-eye"></i> Xem trước</label>
+          <div class="math-preview" id="mathPreview"></div>
+        </div>
+        <hr class="text-muted opacity-25 mt-5">
+        <div class="col-12 d-flex justify-content-end">
+          <button class="btn btn-primary px-5 py-2 fs-6 rounded-pill" id="btnSubmit">
+            <i class="bi bi-send-fill me-2"></i> Gửi duyệt câu hỏi
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tab: Của tôi -->
+  <section id="tab-mine" class="d-none"><div id="mineList"></div></section>
+
+  <!-- Tab: Chờ duyệt -->
+  <section id="tab-pending" class="d-none"><div id="pendingList"></div></section>
+</main>
+
+<script>
+  const TYPE_LABEL = { tracnghiem: 'Trắc nghiệm', truefalse: 'Đúng / Sai', shortanswer: 'Trả lời ngắn' };
+  const STATUS_BADGE = {
+    pending:  '<span class="badge bg-warning text-dark bg-opacity-25 border border-warning">⏳ Chờ duyệt</span>',
+    approved: '<span class="badge bg-success bg-opacity-10 text-success border border-success">✓ Đã duyệt</span>',
+    rejected: '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger">✕ Bị từ chối</span>'
+  };
+  let me = null;
+  let isReviewer = false;
+
+  const $ = (id) => document.getElementById(id);
+
+  /* ---------- Công thức toán (KaTeX) ---------- */
+  const MATH_OPTS = {
+    delimiters: [
+      { left: '$$', right: '$$', display: true },
+      { left: '\\[', right: '\\]', display: true },
+      { left: '$', right: '$', display: false },
+      { left: '\\(', right: '\\)', display: false }
+    ],
+    throwOnError: false // công thức sai cú pháp chỉ hiện đỏ, không làm hỏng cả trang
+  };
+  function renderMath(el, tries = 0) {
+    if (!el) return;
+    if (window.renderMathInElement) {
+      try { renderMathInElement(el, MATH_OPTS); } catch (e) { console.error('Lỗi render công thức:', e); }
+    } else if (tries < 20) {
+      setTimeout(() => renderMath(el, tries + 1), 250); // chờ KaTeX tải xong
+    }
+  }
+
+  // [nhãn trên nút, đoạn LaTeX chèn vào]. Con trỏ sẽ nằm trong dấu {} đầu tiên (nếu có).
+  const MATH_SYMBOLS = [
+    ['a/b', '$\\frac{}{}$'],
+    ['√', '$\\sqrt{}$'],
+    ['xⁿ', '$x^{}$'],
+    ['xₙ', '$x_{}$'],
+    ['≤', '$\\leq$'], ['≥', '$\\geq$'], ['≠', '$\\neq$'], ['≈', '$\\approx$'],
+    ['±', '$\\pm$'], ['×', '$\\times$'], ['÷', '$\\div$'],
+    ['π', '$\\pi$'], ['∞', '$\\infty$'], ['°', '$^\\circ$'],
+    ['α', '$\\alpha$'], ['β', '$\\beta$'], ['Δ', '$\\Delta$'],
+    ['∈', '$\\in$'], ['∪', '$\\cup$'], ['∩', '$\\cap$'],
+    ['→', '$\\rightarrow$'], ['⇔', '$\\Leftrightarrow$'],
+    ['∫', '$\\int_{}^{}$'], ['Σ', '$\\sum_{i=1}^{}$'], ['lim', '$\\lim_{x \\to }$']
+  ];
+
+  // Ô đang nhập gần nhất (chỉ câu hỏi, lựa chọn, giải thích; không gồm đáp án trả lời ngắn
+  // vì đáp án đó được chấm bằng cách so khớp chữ)
+  let lastField = null;
+  const isMathField = (el) => el && (el.id === 'cQuestion' || el.id === 'cExplain' || el.classList.contains('mc-opt'));
+
+  function insertAtCursor(text, fixedEl) {
+    const el = fixedEl || (isMathField(lastField) ? lastField : $('cQuestion'));
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? el.value.length;
+    const max = el.maxLength > 0 ? el.maxLength : Infinity;
+    if (el.value.length - (end - start) + text.length > max) {
+      return notify('Nội dung đã đạt giới hạn ký tự.', 'warning');
+    }
+    el.value = el.value.slice(0, start) + text + el.value.slice(end);
+    const brace = text.indexOf('{');
+    const caret = start + (brace >= 0 ? brace + 1 : text.length);
+    el.focus();
+    el.setSelectionRange(caret, caret);
+    updatePreview();
+  }
+
+  // Dựng một thanh ký hiệu vào container. targetId: luôn chèn vào ô đó (bỏ trống = ô đang nhập gần nhất)
+  function buildToolbar(containerId = 'mathToolbar', targetId = null) {
+    const box = $(containerId);
+    box.innerHTML = '';
+    MATH_SYMBOLS.forEach(([label, tex]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn btn-sm';
+      b.textContent = label;
+      b.title = tex;
+      b.addEventListener('mousedown', (e) => e.preventDefault()); // giữ nguyên con trỏ trong ô đang nhập
+      b.addEventListener('click', () => insertAtCursor(tex, targetId ? $(targetId) : null));
+      box.appendChild(b);
+    });
+  }
+
+  let previewTimer = null;
+  function updatePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      const q = $('cQuestion').value.trim();
+      const type = $('cType').value;
+      const opts = type === 'tracnghiem' ? [...document.querySelectorAll('.mc-opt')].map((i) => i.value.trim()) : [];
+      const ex = $('cExplain').value.trim();
+      const has = q || ex || opts.some(Boolean);
+      $('previewWrap').classList.toggle('d-none', !has);
+      if (!has) return;
+      $('mathPreview').innerHTML =
+        `<div class="pv-q">${esc(q)}</div>` +
+        opts.map((o, i) => o ? `<div class="mt-2"><strong>${String.fromCharCode(65 + i)}.</strong> ${esc(o)}</div>` : '').join('') +
+        (ex ? `<div class="mt-3 small text-muted"><i class="bi bi-lightbulb"></i> ${esc(ex)}</div>` : '');
+      renderMath($('mathPreview'));
+    }, 200);
+  }
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function notify(msg, type = 'success') {
+    const icon = type === 'success' ? 'bi-check-circle-fill' : (type === 'danger' ? 'bi-exclamation-triangle-fill' : 'bi-info-circle-fill');
+    $('alertBox').innerHTML = `<div class="alert alert-${type} alert-dismissible fade show shadow-sm border-0 d-flex align-items-center">
+      <i class="bi ${icon} fs-4 me-3"></i> <div>${esc(msg)}</div>
+      <button type="button" class="btn-close mt-1" data-bs-dismiss="alert"></button>
+    </div>`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function api(url, options = {}) {
+    const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...options });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || 'Có lỗi xảy ra.');
+    return data;
+  }
+
+  /* ---------- Hiển thị câu hỏi ---------- */
+  function renderQuestion(q, { showStatus = false, showReview = false, canDelete = false, practice = false } = {}) {
+    let body = '';
+    if (practice) {
+      body = practiceBody(q); // ẩn đáp án, chờ người học chọn
+    } else if (q.type === 'shortanswer') {
+      body = `<div class="opt correct mt-3"><span class="text-dark">Đáp án:</span> <strong>${esc(q.correctAnswer)}</strong> <i class="bi bi-check-circle-fill fs-5"></i></div>`;
+    } else {
+      body = `<div class="mt-3">` + q.options.map((o, i) =>
+        `<div class="opt ${i === Number(q.correctAnswer) ? 'correct' : ''}">
+          <span><strong>${String.fromCharCode(65 + i)}.</strong> ${esc(o)}</span>
+          ${i === Number(q.correctAnswer) ? '<i class="bi bi-check-circle-fill fs-5"></i>' : ''}
+        </div>`
+      ).join('') + `</div>`;
+    }
+
+    const note = q.status === 'rejected' && q.reviewNote
+      ? `<div class="alert alert-danger mt-3 mb-0 py-2 border-0"><i class="bi bi-chat-left-text-fill me-2"></i><strong>Lý do từ chối:</strong> ${esc(q.reviewNote)}</div>` : '';
+    const explain = q.explanation && !practice // chế độ luyện tập: giải thích chỉ hiện sau khi trả lời
+      ? `<div class="alert alert-info mt-3 mb-0 py-2 border-0 bg-opacity-10 text-dark"><i class="bi bi-lightbulb-fill text-warning me-2"></i><strong>Giải thích:</strong> <span class="expl-text">${esc(q.explanation)}</span></div>` : '';
+
+    let actions = '';
+    if (showReview) {
+      actions += `<button class="btn btn-success btn-sm px-3 rounded-pill" onclick="review('${q._id}','approve')"><i class="bi bi-check-lg"></i> Duyệt</button>
+                  <button class="btn btn-danger btn-sm px-3 rounded-pill bg-opacity-10 text-danger border-0" onclick="review('${q._id}','reject')"><i class="bi bi-x-lg"></i> Từ chối</button>`;
+    }
+    if (canDelete) {
+      actions += `<button class="btn btn-light btn-sm px-3 rounded-pill text-danger" onclick="removeQ('${q._id}')"><i class="bi bi-trash3-fill"></i> Xóa</button>`;
+    }
+
+    return `<div class="q-card" id="card-${q._id}">
+      <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3 border-bottom pb-2">
+        <div class="d-flex gap-2 align-items-center">
+          <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">${TYPE_LABEL[q.type]}</span>
+          <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary"><i class="bi bi-book"></i> ${esc(q.subject)}</span>
+          ${showStatus ? STATUS_BADGE[q.status] : ''}
+        </div>
+        <div class="meta d-flex align-items-center gap-2">
+          <i class="bi bi-person-circle fs-5 text-muted"></i> ${esc(q.contributor)} &bull; ${new Date(q.createdAt).toLocaleDateString('vi-VN')}
+        </div>
+      </div>
+      <div class="q-text">${esc(q.question)}</div>
+      ${body}${explain}${note}
+      ${actions ? `<div class="d-flex gap-2 mt-4 flex-wrap">${actions}</div>` : ''}
+    </div>`;
+  }
+
+  /* ---------- Chế độ luyện tập (tab Ngân hàng) ---------- */
+  let wrongOnly = false;           // true khi mở từ trang chủ để ôn câu sai
+  let bankQuestions = {};          // id -> câu hỏi đang hiển thị
+  const answered = new Set();      // câu đã trả lời trong lần hiển thị hiện tại
+  const attempted = new Set();     // câu đã làm (tính điểm lần đầu)
+  const stats = { done: 0, right: 0 };
+
+  function practiceBody(q) {
+    const id = q._id;
+    let inner;
+    if (q.type === 'shortanswer') {
+      inner = `<div class="input-group">
+        <input class="form-control" id="sa-${id}" placeholder="Nhập câu trả lời của bạn..." maxlength="300"
+               onkeydown="if(event.key==='Enter'){checkShort('${id}')}">
+        <button class="btn btn-primary" onclick="checkShort('${id}')">Kiểm tra</button>
+      </div>`;
+    } else {
+      inner = q.options.map((o, i) =>
+        `<button type="button" class="opt opt-btn" data-i="${i}" onclick="answerChoice('${id}', ${i})">
+          <span><strong>${String.fromCharCode(65 + i)}.</strong> ${esc(o)}</span><i class="bi"></i>
+        </button>`
+      ).join('');
+    }
+    return `<div class="mt-3" id="pb-${id}">${inner}</div><div class="practice-fb" id="fb-${id}"></div>`;
+  }
+
+  const normText = (t) => String(t ?? '').normalize('NFC').trim().toLowerCase().replace(/\s+/g, ' ');
+  function sameShort(user, right) {
+    const a = normText(user), b = normText(right);
+    if (a === b) return true;
+    // So sánh số: "3,5" và "3.5" là như nhau
+    const na = Number(a.replace(',', '.')), nb = Number(b.replace(',', '.'));
+    return a !== '' && b !== '' && !isNaN(na) && !isNaN(nb) && na === nb;
+  }
+
+  function showFeedback(q, isRight, rightText) {
+    const id = q._id;
+    const explain = q.explanation
+      ? `<div class="alert alert-info border-0 mt-2 mb-0 py-2 text-dark"><i class="bi bi-lightbulb-fill text-warning me-2"></i><strong>Giải thích:</strong> <span class="expl-text">${esc(q.explanation)}</span></div>`
+      : `<div class="text-muted small mt-2"><i class="bi bi-lightbulb"></i> Câu hỏi này chưa có giải thích.</div>`;
+    const head = isRight
+      ? `<div class="alert alert-success border-0 mt-3 mb-0 py-2"><i class="bi bi-check-circle-fill me-2"></i><strong>Chính xác!</strong></div>`
+      : `<div class="alert alert-danger border-0 mt-3 mb-0 py-2"><i class="bi bi-x-circle-fill me-2"></i><strong>Chưa đúng.</strong> Đáp án đúng là: <strong>${rightText}</strong></div>`;
+    $('fb-' + id).innerHTML = head + explain +
+      `<button type="button" class="btn btn-light btn-sm border mt-3" onclick="retryQuestion('${id}')"><i class="bi bi-arrow-repeat"></i> Làm lại câu này</button>`;
+    renderMath($('fb-' + id));
+  }
+
+  function recordResult(id, isRight, answer) {
+    if (attempted.has(id)) return; // làm lại sau khi đã xem đáp án thì không tính
+    attempted.add(id);
+    stats.done++;
+    if (isRight) stats.right++;
+    updateStats();
+    // Lưu kết quả để phân tích điểm yếu ở trang chủ (server tự chấm lại)
+    fetch('/api/question-bank/attempts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questionId: id, answer })
+    }).catch(() => {}); // lỗi mạng không ảnh hưởng việc làm bài
+  }
+
+  function answerChoice(id, i) {
+    const q = bankQuestions[id];
+    if (!q || answered.has(id)) return;
+    answered.add(id);
+    const right = Number(q.correctAnswer);
+    const isRight = i === right;
+    document.querySelectorAll(`#pb-${id} .opt-btn`).forEach((btn) => {
+      const k = Number(btn.dataset.i);
+      btn.disabled = true;
+      if (k === right) {
+        btn.classList.add('correct');
+        btn.querySelector('i').className = 'bi bi-check-circle-fill fs-5';
+      } else if (k === i) {
+        btn.classList.add('wrong');
+        btn.querySelector('i').className = 'bi bi-x-circle-fill fs-5';
+      }
+    });
+    const rightText = `${String.fromCharCode(65 + right)}. ${esc(q.options[right])}`;
+    showFeedback(q, isRight, rightText);
+    recordResult(id, isRight, i);
+  }
+
+  function checkShort(id) {
+    const q = bankQuestions[id];
+    const input = $('sa-' + id);
+    if (!q || !input || answered.has(id)) return;
+    if (!input.value.trim()) { input.focus(); return; }
+    answered.add(id);
+    const isRight = sameShort(input.value, q.correctAnswer);
+    input.disabled = true;
+    input.classList.add(isRight ? 'is-valid' : 'is-invalid');
+    input.nextElementSibling.disabled = true;
+    showFeedback(q, isRight, esc(q.correctAnswer));
+    recordResult(id, isRight, input.value.trim());
+  }
+
+  function retryQuestion(id) {
+    const q = bankQuestions[id];
+    if (!q) return;
+    answered.delete(id);
+    const pb = $('pb-' + id);
+    const tmp = document.createElement('div');
+    tmp.innerHTML = practiceBody(q);
+    pb.innerHTML = tmp.firstElementChild.innerHTML;
+    $('fb-' + id).innerHTML = '';
+    renderMath(pb);
+  }
+
+  function exitWrongMode() {
+    wrongOnly = false;
+    $('wrongBanner').classList.add('d-none');
+    history.replaceState(null, '', location.pathname);
+    loadBank();
+  }
+
+  function updateStats() {
+    $('stDone').textContent = stats.done;
+    $('stRight').textContent = stats.right;
+    $('practiceStats').classList.toggle('d-none', stats.done === 0);
+  }
+  function resetPracticeStats() {
+    attempted.clear(); stats.done = 0; stats.right = 0;
+    updateStats();
+    loadBank();
+  }
+
+  const empty = (text) => `<div class="panel text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>${text}</div>`;
+
+  /* ---------- Tải dữ liệu ---------- */
+  async function loadBank() {
+    const p = new URLSearchParams({ scope: 'approved' });
+    if ($('fSearch').value.trim()) p.set('q',$('fSearch').value.trim());
+    if ($('fType').value) p.set('type',$('fType').value);
+    if ($('fSubject').value) p.set('subject',$('fSubject').value);
+    if (wrongOnly) p.set('wrong', '1');
+    try {
+      const { questions } = await api('/api/question-bank?' + p);
+      bankQuestions = Object.fromEntries(questions.map((q) => [q._id, q]));
+      answered.clear();
+      $('bankList').innerHTML = questions.length
+        ? questions.map((q) => renderQuestion(q, { canDelete: isReviewer, practice: true })).join('')
+        : empty('Không tìm thấy câu hỏi nào phù hợp.');
+      renderMath($('bankList'));
+    } catch (e) { notify(e.message, 'danger'); }
+  }
+
+  // Nạp danh sách môn từ server cho cả bộ lọc lẫn form đóng góp.
+  async function loadSubjects() {
+    try {
+      const { subjects = [], extra = [] } = await api('/api/question-bank/subjects');
+      const opt = (v) => `<option value="${esc(v)}">${esc(v)}</option>`;
+
+      // Bộ lọc: môn chuẩn + môn cũ còn dữ liệu (nếu có)
+      const curFilter = $('fSubject').value;
+      $('fSubject').innerHTML = '<option value="">Tất cả môn học</option>' +
+        subjects.map(opt).join('') + extra.map(opt).join('');
+      $('fSubject').value = curFilter;
+
+      // Form đóng góp: chỉ môn chuẩn, giữ lại môn đang chọn
+      const curForm = $('cSubject').value;
+      $('cSubject').innerHTML = '<option value="" disabled>-- Chọn môn học --</option>' +
+        subjects.map(opt).join('');
+      $('cSubject').value = subjects.includes(curForm) ? curForm : '';
+    } catch (_) {}
+  }
+
+  async function loadMine() {
+    try {
+      const { questions } = await api('/api/question-bank?scope=mine');
+      $('mineList').innerHTML = questions.length
+        ? questions.map((q) => renderQuestion(q, { showStatus: true, canDelete: q.status !== 'approved' || isReviewer })).join('')
+        : empty('Bạn chưa đóng góp câu hỏi nào. Hãy bắt đầu chia sẻ nhé!');
+      renderMath($('mineList'));
+    } catch (e) { notify(e.message, 'danger'); }
+  }
+
+  async function loadPending() {
+    if (!isReviewer) return;
+    try {
+      const { questions } = await api('/api/question-bank?scope=pending');
+      $('pendingCount').textContent = questions.length;
+      $('pendingList').innerHTML = questions.length
+        ? questions.map((q) => renderQuestion(q, { showReview: true, canDelete: true })).join('')
+        : empty('Đã duyệt xong tất cả câu hỏi. Tuyệt vời! 🎉');
+      renderMath($('pendingList'));
+    } catch (e) { notify(e.message, 'danger'); }
+  }
+
+  /* ---------- Hành động ---------- */
+  async function review(id, action) {
+    let note = '';
+    if (action === 'reject') {
+      note = prompt('Nhập lý do từ chối (không bắt buộc):') ?? null;
+      if (note === null) return;
+    }
+    try {
+      const r = await api(`/api/question-bank/${id}/review`, { method: 'PUT', body: JSON.stringify({ action, note }) });
+      notify(r.message);
+      await Promise.all([loadPending(), loadBank(), loadSubjects()]);
+    } catch (e) { notify(e.message, 'danger'); }
+  }
+
+  async function removeQ(id) {
+    if (!confirm('Hành động này không thể hoàn tác. Bạn chắc chắn muốn xóa?')) return;
+    try {
+      const r = await api(`/api/question-bank/${id}`, { method: 'DELETE' });
+      notify(r.message);
+      refreshCurrent();
+    } catch (e) { notify(e.message, 'danger'); }
+  }
+
+  /* ---------- Form đóng góp ---------- */
+  const MC_OPTION_COUNT = 4; // A, B, C, D
+  function addOptionRow(value = '') {
+    const wrap = $('mcOptions');
+    const i = wrap.children.length;
+    const letter = String.fromCharCode(65 + i);
+    const row = document.createElement('div');
+    row.className = 'input-group shadow-sm rounded-3';
+    row.innerHTML = `
+      <div class="input-group-text bg-white border-end-0 pe-2">
+        <input class="form-check-input mt-0 fs-5" type="radio" name="mcCorrect" value="${i}" ${i === 0 ? 'checked' : ''} title="Đánh dấu nếu đây là đáp án đúng">
+      </div>
+      <span class="input-group-text bg-white border-start-0 border-end-0 fw-bold px-2">${letter}</span>
+      <input class="form-control mc-opt border-start-0 ps-1 py-2" placeholder="Nội dung phương án ${letter}" maxlength="500" value="${esc(value)}">`;
+    wrap.appendChild(row);
+  }
+
+  function resetForm() {
+    $('cQuestion').value = '';$('cExplain').value = ''; $('saAnswer').value = '';$('tf0').checked = true;
+    $('cSubject').value = ''; // buộc người dùng chọn lại môn cho câu tiếp theo
+    $('mcOptions').innerHTML = '';
+    for (let i = 0; i < MC_OPTION_COUNT; i++) addOptionRow();
+    updatePreview();
+  }
+
+  function syncType() {
+    const t = $('cType').value;
+    $('boxMc').classList.toggle('d-none', t !== 'tracnghiem');
+    $('boxTf').classList.toggle('d-none', t !== 'truefalse');$('boxSa').classList.toggle('d-none', t !== 'shortanswer');
+  }
+
+  async function submitQuestion() {
+    const type = $('cType').value;
+    if (!$('cSubject').value) {
+      $('cSubject').focus();
+      return notify('Vui lòng chọn môn học cho câu hỏi.', 'warning');
+    }
+    const payload = {
+      type,
+      subject: $('cSubject').value,
+      question: $('cQuestion').value.trim(),
+      explanation: $('cExplain').value.trim()
+    };
+    if (type === 'tracnghiem') {
+      payload.options = [...document.querySelectorAll('.mc-opt')].map((i) => i.value.trim());
+      payload.correctAnswer = Number(document.querySelector('input[name=mcCorrect]:checked').value);
+    } else if (type === 'truefalse') {
+      payload.correctAnswer = Number(document.querySelector('input[name=tf]:checked').value);
+    } else {
+      payload.correctAnswer = $('saAnswer').value.trim();
+    }
+
+    $('btnSubmit').disabled = true;
+    $('btnSubmit').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang gửi...';
+    try {
+      const r = await api('/api/question-bank', { method: 'POST', body: JSON.stringify(payload) });
+      notify(r.message);
+      resetForm();
+      switchTab('mine');
+    } catch (e) { notify(e.message, 'danger'); }
+    finally { 
+      $('btnSubmit').disabled = false;
+      $('btnSubmit').innerHTML = '<i class="bi bi-send-fill me-2"></i> Gửi duyệt câu hỏi';
+    }
+  }
+
+  /* ---------- Tabs ---------- */
+  let currentTab = 'bank';
+  function refreshCurrent() {
+    if (currentTab === 'bank') { loadBank(); loadSubjects(); }
+    if (currentTab === 'mine') loadMine();
+    if (currentTab === 'pending') loadPending();
+    if (isReviewer && currentTab !== 'pending') loadPending();
+  }
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('#tabs .nav-link').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
+    ['bank', 'contribute', 'mine', 'pending'].forEach((t) => {
+      const el = $('tab-' + t);
+      if (t === tab) {
+        el.classList.remove('d-none');
+      } else {
+        el.classList.add('d-none');
+      }
+    });
+    refreshCurrent();
+  }
+
+  /* ---------- Khởi tạo ---------- */
+  document.querySelectorAll('#tabs .nav-link').forEach((b) => b.onclick = () => switchTab(b.dataset.tab));
+  buildToolbar('mathToolbar');
+  buildToolbar('explainToolbar', 'cExplain');
+  $('tab-contribute').addEventListener('focusin', (e) => { if (isMathField(e.target)) lastField = e.target; });
+  $('tab-contribute').addEventListener('input', updatePreview);
+  $('cType').onchange = () => { syncType(); updatePreview(); };
+  $('btnSubmit').onclick = submitQuestion;
+  $('btnFilter').onclick = loadBank;
+  $('fSearch').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadBank(); });
+
+  (async function init() {
+    try {
+      const res = await fetch('/me');
+      if (!res.ok) { location.href = '1.html'; return; } // chưa đăng nhập -> về trang đăng nhập
+      me = await res.json();
+    } catch (_) {
+      // Không gọi được máy chủ: báo lỗi và KHÔNG cấp quyền giáo viên (trước đây tự gán role teacher nên ai cũng thấy tab duyệt)
+      notify('Không kết nối được máy chủ. Vui lòng kiểm tra lại.', 'danger');
+      me = { role: 'student' };
+    }
+
+    isReviewer = me.role === 'teacher' || me.role === 'admin';
+    if (isReviewer) $('pendingTabItem').classList.remove('d-none');
+    resetForm();
+    syncType();
+
+    // Link từ trang chủ: ?subject=Toán&wrong=1
+    const params = new URLSearchParams(location.search);
+    const wantSubject = params.get('subject');
+    wrongOnly = params.get('wrong') === '1';
+    if (wantSubject || wrongOnly) {
+      await loadSubjects();
+      if (wantSubject) {
+        if (![...$('fSubject').options].some((o) => o.value === wantSubject)) {
+          $('fSubject').insertAdjacentHTML('beforeend', `<option value="${esc(wantSubject)}">${esc(wantSubject)}</option>`);
+        }
+        $('fSubject').value = wantSubject;
+      }
+      if (wrongOnly) {
+        $('wrongSubject').textContent = wantSubject ? `· môn ${wantSubject}` : '';
+        $('wrongBanner').classList.remove('d-none');
+      }
+    }
+    switchTab(params.get('tab') === 'pending' && isReviewer ? 'pending' : 'bank');
+  })();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

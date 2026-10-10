@@ -7,6 +7,9 @@
     <title>Dashboard | NT</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* === Biến CSS và Thiết lập chung === */
@@ -413,6 +416,107 @@
             #welcome-message { display: none; }
             .logo span { display: none; }
         }
+
+        /* =====================================================
+           BẢNG PHÂN TÍCH HỌC TẬP (trang chính)
+           ===================================================== */
+        .dash { max-width: 1200px; margin: 0 auto; }
+        .dash-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+        .dash-head h1 { font-size: 1.9rem; font-weight: 700; line-height: 1.2; }
+        .dash-head p { color: var(--text-secondary); margin-top: 4px; }
+        .dash-btn {
+            display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 999px;
+            background: linear-gradient(135deg, #3a7bfd, #7c5cff); color: #fff; text-decoration: none; font-weight: 600;
+            box-shadow: 0 8px 22px rgba(58, 123, 253, .35); transition: transform .2s, box-shadow .2s;
+        }
+        .dash-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(58, 123, 253, .5); }
+        .dash-btn i { font-size: 1.3rem; }
+
+        .dash-grid { display: grid; gap: 20px; }
+        .kpi-row { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-bottom: 20px; }
+        .two-col { grid-template-columns: 1.5fr 1fr; margin-bottom: 20px; }
+        @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+        .card {
+            background: var(--surface-color); border: 1px solid var(--border-color);
+            border-radius: 18px; padding: 22px; backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px var(--shadow-color);
+        }
+        .card h3 { font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .card h3 i { color: var(--primary-color); font-size: 1.3rem; }
+        .card .sub { color: var(--text-secondary); font-size: .85rem; margin-bottom: 16px; }
+
+        /* Thẻ số liệu */
+        .kpi { display: flex; align-items: center; gap: 16px; }
+        .kpi-icon { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; font-size: 1.7rem; flex-shrink: 0; }
+        .kpi-num { font-size: 2rem; font-weight: 700; line-height: 1; }
+        .kpi-label { color: var(--text-secondary); font-size: .85rem; margin-top: 6px; }
+        .kpi-link { display: inline-block; margin-top: 8px; color: #7fb0ff; font-size: .82rem; font-weight: 600; text-decoration: none; }
+        .kpi-link:hover { text-decoration: underline; }
+        .ring { position: relative; width: 96px; height: 96px; flex-shrink: 0; }
+        .ring svg { transform: rotate(-90deg); }
+        .ring .ring-val { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.35rem; font-weight: 700; }
+
+        /* Màu theo mức độ */
+        .lv-weak { --lv: #ff5b5b; } .lv-improve { --lv: #ff9f43; }
+        .lv-good { --lv: #2ecc71; } .lv-insufficient { --lv: #8a94a6; }
+        .badge-lv {
+            display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: .72rem; font-weight: 600;
+            color: var(--lv); background: color-mix(in srgb, var(--lv) 16%, transparent); border: 1px solid color-mix(in srgb, var(--lv) 40%, transparent);
+        }
+
+        /* Biểu đồ theo môn */
+        .subj { padding: 14px 0; border-top: 1px solid var(--border-color); }
+        .subj:first-of-type { border-top: 0; padding-top: 0; }
+        .subj-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+        .subj-name { font-weight: 600; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .subj-pct { font-weight: 700; color: var(--lv); }
+        .bar { height: 10px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+        .bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, color-mix(in srgb, var(--lv) 70%, #fff 0%), var(--lv)); transition: width .8s cubic-bezier(.2,.8,.2,1); }
+        .subj-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; font-size: .82rem; color: var(--text-secondary); }
+        .subj-actions a { color: #7fb0ff; font-weight: 600; text-decoration: none; margin-left: 14px; }
+        .subj-actions a:hover { text-decoration: underline; }
+        .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 16px; font-size: .75rem; color: var(--text-secondary); }
+        .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; background: var(--lv); }
+
+        /* Biểu đồ 7 ngày */
+        .days { display: flex; align-items: flex-end; gap: 10px; height: 190px; padding-top: 10px; }
+        .day { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; min-width: 0; }
+        .day-col { width: 100%; max-width: 38px; display: flex; flex-direction: column-reverse; border-radius: 8px; overflow: hidden; background: rgba(255,255,255,.05); }
+        .day-col .ok { background: #2ecc71; } .day-col .bad { background: #ff5b5b; }
+        .day-n { font-size: .75rem; font-weight: 600; color: var(--text-primary); }
+        .day-l { font-size: .7rem; color: var(--text-secondary); }
+        .chips { display: flex; gap: 10px; flex-wrap: wrap; }
+        .chip { flex: 1 1 180px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid var(--border-color); }
+        .chip b { color: var(--lv); font-size: 1.3rem; }
+
+        /* Gợi ý */
+        .tips { list-style: none; display: grid; gap: 10px; }
+        .tip { display: flex; gap: 12px; padding: 14px 16px; border-radius: 14px; background: color-mix(in srgb, var(--lv) 10%, transparent); border: 1px solid color-mix(in srgb, var(--lv) 30%, transparent); line-height: 1.5; }
+        .tip i { font-size: 1.4rem; color: var(--lv); flex-shrink: 0; margin-top: 1px; }
+        .tip-danger { --lv: #ff5b5b; } .tip-warn { --lv: #ff9f43; } .tip-good { --lv: #2ecc71; } .tip-info { --lv: #3a7bfd; }
+
+        /* Câu cần ôn */
+        .rv { border: 1px solid var(--border-color); border-radius: 14px; background: rgba(255,255,255,.03); margin-top: 10px; overflow: hidden; }
+        .rv summary { list-style: none; cursor: pointer; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; }
+        .rv summary::-webkit-details-marker { display: none; }
+        .rv summary:hover { background: rgba(255,255,255,.04); }
+        .rv-q { flex: 1; white-space: pre-wrap; font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+        .rv-meta { display: flex; gap: 8px; align-items: center; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+        .tag { padding: 2px 9px; border-radius: 999px; font-size: .72rem; background: rgba(58,123,253,.18); color: #9cc0ff; }
+        .tag-red { background: rgba(255,91,91,.18); color: #ff9a9a; }
+        .rv-body { padding: 0 16px 16px; }
+        .rv-opt { padding: 8px 12px; border-radius: 10px; margin-top: 6px; background: rgba(255,255,255,.05); }
+        .rv-opt.right { background: rgba(46,204,113,.18); border: 1px solid rgba(46,204,113,.45); font-weight: 600; }
+        .rv-exp { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: rgba(255,159,67,.1); border: 1px solid rgba(255,159,67,.3); white-space: pre-wrap; }
+        .rv-actions { margin-top: 12px; }
+        .rv-actions a { color: #7fb0ff; font-weight: 600; text-decoration: none; }
+
+        .dash-empty { text-align: center; padding: 50px 20px; }
+        .dash-empty i { font-size: 4rem; color: var(--primary-color); }
+        .dash-empty p { color: var(--text-secondary); margin: 8px 0 20px; }
+        .dash-loading { text-align: center; padding: 60px; color: var(--text-secondary); }
+        .katex { font-size: 1.05em; }
     </style>
 </head>
 <div id="chat-widget">
@@ -764,6 +868,7 @@
                 <a href="bai giang.html"><i class='bx bxs-videos'></i> <span>Bài Giảng</span></a>
                 <a href="forum.html"><i class='bx bxs-help-circle'></i> <span>Góc Hỏi Đáp</span></a>
                 <a href="exams.html"><i class='bx bxs-edit-alt'></i> <span>Kiểm tra</span></a>
+                <a href="nganhangcauhoi.html"><i class='bx bxs-book-content'></i> <span>Ngân hàng câu hỏi</span></a>
                 <a href="chat.html"><i class='bx bxs-message-dots'></i> <span>Trò chuyện</span></a>
             </nav>
             <button id="logoutBtn">
@@ -772,8 +877,16 @@
         </aside>
 
         <main>
-            <h1>Chào mừng bạn đến với hệ thống học tập NT</h1>
-            <p>Chọn một mục từ thanh bên để bắt đầu.</p>
+            <section class="dash">
+                <div class="dash-head">
+                    <div>
+                        <h1>Tổng quan học tập</h1>
+                        <p>Phân tích điểm mạnh, điểm yếu từ các câu bạn làm trong Ngân hàng câu hỏi</p>
+                    </div>
+                    <a href="nganhangcauhoi.html" class="dash-btn"><i class='bx bx-play-circle'></i> Luyện tập ngay</a>
+                </div>
+                <div id="dashBody"><div class="dash-loading"><i class='bx bx-loader-alt bx-spin'></i> Đang phân tích kết quả...</div></div>
+            </section>
         </main>
     </div>
 
@@ -953,6 +1066,201 @@
             }, 300); 
         });
     </script>
+    <!-- Bảng phân tích điểm yếu (đọc dữ liệu từ /api/question-bank/stats/me) -->
+    <script>
+    (function () {
+        const LEVEL_TEXT = { weak: 'Yếu', improve: 'Cần cải thiện', good: 'Tốt', insufficient: 'Chưa đủ dữ liệu' };
+        const TIP_ICON = { danger: 'bx-error-circle', warn: 'bx-trending-up', good: 'bx-check-circle', info: 'bx-info-circle' };
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const body = document.getElementById('dashBody');
+        const link = (params) => 'nganhangcauhoi.html' + (params ? '?' + new URLSearchParams(params) : '');
+
+        const MATH_OPTS = {
+            delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '\\[', right: '\\]', display: true },
+                { left: '$', right: '$', display: false },
+                { left: '\\(', right: '\\)', display: false }
+            ],
+            throwOnError: false
+        };
+        function renderMath(el, tries = 0) {
+            if (window.renderMathInElement) { try { renderMathInElement(el, MATH_OPTS); } catch (e) { console.error(e); } }
+            else if (tries < 20) setTimeout(() => renderMath(el, tries + 1), 250);
+        }
+
+        function ringColor(acc) { return acc < 50 ? '#ff5b5b' : acc < 75 ? '#ff9f43' : '#2ecc71'; }
+
+        function renderEmpty() {
+            body.innerHTML = `<div class="card dash-empty">
+                <i class='bx bx-bar-chart-alt-2'></i>
+                <h3 style="justify-content:center;font-size:1.3rem">Chưa có dữ liệu phân tích</h3>
+                <p>Làm vài câu trong Ngân hàng câu hỏi, hệ thống sẽ tự chỉ ra môn nào bạn đang yếu và cần ôn lại.</p>
+                <a href="${link()}" class="dash-btn"><i class='bx bx-play-circle'></i> Bắt đầu làm bài</a>
+            </div>`;
+        }
+
+        function renderError(msg, loginNeeded) {
+            body.innerHTML = `<div class="card dash-empty">
+                <i class='bx bx-error' style="color:var(--danger-color)"></i>
+                <p>${esc(msg)}</p>
+                ${loginNeeded
+                    ? `<a href="1.html" class="dash-btn">Đăng nhập lại</a>`
+                    : `<a href="#" class="dash-btn" onclick="location.reload();return false;">Thử lại</a>`}
+            </div>`;
+        }
+
+        function renderStats(d) {
+            const o = d.overall;
+            const needWork = d.bySubject.filter((s) => s.level === 'weak' || s.level === 'improve').length;
+            const rc = ringColor(o.accuracy);
+            const C = 2 * Math.PI * 42;
+
+            const kpis = `<div class="dash-grid kpi-row">
+                <div class="card kpi">
+                    <div class="ring">
+                        <svg width="96" height="96" viewBox="0 0 96 96">
+                            <circle cx="48" cy="48" r="42" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="9"/>
+                            <circle cx="48" cy="48" r="42" fill="none" stroke="${rc}" stroke-width="9" stroke-linecap="round"
+                                stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - o.accuracy / 100)).toFixed(1)}"/>
+                        </svg>
+                        <div class="ring-val">${o.accuracy}%</div>
+                    </div>
+                    <div><div class="kpi-label" style="margin:0;font-size:.95rem;color:var(--text-primary);font-weight:600">Độ chính xác</div>
+                        <div class="kpi-label">${o.correct}/${o.attempts} lượt đúng</div></div>
+                </div>
+                <div class="card kpi">
+                    <div class="kpi-icon" style="background:rgba(58,123,253,.18);color:#7fb0ff"><i class='bx bx-task'></i></div>
+                    <div><div class="kpi-num">${o.attempts}</div><div class="kpi-label">Lượt đã làm</div></div>
+                </div>
+                <div class="card kpi">
+                    <div class="kpi-icon" style="background:rgba(255,159,67,.18);color:#ff9f43"><i class='bx bx-trending-up'></i></div>
+                    <div><div class="kpi-num">${needWork}</div><div class="kpi-label">Môn cần cải thiện</div></div>
+                </div>
+                <div class="card kpi">
+                    <div class="kpi-icon" style="background:rgba(255,91,91,.18);color:#ff5b5b"><i class='bx bx-revision'></i></div>
+                    <div><div class="kpi-num">${d.reviewTotal}</div><div class="kpi-label">Câu cần ôn lại</div>
+                        ${d.reviewTotal ? `<a class="kpi-link" href="${link({ wrong: 1 })}">Ôn ngay →</a>` : ''}</div>
+                </div>
+            </div>`;
+
+            const subjects = d.bySubject.map((s) => `
+                <div class="subj lv-${s.level}">
+                    <div class="subj-top">
+                        <div class="subj-name">${esc(s.subject)} <span class="badge-lv">${LEVEL_TEXT[s.level]}</span></div>
+                        <div class="subj-pct">${s.level === 'insufficient' ? '—' : s.accuracy + '%'}</div>
+                    </div>
+                    <div class="bar"><span style="width:${Math.max(s.accuracy, 2)}%"></span></div>
+                    <div class="subj-foot">
+                        <span>${s.correct}/${s.attempts} lượt đúng${s.wrongNow ? ` · <b style="color:#ff9a9a">${s.wrongNow} câu cần ôn</b>` : ''}</span>
+                        <span class="subj-actions">
+                            ${s.wrongNow ? `<a href="${link({ subject: s.subject, wrong: 1 })}">Ôn câu sai</a>` : ''}
+                            <a href="${link({ subject: s.subject })}">Luyện thêm</a>
+                        </span>
+                    </div>
+                </div>`).join('');
+
+            const t = d.thresholds;
+            const subjCard = `<div class="card">
+                <h3><i class='bx bx-bar-chart-alt-2'></i> Phân tích theo môn</h3>
+                <div class="sub">Môn yếu nhất xếp trên cùng. Mỗi môn cần ít nhất ${t.minAttempts} lượt để được đánh giá.</div>
+                ${subjects}
+                <div class="legend">
+                    <span class="lv-weak"><i></i>Yếu (dưới ${t.weakBelow}%)</span>
+                    <span class="lv-improve"><i></i>Cần cải thiện (dưới ${t.improveBelow}%)</span>
+                    <span class="lv-good"><i></i>Tốt</span>
+                    <span class="lv-insufficient"><i></i>Chưa đủ dữ liệu</span>
+                </div>
+            </div>`;
+
+            const maxN = Math.max(1, ...d.daily.map((x) => x.attempts));
+            const days = d.daily.map((x) => {
+                const h = x.attempts ? Math.max(8, Math.round((x.attempts / maxN) * 130)) : 4;
+                const okH = x.attempts ? Math.round((x.correct / x.attempts) * 100) : 0;
+                return `<div class="day" title="${x.label}: ${x.correct}/${x.attempts} lượt đúng">
+                    <div class="day-n">${x.attempts || ''}</div>
+                    <div class="day-col" style="height:${h}px">
+                        <div class="ok" style="height:${okH}%"></div><div class="bad" style="height:${x.attempts ? 100 - okH : 0}%"></div>
+                    </div>
+                    <div class="day-l">${x.label}</div>
+                </div>`;
+            }).join('');
+            const dayCard = `<div class="card">
+                <h3><i class='bx bx-calendar-check'></i> 7 ngày gần đây</h3>
+                <div class="sub">Số câu làm mỗi ngày (<span style="color:#2ecc71">xanh: đúng</span>, <span style="color:#ff5b5b">đỏ: sai</span>)</div>
+                <div class="days">${days}</div>
+            </div>`;
+
+            const types = `<div class="card" style="margin-bottom:20px">
+                <h3><i class='bx bx-category'></i> Theo dạng câu hỏi</h3>
+                <div class="sub">Bạn làm tốt dạng nào, chưa tốt dạng nào</div>
+                <div class="chips">${d.byType.map((x) => `
+                    <div class="chip lv-${x.level}">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                            <span style="font-weight:600">${esc(x.label)}</span><span class="badge-lv">${LEVEL_TEXT[x.level]}</span>
+                        </div>
+                        <div style="margin-top:8px"><b>${x.level === 'insufficient' ? '—' : x.accuracy + '%'}</b>
+                            <span style="color:var(--text-secondary);font-size:.82rem"> · ${x.correct}/${x.attempts} lượt</span></div>
+                    </div>`).join('')}</div>
+            </div>`;
+
+            const tips = `<div class="card" style="margin-bottom:20px">
+                <h3><i class='bx bx-bulb'></i> Gợi ý cải thiện</h3>
+                <div class="sub">Dựa trên kết quả làm bài của bạn</div>
+                <ul class="tips">${d.suggestions.map((x) => `
+                    <li class="tip tip-${x.tone}"><i class='bx ${TIP_ICON[x.tone] || 'bx-info-circle'}'></i><div>${esc(x.text)}
+                        ${x.subject ? `<div style="margin-top:6px"><a class="kpi-link" href="${link({ subject: x.subject })}">Luyện môn ${esc(x.subject)} →</a></div>` : ''}</div></li>`).join('')}
+                </ul>
+            </div>`;
+
+            let review = '';
+            if (d.review.length) {
+                review = `<div class="card" id="reviewCard">
+                    <h3><i class='bx bx-revision'></i> Câu cần ôn lại (${d.reviewTotal})</h3>
+                    <div class="sub">Những câu lần làm gần nhất của bạn bị sai${d.reviewTotal > d.review.length ? `, đang hiện ${d.review.length} câu sai nhiều nhất` : ''}. Bấm vào để xem đáp án và giải thích.</div>
+                    ${d.review.map((r) => {
+                        let ans;
+                        if (r.type === 'shortanswer') {
+                            ans = `<div class="rv-opt right">Đáp án đúng: ${esc(r.correctAnswer)}</div>`;
+                        } else {
+                            ans = r.options.map((op, i) => `<div class="rv-opt ${i === Number(r.correctAnswer) ? 'right' : ''}">
+                                <b>${String.fromCharCode(65 + i)}.</b> ${esc(op)}${i === Number(r.correctAnswer) ? ' ✓' : ''}</div>`).join('');
+                        }
+                        return `<details class="rv">
+                            <summary>
+                                <div class="rv-q">${esc(r.question)}</div>
+                                <div class="rv-meta"><span class="tag">${esc(r.subject)}</span>
+                                    <span class="tag tag-red">Sai ${r.wrongCount} lần</span></div>
+                            </summary>
+                            <div class="rv-body">${ans}
+                                ${r.explanation ? `<div class="rv-exp"><b>💡 Giải thích:</b> ${esc(r.explanation)}</div>` : ''}
+                                <div class="rv-actions"><a href="${link({ subject: r.subject, wrong: 1 })}">Làm lại các câu sai môn ${esc(r.subject)} →</a></div>
+                            </div>
+                        </details>`;
+                    }).join('')}
+                </div>`;
+            }
+
+            body.innerHTML = kpis + `<div class="dash-grid two-col">${subjCard}${dayCard}</div>` + types + tips + review;
+            renderMath(body);
+        }
+
+        async function loadDashboard() {
+            try {
+                const res = await fetch('/api/question-bank/stats/me');
+                if (res.status === 401) return renderError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để xem phân tích.', true);
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) return renderError(data.message || 'Không tải được dữ liệu phân tích.');
+                if (!data.overall.attempts) return renderEmpty();
+                renderStats(data);
+            } catch (e) {
+                renderError('Không kết nối được tới máy chủ.');
+            }
+        }
+        loadDashboard();
+    })();
+    </script>
+
 </body>
 
 </html>

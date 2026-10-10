@@ -37,8 +37,8 @@ const Submission = mongoose.model("Submission", submissionSchema);
 
 const app = express();
 app.use(express.json());
-const resultRoutes = require('./routes/results');
-app.use('/api', resultRoutes);
+// ĐÃ GỠ routes/results.js: có POST /api/submit không cần đăng nhập (ai cũng ghi đè được điểm thi)
+// và GET /api/exams/:id/results che mất route có kiểm tra quyền ở bên dưới. Không trang nào gọi /api/submit.
 
 
 const server = http.createServer(app);
@@ -94,9 +94,11 @@ async function getNextStudentId() {
 
 // 1. API: GET /api/students - Tải tất cả học sinh
 app.get(STUDENT_API_PREFIX, async (req, res) => {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ message: "Bạn cần đăng nhập." });
     try {
-        // Lấy tất cả học sinh từ MongoDB
-        const students = await Student.find().exec();
+        // Giáo viên/admin xem tất cả; học sinh chỉ xem hồ sơ của chính mình
+        const students = await Student.find(isStaff(user) ? {} : { username: user.username }).exec();
         res.json(students);
     } catch (error) {
         console.error("Lỗi khi tải học sinh:", error);
@@ -106,6 +108,7 @@ app.get(STUDENT_API_PREFIX, async (req, res) => {
 
 // 2. API: POST /api/students - Thêm học sinh mới (danh sách)
 app.post(STUDENT_API_PREFIX, async (req, res) => {
+    if (!isStaff(req.session.user)) return res.status(403).json({ message: "Chỉ giáo viên mới được thêm học sinh." });
     try {
         let newStudents = req.body;
         if (!Array.isArray(newStudents)) {
@@ -146,6 +149,7 @@ app.post(STUDENT_API_PREFIX, async (req, res) => {
 
 // 3. API: PUT /api/students/:id/scores - Cập nhật điểm của một học sinh
 app.put(`${STUDENT_API_PREFIX}/:id/scores`, async (req, res) => {
+    if (!isStaff(req.session.user)) return res.status(403).json({ message: "Chỉ giáo viên mới được sửa điểm." });
     try {
         const studentId = parseInt(req.params.id);
         const { scores } = req.body;
@@ -169,6 +173,7 @@ app.put(`${STUDENT_API_PREFIX}/:id/scores`, async (req, res) => {
 
 // 4. API: DELETE /api/students/:id - Xóa học sinh
 app.delete(`${STUDENT_API_PREFIX}/:id`, async (req, res) => {
+    if (!isStaff(req.session.user)) return res.status(403).json({ message: "Chỉ giáo viên mới được xóa học sinh." });
     try {
         const studentId = parseInt(req.params.id);
         const result = await Student.deleteOne({ id: studentId });
@@ -309,6 +314,18 @@ app.get("/api/exam-videos", async (req, res) => {
         filter.examId = new mongoose.Types.ObjectId(examId); // ✅ ĐÃ SỬA LỖI
     }
     
+    // Giáo viên chỉ xem video của đề do mình tạo (trước đây xem được video thi của mọi lớp)
+    {
+      const ownedIds = (await Exam.find({ createdBy: user.username }).select('_id').lean()).map((e) => e._id);
+      if (filter.examId) {
+        if (!ownedIds.some((id) => id.equals(filter.examId))) {
+          return res.status(403).json({ message: "Đây không phải đề thi của bạn." });
+        }
+      } else {
+        filter.examId = { $in: ownedIds };
+      }
+    }
+
     const videos = await ExamVideo.find(filter)
       .populate("examId", "title")
       .populate("classId", "name")
@@ -553,80 +570,25 @@ app.get("/api/posts/:id/comments", async (req, res) => {
 
 // API: Đăng ký tài khoản
 
-// ===================== GỬI OTP QUA RESEND =====================
-const nodemailer = require("nodemailer");
-
-app.post("/api/send-otp", async (req, res) => {
-  const { email } = req.body;
-
-  try {
-    if (!email || !email.includes("@")) {
-      return res.status(400).json({ message: "Email không hợp lệ." });
-    }
-
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // 💡 LƯU Ý: Lưu OTP vào MongoDB (hoặc Redis) tốt hơn là vào file temp-otp.json 
-    // vì ghi file không an toàn và không hoạt động tốt trong môi trường đa luồng/cloud.
-    fs.writeFileSync( 
-      "temp-otp.json",
-      JSON.stringify({ email, otpCode, time: Date.now() })
-    );
-
-    // ⚙️ Cấu hình SMTP GMAIL
-    const transporter = nodemailer.createTransport({
-      service: 'gmail', // Dùng service 'gmail' để Nodemailer tự động cấu hình host/port/secure
-      auth: {
-        user: process.env.MAIL_USER, // SỬ DỤNG MAIL_USER (Gmail Address)
-        pass: process.env.MAIL_APP_PASSWORD, // SỬ DỤNG MAIL_APP_PASSWORD (Mật khẩu Ứng dụng 16 ký tự)
-      },
-    });
-
-    // 📩 Gửi mail
-    await transporter.sendMail({
-      from: `"Web Học Tập" <${process.env.SENDER_EMAIL}>`, // SỬ DỤNG SENDER_EMAIL
-      to: email,
-      subject: "Mã xác thực đăng ký (Noah)",
-      html: `
-        <div style="font-family:sans-serif;line-height:1.6">
-          <h2>Mã xác thực của bạn là:</h2>
-          <h1 style="color:#007bff;">${otpCode}</h1>
-          <p>⏰ Mã này có hiệu lực trong 10 phút.</p>
-        </div>
-      `,
-    });
-
-    console.log(`✅ Đã gửi OTP tới ${email}`);
-    res.json({ message: "✅ Mã OTP đã được gửi qua email!", needVerify: true });
-  } catch (err) {
-    console.error("❌ Lỗi gửi OTP:", err);
-    res.status(500).json({ message: "❌ Lỗi khi gửi OTP, vui lòng thử lại." });
-  }
-});
-
-// Xác minh OTP và tạo tài khoản
+// ===================== ĐĂNG KÝ TÀI KHOẢN (không cần mã OTP) =====================
 app.post('/api/register', async (req, res) => {
-  const { username, email, password, role, school, class: cls, otp } = req.body;
+  const { username, email, password, role, school, class: cls } = req.body;
 
   try {
-    if (!fs.existsSync('temp-otp.json')) {
-      return res.status(400).json({ message: "Chưa có mã OTP nào được gửi." });
+    if (!username || !email || !password || !role) {
+      return res.status(400).json({ message: "Vui lòng nhập đầy đủ thông tin." });
+    }
+    if (!String(email).includes('@')) {
+      return res.status(400).json({ message: "Email không hợp lệ." });
+    }
+    // Không cho tự đăng ký quyền admin (admin tạo bằng create-user.js)
+    if (!['student', 'teacher'].includes(role)) {
+      return res.status(400).json({ message: "Vai trò không hợp lệ." });
     }
 
-    const otpData = JSON.parse(fs.readFileSync('temp-otp.json', 'utf-8'));
-    if (!otpData || otpData.email !== email || otpData.otpCode !== otp) {
-      return res.status(400).json({ message: "Mã OTP không đúng." });
-    }
-
-    if (Date.now() - otpData.time > 10 * 60 * 1000) {
-      return res.status(400).json({ message: "Mã OTP đã hết hạn." });
-    }
-
-    fs.unlinkSync('temp-otp.json');
-
-    const existing = await User.findOne({ email });
-    if (existing && existing.isVerified) {
-      return res.status(400).json({ message: "Tài khoản đã tồn tại." });
+    const existing = await User.findOne({ $or: [{ username }, { email }] });
+    if (existing) {
+      return res.status(400).json({ message: "Tên đăng nhập hoặc email đã được sử dụng." });
     }
 
     const newUser = new User({
@@ -841,21 +803,38 @@ app.post('/api/classrooms/join', async (req, res) => {
 });
 
 app.post('/api/classrooms/:id/approve', async (req, res) => {
-  const { studentUsername, action } = req.body;
-  const classroom = await Classroom.findById(req.params.id);
-  if (!classroom) return res.status(404).json({ message: 'Lớp không tồn tại.' });
-
-  const pendingIndex = classroom.pendingStudents.indexOf(studentUsername);
-  if (pendingIndex === -1) return res.status(400).json({ message: 'Không tìm thấy yêu cầu.' });
-
-  if (action === 'approve') {
-    classroom.pendingStudents.splice(pendingIndex, 1);
-    classroom.students.push(studentUsername);
-  } else {
-    classroom.pendingStudents.splice(pendingIndex, 1);
+  const user = req.session.user;
+  if (!user || user.role !== 'teacher') {
+    return res.status(403).json({ message: 'Chỉ giáo viên mới được duyệt học sinh.' });
   }
-  await classroom.save();
-  res.json({ message: `Đã ${action === 'approve' ? 'duyệt' : 'từ chối'}.` });
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ message: 'ID lớp không hợp lệ.' });
+  }
+  const { studentUsername, action } = req.body;
+  if (!['approve', 'reject'].includes(action)) {
+    return res.status(400).json({ message: 'Hành động không hợp lệ.' });
+  }
+
+  try {
+    const classroom = await Classroom.findById(req.params.id);
+    if (!classroom) return res.status(404).json({ message: 'Lớp không tồn tại.' });
+    if (classroom.teacherUsername !== user.username) {
+      return res.status(403).json({ message: 'Đây không phải lớp của bạn.' });
+    }
+
+    const pendingIndex = classroom.pendingStudents.indexOf(studentUsername);
+    if (pendingIndex === -1) return res.status(400).json({ message: 'Không tìm thấy yêu cầu.' });
+
+    classroom.pendingStudents.splice(pendingIndex, 1);
+    if (action === 'approve' && !classroom.students.includes(studentUsername)) {
+      classroom.students.push(studentUsername);
+    }
+    await classroom.save();
+    res.json({ message: `Đã ${action === 'approve' ? 'duyệt' : 'từ chối'}.` });
+  } catch (err) {
+    console.error('Lỗi duyệt học sinh:', err);
+    res.status(500).json({ message: 'Lỗi server khi duyệt học sinh.' });
+  }
 });
 
 // API EXAMS
@@ -865,10 +844,10 @@ app.post('/api/exams', async (req, res) => {
     return res.status(403).json({ message: 'Chỉ giáo viên mới tạo được đề thi.' });
   }
 
-  const { title, subject, duration, passage, questions, classrooms } = req.body;
+  const { title, subject, duration, passage, questions, classrooms, enableCamera } = req.body;
 
   // Kiểm tra các trường bắt buộc
-  if (!title || !subject || !duration || !questions || !classrooms || classrooms.length === 0) {
+  if (!title || !subject || !(Number(duration) > 0) || !Array.isArray(questions) || questions.length === 0 || !Array.isArray(classrooms) || classrooms.length === 0) {
     return res.status(400).json({ message: 'Thiếu thông tin bắt buộc.' });
   }
 
@@ -928,7 +907,8 @@ app.post('/api/exams', async (req, res) => {
       passage: passage || '',
       questions,
       createdBy: user.username,
-      classrooms: classroomIds
+      classrooms: classroomIds,
+      enableCamera: enableCamera === true // trước đây giá trị này bị bỏ qua nên camera giám sát không bao giờ bật
     });
 
     await exam.save();
@@ -1060,6 +1040,7 @@ app.get('/api/exams/:id', async (req, res) => {
   subject: exam.subject,
   duration: exam.duration,
   passage: exam.passage,
+  enableCamera: !!exam.enableCamera,
   questions: exam.questions.map(q => ({
     _id: q._id,
     question: q.question,
@@ -1168,12 +1149,32 @@ app.post("/api/exams/:id/submit", async (req, res) => {
   }
 });
 
+// ---------- Phân quyền cho giáo viên ----------
+function isStaff(u) { return !!u && (u.role === 'teacher' || u.role === 'admin'); }
+
+// Trả về đề thi nếu người dùng là giáo viên sở hữu (hoặc admin). Nếu không, tự gửi lỗi và trả null.
+async function getOwnedExam(req, res, examId) {
+  const user = req.session.user;
+  if (!user) { res.status(401).json({ message: 'Bạn cần đăng nhập.' }); return null; }
+  if (!isStaff(user)) { res.status(403).json({ message: 'Chỉ giáo viên mới có quyền này.' }); return null; }
+  if (!mongoose.Types.ObjectId.isValid(examId)) { res.status(400).json({ message: 'ID bài thi không hợp lệ.' }); return null; }
+  const exam = await Exam.findById(examId).select('createdBy title').lean();
+  if (!exam) { res.status(404).json({ message: 'Không tìm thấy bài thi.' }); return null; }
+  if (user.role !== 'admin' && exam.createdBy !== user.username) {
+    res.status(403).json({ message: 'Đây không phải đề thi của bạn.' });
+    return null;
+  }
+  return exam;
+}
+
 app.post("/api/exams/:id/exit-log", async (req, res) => {
+  const user = req.session.user;
+  if (!user) return res.status(401).json({ success: false, message: "Bạn cần đăng nhập." });
   try {
     const log = new ExitLog({
       examId: req.params.id,
-      userId: req.session.user?.username || "unknown",
-      reason: req.body.reason
+      userId: user.username, // lấy từ phiên đăng nhập, không tin dữ liệu gửi lên
+      reason: String(req.body.reason || '').slice(0, 200)
     });
     await log.save();
     res.json({ success: true });
@@ -1184,6 +1185,8 @@ app.post("/api/exams/:id/exit-log", async (req, res) => {
 
 app.get("/api/exams/:id/exit-log", async (req, res) => {
   try {
+    const exam = await getOwnedExam(req, res, req.params.id);
+    if (!exam) return;
     const logs = await ExitLog.find({ examId: req.params.id }).sort({ timestamp: -1 });
     res.json(logs);
   } catch (err) {
@@ -1191,46 +1194,79 @@ app.get("/api/exams/:id/exit-log", async (req, res) => {
   }
 });
 
-// server.js
-
-// server.js (Trong route app.get('/api/exams/:examId/results', ...))
-
+// Kết quả của MỘT đề (chỉ giáo viên chủ đề / admin)
 app.get('/api/exams/:examId/results', async (req, res) => {
-    try {
-        const { examId } = req.params;
-        const results = await Result.find({ examId: examId }).lean();
+  try {
+    const { examId } = req.params;
+    const exam = await getOwnedExam(req, res, examId);
+    if (!exam) return;
 
-        if (results.length === 0) {
-            return res.json([]);
-        }
+    const results = await Result.find({ examId }).sort({ createdAt: -1 }).lean();
+    if (results.length === 0) return res.json([]);
 
-        const detailedResults = await Promise.all(
-            results.map(async (r) => {
-                const video = await ExamVideo.findOne({ 
-                    examId: new mongoose.Types.ObjectId(examId), 
-                    userId: r.userId 
-                }).lean();
+    const videos = await ExamVideo.find({ examId: new mongoose.Types.ObjectId(examId) }).lean();
+    const videoByUser = new Map(videos.map((v) => [v.userId, v.videoUrl]));
 
-                return {
-                    ...r, 
-                    videoUrl: video ? video.videoUrl : null, 
-                };
-            })
-        );
-
-        res.json(detailedResults);
-    } catch (error) {
-        console.error("Lỗi khi tải kết quả:", error);
-        res.status(500).json({ message: "Lỗi Server khi tải kết quả." });
-    }
-});
-app.post("/api/results/:id/grade", async (req, res) => {
-  const { score } = req.body;
-  if (!req.session.user || req.session.user.role !== "teacher") {
-    return res.status(403).json({ message: "Không có quyền" });
+    res.json(results.map((r) => ({
+      ...r,
+      examTitle: exam.title,
+      videoUrl: videoByUser.get(r.userId) || null
+    })));
+  } catch (error) {
+    console.error("Lỗi khi tải kết quả:", error);
+    res.status(500).json({ message: "Lỗi Server khi tải kết quả." });
   }
-  const result = await Result.findByIdAndUpdate(req.params.id, { score, status: "graded" }, { new: true });
-  res.json({ success: true, result });
+});
+
+// Kết quả của TẤT CẢ đề do giáo viên tạo (trước đây nút "Xem tất cả kết quả" gọi route này nhưng nó chưa tồn tại)
+app.get('/api/results', async (req, res) => {
+  const user = req.session.user;
+  if (!user) return res.status(401).json({ message: 'Bạn cần đăng nhập.' });
+  if (!isStaff(user)) return res.status(403).json({ message: 'Chỉ giáo viên mới có quyền này.' });
+  try {
+    const exams = await Exam.find(user.role === 'admin' ? {} : { createdBy: user.username }).select('title').lean();
+    const titleById = new Map(exams.map((e) => [String(e._id), e.title]));
+    const results = await Result.find({ examId: { $in: exams.map((e) => e._id) } })
+      .sort({ createdAt: -1 })
+      .limit(500)
+      .lean();
+    res.json(results.map((r) => ({ ...r, examTitle: titleById.get(String(r.examId)) || '' })));
+  } catch (err) {
+    console.error('Lỗi tải tất cả kết quả:', err);
+    res.status(500).json({ message: 'Lỗi server khi tải kết quả.' });
+  }
+});
+
+// Chấm điểm: điểm phải từ 0 đến 10 và bài phải thuộc đề của giáo viên đó
+app.post("/api/results/:id/grade", async (req, res) => {
+  const user = req.session.user;
+  if (!user) return res.status(401).json({ message: "Bạn cần đăng nhập." });
+  if (!isStaff(user)) return res.status(403).json({ message: "Không có quyền" });
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ message: "ID bài làm không hợp lệ." });
+  }
+
+  const raw = req.body.score;
+  const score = Number(raw);
+  if (raw === null || raw === undefined || raw === '' || !Number.isFinite(score) || score < 0 || score > 10) {
+    return res.status(400).json({ message: "Điểm phải là số từ 0 đến 10." });
+  }
+
+  try {
+    const result = await Result.findById(req.params.id);
+    if (!result) return res.status(404).json({ message: "Không tìm thấy bài làm." });
+
+    const exam = await getOwnedExam(req, res, String(result.examId));
+    if (!exam) return;
+
+    result.score = Math.round(score * 10) / 10;
+    result.status = "graded";
+    await result.save();
+    res.json({ success: true, result });
+  } catch (err) {
+    console.error("Lỗi chấm điểm:", err);
+    res.status(500).json({ message: "Lỗi server khi chấm điểm." });
+  }
 });
 
 app.post('/chat-upload', chatUpload.single('file'), (req, res) => {
@@ -1345,6 +1381,11 @@ app.post('/api/submitExam', async (req, res) => {
     res.status(500).json({ error: 'Lỗi server khi nộp bài thi.' });
   }
 });
+
+// API Ngân hàng câu hỏi (đóng góp công khai, giáo viên/admin duyệt)
+app.use('/api/question-bank', require('./routes/questionBank'));
+// API tổng quan cho giáo viên (phân tích cả lớp)
+app.use('/api/teacher', require('./routes/teacher'));
 
 // Route test cho Render nhận biết server đã sẵn sàng
 app.get('/', (req, res) => {

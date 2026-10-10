@@ -7,6 +7,9 @@
     <title>Dashboard | NT</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* === Biến CSS và Thiết lập chung === */
@@ -686,6 +689,135 @@
                 transform: translateX(50%); /* Canh giữa trên mobile */
             }
         }
+
+        /* =====================================================
+           BẢNG PHÂN TÍCH HỌC TẬP (trang chính)
+           ===================================================== */
+        .dash { max-width: 1200px; margin: 0 auto; }
+        .dash-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+        .dash-head h1 { font-size: 1.9rem; font-weight: 700; line-height: 1.2; }
+        .dash-head p { color: var(--text-secondary); margin-top: 4px; }
+        .dash-btn {
+            display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 999px;
+            background: linear-gradient(135deg, #3a7bfd, #7c5cff); color: #fff; text-decoration: none; font-weight: 600;
+            box-shadow: 0 8px 22px rgba(58, 123, 253, .35); transition: transform .2s, box-shadow .2s;
+        }
+        .dash-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(58, 123, 253, .5); }
+        .dash-btn i { font-size: 1.3rem; }
+
+        .dash-grid { display: grid; gap: 20px; }
+        .kpi-row { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-bottom: 20px; }
+        .two-col { grid-template-columns: 1.5fr 1fr; margin-bottom: 20px; }
+        @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+        .card {
+            background: var(--surface-color); border: 1px solid var(--border-color);
+            border-radius: 18px; padding: 22px; backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px var(--shadow-color);
+        }
+        .card h3 { font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .card h3 i { color: var(--primary-color); font-size: 1.3rem; }
+        .card .sub { color: var(--text-secondary); font-size: .85rem; margin-bottom: 16px; }
+
+        /* Thẻ số liệu */
+        .kpi { display: flex; align-items: center; gap: 16px; }
+        .kpi-icon { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; font-size: 1.7rem; flex-shrink: 0; }
+        .kpi-num { font-size: 2rem; font-weight: 700; line-height: 1; }
+        .kpi-label { color: var(--text-secondary); font-size: .85rem; margin-top: 6px; }
+        .kpi-link { display: inline-block; margin-top: 8px; color: #7fb0ff; font-size: .82rem; font-weight: 600; text-decoration: none; }
+        .kpi-link:hover { text-decoration: underline; }
+        .ring { position: relative; width: 96px; height: 96px; flex-shrink: 0; }
+        .ring svg { transform: rotate(-90deg); }
+        .ring .ring-val { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.35rem; font-weight: 700; }
+
+        /* Màu theo mức độ */
+        .lv-weak { --lv: #ff5b5b; } .lv-improve { --lv: #ff9f43; }
+        .lv-good { --lv: #2ecc71; } .lv-insufficient { --lv: #8a94a6; }
+        .badge-lv {
+            display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: .72rem; font-weight: 600;
+            color: var(--lv); background: color-mix(in srgb, var(--lv) 16%, transparent); border: 1px solid color-mix(in srgb, var(--lv) 40%, transparent);
+        }
+
+        /* Biểu đồ theo môn */
+        .subj { padding: 14px 0; border-top: 1px solid var(--border-color); }
+        .subj:first-of-type { border-top: 0; padding-top: 0; }
+        .subj-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+        .subj-name { font-weight: 600; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .subj-pct { font-weight: 700; color: var(--lv); }
+        .bar { height: 10px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+        .bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, color-mix(in srgb, var(--lv) 70%, #fff 0%), var(--lv)); transition: width .8s cubic-bezier(.2,.8,.2,1); }
+        .subj-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; font-size: .82rem; color: var(--text-secondary); }
+        .subj-actions a { color: #7fb0ff; font-weight: 600; text-decoration: none; margin-left: 14px; }
+        .subj-actions a:hover { text-decoration: underline; }
+        .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 16px; font-size: .75rem; color: var(--text-secondary); }
+        .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; background: var(--lv); }
+
+        /* Biểu đồ 7 ngày */
+        .days { display: flex; align-items: flex-end; gap: 10px; height: 190px; padding-top: 10px; }
+        .day { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; min-width: 0; }
+        .day-col { width: 100%; max-width: 38px; display: flex; flex-direction: column-reverse; border-radius: 8px; overflow: hidden; background: rgba(255,255,255,.05); }
+        .day-col .ok { background: #2ecc71; } .day-col .bad { background: #ff5b5b; }
+        .day-n { font-size: .75rem; font-weight: 600; color: var(--text-primary); }
+        .day-l { font-size: .7rem; color: var(--text-secondary); }
+        .chips { display: flex; gap: 10px; flex-wrap: wrap; }
+        .chip { flex: 1 1 180px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid var(--border-color); }
+        .chip b { color: var(--lv); font-size: 1.3rem; }
+
+        /* Gợi ý */
+        .tips { list-style: none; display: grid; gap: 10px; }
+        .tip { display: flex; gap: 12px; padding: 14px 16px; border-radius: 14px; background: color-mix(in srgb, var(--lv) 10%, transparent); border: 1px solid color-mix(in srgb, var(--lv) 30%, transparent); line-height: 1.5; }
+        .tip i { font-size: 1.4rem; color: var(--lv); flex-shrink: 0; margin-top: 1px; }
+        .tip-danger { --lv: #ff5b5b; } .tip-warn { --lv: #ff9f43; } .tip-good { --lv: #2ecc71; } .tip-info { --lv: #3a7bfd; }
+
+        /* Câu cần ôn */
+        .rv { border: 1px solid var(--border-color); border-radius: 14px; background: rgba(255,255,255,.03); margin-top: 10px; overflow: hidden; }
+        .rv summary { list-style: none; cursor: pointer; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; }
+        .rv summary::-webkit-details-marker { display: none; }
+        .rv summary:hover { background: rgba(255,255,255,.04); }
+        .rv-q { flex: 1; white-space: pre-wrap; font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+        .rv-meta { display: flex; gap: 8px; align-items: center; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+        .tag { padding: 2px 9px; border-radius: 999px; font-size: .72rem; background: rgba(58,123,253,.18); color: #9cc0ff; }
+        .tag-red { background: rgba(255,91,91,.18); color: #ff9a9a; }
+        .rv-body { padding: 0 16px 16px; }
+        .rv-opt { padding: 8px 12px; border-radius: 10px; margin-top: 6px; background: rgba(255,255,255,.05); }
+        .rv-opt.right { background: rgba(46,204,113,.18); border: 1px solid rgba(46,204,113,.45); font-weight: 600; }
+        .rv-exp { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: rgba(255,159,67,.1); border: 1px solid rgba(255,159,67,.3); white-space: pre-wrap; }
+        .rv-actions { margin-top: 12px; }
+        .rv-actions a { color: #7fb0ff; font-weight: 600; text-decoration: none; }
+
+        .dash-empty { text-align: center; padding: 50px 20px; }
+        .dash-empty i { font-size: 4rem; color: var(--primary-color); }
+        .dash-empty p { color: var(--text-secondary); margin: 8px 0 20px; }
+        .dash-loading { text-align: center; padding: 60px; color: var(--text-secondary); }
+        .katex { font-size: 1.05em; }
+
+        /* ===== Bổ sung cho bảng tổng quan GIÁO VIÊN ===== */
+        .dash-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .dash-select {
+            padding: 11px 16px; border-radius: 12px; border: 1px solid var(--border-color);
+            background: var(--surface-color); color: var(--text-primary); font-size: .95rem; font-weight: 500; cursor: pointer; min-width: 200px;
+        }
+        .dash-select option { background: #1e2026; color: #f0f2f5; }
+        .dash-btn.ghost { background: rgba(255,255,255,.08); box-shadow: none; border: 1px solid var(--border-color); }
+        .dash-btn.ghost:hover { background: rgba(255,255,255,.14); box-shadow: none; }
+        .kpi-row.five { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+        .kpi.alert-kpi { border-color: rgba(255,159,67,.55); box-shadow: 0 0 0 1px rgba(255,159,67,.25), 0 10px 30px var(--shadow-color); }
+        .nav-badge { margin-left: auto; background: #ff5b5b; color: #fff; border-radius: 999px; font-size: .72rem; padding: 2px 9px; font-weight: 600; }
+        .mini-stats { display: grid; gap: 10px; flex: 1; min-width: 0; }
+        .mini-stats div { display: flex; justify-content: space-between; gap: 10px; font-size: .9rem; color: var(--text-secondary); }
+        .mini-stats b { color: var(--text-primary); }
+        .tbl-wrap { overflow-x: auto; }
+        .tbl { width: 100%; border-collapse: collapse; min-width: 640px; }
+        .tbl th { text-align: left; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-secondary); padding: 10px 12px; border-bottom: 1px solid var(--border-color); font-weight: 600; }
+        .tbl td { padding: 12px; border-bottom: 1px solid var(--border-color); vertical-align: middle; font-size: .92rem; }
+        .tbl tr:last-child td { border-bottom: 0; }
+        .tbl .bar { min-width: 90px; }
+        .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .72rem; font-weight: 600; margin: 2px 4px 2px 0; }
+        .pill-red { background: rgba(255,91,91,.18); color: #ff9a9a; }
+        .pill-orange { background: rgba(255,159,67,.18); color: #ffbe7d; }
+        .pill-gray { background: rgba(138,148,166,.2); color: #c3cad6; }
+        .link-btn { background: none; border: 0; color: #7fb0ff; font-weight: 600; cursor: pointer; font-size: .88rem; padding: 10px 0 0; }
+        .link-btn:hover { text-decoration: underline; }
     </style>
 </head>
 
@@ -730,6 +862,7 @@
                 <a href="bangdiem.html"><i class='bx bxs-bar-chart-alt-2'></i> <span>Bảng Điểm</span></a>
                 <a href="bai giang.html"><i class='bx bxs-videos'></i> <span>Bài Giảng</span></a>
                 <a href="forum.html"><i class='bx bxs-help-circle'></i> <span>Góc Hỏi Đáp</span></a>
+                <a href="nganhangcauhoi.html"><i class='bx bxs-book-content'></i> <span>Ngân hàng câu hỏi</span></a>
                 <a href="teacher.html"><i class='bx bxs-edit-alt'></i> <span>Kiểm tra</span></a>
             </nav>
             <button id="logoutBtn">
@@ -738,8 +871,20 @@
         </aside>
 
         <main>
-            <h1>Chào mừng bạn đến với hệ thống học tập NT</h1>
-            <p>Chọn một mục từ thanh bên để bắt đầu.</p>
+            <section class="dash">
+                <div class="dash-head">
+                    <div>
+                        <h1>Tổng quan lớp học</h1>
+                        <p>Theo dõi việc cần làm và điểm yếu của học sinh từ Ngân hàng câu hỏi</p>
+                    </div>
+                    <div class="dash-tools">
+                        <select id="classFilter" class="dash-select" aria-label="Chọn lớp"><option value="">Tất cả lớp</option></select>
+                        <a href="teacher.html" class="dash-btn"><i class='bx bx-edit'></i> Tạo đề thi</a>
+                        <a href="teacher-classes.html" class="dash-btn ghost"><i class='bx bx-group'></i> Quản lý lớp</a>
+                    </div>
+                </div>
+                <div id="dashBody"><div class="dash-loading"><i class='bx bx-loader-alt bx-spin'></i> Đang tải tổng quan...</div></div>
+            </section>
         </main>
     </div>
 
@@ -1069,6 +1214,221 @@
             }, 300);
         });
     </script>
+    <!-- Bảng tổng quan giáo viên (đọc dữ liệu từ /api/teacher/overview) -->
+    <script>
+    (function () {
+        const LEVEL_TEXT = { weak: 'Yếu', improve: 'Cần cải thiện', good: 'Tốt', insufficient: 'Chưa đủ dữ liệu' };
+        const TIP_ICON = { danger: 'bx-error-circle', warn: 'bx-trending-up', good: 'bx-check-circle', info: 'bx-info-circle' };
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const body = document.getElementById('dashBody');
+        const sel = document.getElementById('classFilter');
+        let showAllStudents = false;
+        let lastData = null;
+
+        const MATH_OPTS = {
+            delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '\\[', right: '\\]', display: true },
+                { left: '$', right: '$', display: false },
+                { left: '\\(', right: '\\)', display: false }
+            ],
+            throwOnError: false
+        };
+        function renderMath(el, tries = 0) {
+            if (window.renderMathInElement) { try { renderMathInElement(el, MATH_OPTS); } catch (e) { console.error(e); } }
+            else if (tries < 20) setTimeout(() => renderMath(el, tries + 1), 250);
+        }
+        const ringColor = (acc) => acc < 50 ? '#ff5b5b' : acc < 75 ? '#ff9f43' : '#2ecc71';
+
+        function ago(d) {
+            if (d === null || d === undefined) return 'Chưa luyện';
+            if (d === 0) return 'Hôm nay';
+            return d + ' ngày trước';
+        }
+
+        function setSidebarBadge(href, n) {
+            // link có thể nằm ở thanh bên hoặc ở nút "Quản lý lớp" trên đầu trang
+            const a = document.querySelector(`.sidebar-menu a[href="${href}"], .tool-box[href="${href}"]`);
+            if (!a) return;
+            const old = a.querySelector('.nav-badge');
+            if (old) old.remove();
+            if (n > 0) a.insertAdjacentHTML('beforeend', `<span class="nav-badge">${n > 99 ? '99+' : n}</span>`);
+        }
+
+        function renderError(msg, loginNeeded) {
+            body.innerHTML = `<div class="card dash-empty">
+                <i class='bx bx-error' style="color:var(--danger-color)"></i>
+                <p>${esc(msg)}</p>
+                ${loginNeeded ? `<a href="1.html" class="dash-btn">Đăng nhập lại</a>` : `<a href="#" class="dash-btn" onclick="location.reload();return false;">Thử lại</a>`}
+            </div>`;
+        }
+
+        function fillClassSelect(d) {
+            const cur = d.selectedClassId || '';
+            sel.innerHTML = `<option value="">Tất cả lớp (${d.totals.classes})</option>` +
+                d.classes.map((c) => `<option value="${esc(c._id)}">${esc(c.name)} · ${c.students} HS${c.pending ? ` · ${c.pending} chờ duyệt` : ''}</option>`).join('');
+            sel.value = cur;
+        }
+
+        function kpiCards(d) {
+            const t = d.totals;
+            return `<div class="dash-grid kpi-row five">
+                <div class="card kpi"><div class="kpi-icon" style="background:rgba(58,123,253,.18);color:#7fb0ff"><i class='bx bx-building-house'></i></div>
+                    <div><div class="kpi-num">${t.classes}</div><div class="kpi-label">Lớp học</div></div></div>
+                <div class="card kpi"><div class="kpi-icon" style="background:rgba(46,204,113,.18);color:#2ecc71"><i class='bx bx-group'></i></div>
+                    <div><div class="kpi-num">${t.students}</div><div class="kpi-label">Học sinh</div></div></div>
+                <div class="card kpi"><div class="kpi-icon" style="background:rgba(124,92,255,.18);color:#a99bff"><i class='bx bx-edit'></i></div>
+                    <div><div class="kpi-num">${t.exams}</div><div class="kpi-label">Đề thi đã tạo</div></div></div>
+                <div class="card kpi ${t.pendingJoin ? 'alert-kpi' : ''}"><div class="kpi-icon" style="background:rgba(255,159,67,.18);color:#ff9f43"><i class='bx bx-user-plus'></i></div>
+                    <div><div class="kpi-num">${t.pendingJoin}</div><div class="kpi-label">Yêu cầu vào lớp</div>
+                        ${t.pendingJoin ? `<a class="kpi-link" href="teacher-classes.html">Duyệt ngay →</a>` : ''}</div></div>
+                <div class="card kpi ${t.pendingQuestions ? 'alert-kpi' : ''}"><div class="kpi-icon" style="background:rgba(255,91,91,.18);color:#ff5b5b"><i class='bx bx-book-content'></i></div>
+                    <div><div class="kpi-num">${t.pendingQuestions}</div><div class="kpi-label">Câu hỏi chờ duyệt</div>
+                        ${t.pendingQuestions ? `<a class="kpi-link" href="nganhangcauhoi.html?tab=pending">Duyệt ngay →</a>` : ''}</div></div>
+            </div>`;
+        }
+
+        function analysis(d) {
+            const o = d.overall;
+            if (o.totalStudents === 0) {
+                return `<div class="card dash-empty"><i class='bx bx-user-plus'></i>
+                    <h3 style="justify-content:center;font-size:1.25rem">Chưa có học sinh trong phạm vi này</h3>
+                    <p>Hãy duyệt yêu cầu tham gia lớp để bắt đầu theo dõi kết quả học tập.</p>
+                    <a href="teacher-classes.html" class="dash-btn"><i class='bx bx-group'></i> Quản lý lớp</a></div>`;
+            }
+            const tips = `<div class="card" style="margin-bottom:20px"><h3><i class='bx bx-bulb'></i> Gợi ý cho giáo viên</h3>
+                <div class="sub">Dựa trên kết quả luyện tập của học sinh</div>
+                <ul class="tips">${d.suggestions.map((x) => `<li class="tip tip-${x.tone}"><i class='bx ${TIP_ICON[x.tone] || 'bx-info-circle'}'></i><div>${esc(x.text)}</div></li>`).join('')}</ul></div>`;
+            if (o.attempts === 0) return tips;
+
+            const rc = ringColor(o.accuracy), C = 2 * Math.PI * 42;
+            const t = d.thresholds;
+            const subjects = d.bySubject.map((s) => `
+                <div class="subj lv-${s.level}">
+                    <div class="subj-top"><div class="subj-name">${esc(s.subject)} <span class="badge-lv">${LEVEL_TEXT[s.level]}</span></div>
+                        <div class="subj-pct">${s.level === 'insufficient' ? '—' : s.accuracy + '%'}</div></div>
+                    <div class="bar"><span style="width:${Math.max(s.accuracy, 2)}%"></span></div>
+                    <div class="subj-foot"><span>${s.correct}/${s.attempts} lượt đúng · ${s.students} học sinh đã làm</span></div>
+                </div>`).join('');
+            const maxN = Math.max(1, ...d.daily.map((x) => x.attempts));
+            const days = d.daily.map((x) => {
+                const h = x.attempts ? Math.max(8, Math.round((x.attempts / maxN) * 130)) : 4;
+                const okH = x.attempts ? Math.round((x.correct / x.attempts) * 100) : 0;
+                return `<div class="day" title="${x.label}: ${x.correct}/${x.attempts} lượt đúng"><div class="day-n">${x.attempts || ''}</div>
+                    <div class="day-col" style="height:${h}px"><div class="ok" style="height:${okH}%"></div><div class="bad" style="height:${x.attempts ? 100 - okH : 0}%"></div></div>
+                    <div class="day-l">${x.label}</div></div>`;
+            }).join('');
+
+            const top = `<div class="dash-grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin-bottom:20px">
+                <div class="card kpi" style="gap:20px">
+                    <div class="ring" style="width:110px;height:110px"><svg width="110" height="110" viewBox="0 0 96 96">
+                        <circle cx="48" cy="48" r="42" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="9"/>
+                        <circle cx="48" cy="48" r="42" fill="none" stroke="${rc}" stroke-width="9" stroke-linecap="round"
+                            stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - o.accuracy / 100)).toFixed(1)}"/></svg>
+                        <div class="ring-val">${o.accuracy}%</div></div>
+                    <div class="mini-stats">
+                        <div style="color:var(--text-primary);font-weight:600;font-size:1rem">Độ chính xác cả lớp</div>
+                        <div>Tổng lượt làm <b>${o.attempts}</b></div>
+                        <div>Đang luyện (7 ngày) <b style="color:#2ecc71">${o.activeStudents}/${o.totalStudents}</b></div>
+                        <div>Chưa luyện lần nào <b style="color:${o.neverPracticed ? '#ff9f43' : 'inherit'}">${o.neverPracticed}</b></div>
+                        <div>Quá ${t.inactiveDays} ngày chưa luyện <b style="color:${o.inactive ? '#ff9f43' : 'inherit'}">${o.inactive}</b></div>
+                    </div></div>
+                <div class="card"><h3><i class='bx bx-calendar-check'></i> 7 ngày gần đây</h3>
+                    <div class="sub">Số câu cả lớp làm mỗi ngày (<span style="color:#2ecc71">xanh: đúng</span>, <span style="color:#ff5b5b">đỏ: sai</span>)</div>
+                    <div class="days">${days}</div></div></div>`;
+
+            const subjCard = `<div class="card" style="margin-bottom:20px"><h3><i class='bx bx-bar-chart-alt-2'></i> Điểm yếu theo môn</h3>
+                <div class="sub">Môn cả lớp yếu nhất xếp trên cùng. Cần ít nhất ${t.minAttempts} lượt/môn để đánh giá.</div>${subjects}
+                <div class="legend"><span class="lv-weak"><i></i>Yếu (dưới 50%)</span><span class="lv-improve"><i></i>Cần cải thiện (dưới 75%)</span>
+                    <span class="lv-good"><i></i>Tốt</span><span class="lv-insufficient"><i></i>Chưa đủ dữ liệu</span></div></div>`;
+
+            const types = `<div class="card" style="margin-bottom:20px"><h3><i class='bx bx-category'></i> Theo dạng câu hỏi</h3>
+                <div class="sub">Dạng câu hỏi nào cả lớp còn yếu</div>
+                <div class="chips">${d.byType.map((x) => `<div class="chip lv-${x.level}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-weight:600">${esc(x.label)}</span><span class="badge-lv">${LEVEL_TEXT[x.level]}</span></div>
+                    <div style="margin-top:8px"><b>${x.level === 'insufficient' ? '—' : x.accuracy + '%'}</b><span style="color:var(--text-secondary);font-size:.82rem"> · ${x.correct}/${x.attempts} lượt</span></div></div>`).join('')}</div></div>`;
+
+            return top + tips + subjCard + types + studentsCard(d) + missedCard(d);
+        }
+
+        function reasonPills(s) {
+            const p = [];
+            if (s.reasons.includes('never')) p.push('<span class="pill pill-gray">Chưa luyện</span>');
+            if (s.reasons.includes('inactive')) p.push(`<span class="pill pill-orange">Lâu chưa luyện</span>`);
+            if (s.reasons.includes('weak')) p.push('<span class="pill pill-red">Đúng thấp</span>');
+            return p.join('');
+        }
+
+        function studentsCard(d) {
+            const attn = d.students.filter((s) => s.needsAttention);
+            const rows = (showAllStudents ? d.students : attn.slice(0, 8));
+            const body = rows.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr>
+                <th>Học sinh</th><th>Lượt làm</th><th>Độ chính xác</th><th>Luyện gần nhất</th><th>Môn yếu nhất</th><th>Ghi chú</th></tr></thead><tbody>
+                ${rows.map((s) => `<tr class="lv-${s.level}">
+                    <td><b>${esc(s.username)}</b></td><td>${s.attempts}</td>
+                    <td>${s.attempts ? `<div style="display:flex;align-items:center;gap:8px"><div class="bar" style="flex:1"><span style="width:${Math.max(s.accuracy, 2)}%"></span></div><b style="color:var(--lv)">${s.accuracy}%</b></div>` : '—'}</td>
+                    <td>${ago(s.daysSince)}</td>
+                    <td>${s.weakest ? `${esc(s.weakest.subject)} <span style="color:#ff9a9a">(${s.weakest.accuracy}%)</span>` : '—'}</td>
+                    <td>${reasonPills(s) || '<span style="color:var(--text-secondary)">—</span>'}</td></tr>`).join('')}
+                </tbody></table></div>`
+                : `<div class="dash-empty" style="padding:24px"><p style="margin:0">🎉 Không có học sinh nào cần chú ý lúc này.</p></div>`;
+            const toggle = d.students.length > attn.slice(0, 8).length || showAllStudents
+                ? `<button class="link-btn" id="toggleStudents">${showAllStudents ? '← Chỉ hiện học sinh cần chú ý' : `Xem tất cả ${d.students.length} học sinh →`}</button>` : '';
+            return `<div class="card" style="margin-bottom:20px"><h3><i class='bx bx-user-voice'></i> ${showAllStudents ? 'Tất cả học sinh' : `Học sinh cần chú ý (${attn.length})`}</h3>
+                <div class="sub">Chưa luyện lần nào, lâu chưa luyện, hoặc tỉ lệ đúng thấp</div>${body}${toggle}</div>`;
+        }
+
+        function missedCard(d) {
+            if (!d.mostMissed.length) return '';
+            return `<div class="card" id="missedCard"><h3><i class='bx bx-error-alt'></i> Câu cả lớp hay sai nhất</h3>
+                <div class="sub">Những câu có tỉ lệ sai cao: nên giảng lại. Bấm vào để xem đáp án và giải thích.</div>
+                ${d.mostMissed.map((r) => {
+                    const ans = r.type === 'shortanswer'
+                        ? `<div class="rv-opt right">Đáp án đúng: ${esc(r.correctAnswer)}</div>`
+                        : r.options.map((op, i) => `<div class="rv-opt ${i === Number(r.correctAnswer) ? 'right' : ''}"><b>${String.fromCharCode(65 + i)}.</b> ${esc(op)}${i === Number(r.correctAnswer) ? ' ✓' : ''}</div>`).join('');
+                    return `<details class="rv"><summary><div class="rv-q">${esc(r.question)}</div>
+                        <div class="rv-meta"><span class="tag">${esc(r.subject)}</span><span class="tag tag-red">${r.studentsWrong}/${r.studentsTried} HS sai · ${r.wrongRate}%</span></div></summary>
+                        <div class="rv-body">${ans}${r.explanation ? `<div class="rv-exp"><b>💡 Giải thích:</b> ${esc(r.explanation)}</div>` : ''}</div></details>`;
+                }).join('')}</div>`;
+        }
+
+        function render(d) {
+            lastData = d;
+            fillClassSelect(d);
+            setSidebarBadge('nganhangcauhoi.html', d.totals.pendingQuestions);
+            setSidebarBadge('teacher-classes.html', d.totals.pendingJoin);
+            if (d.totals.classes === 0) {
+                body.innerHTML = kpiCards(d) + `<div class="card dash-empty"><i class='bx bx-building-house'></i>
+                    <h3 style="justify-content:center;font-size:1.25rem">Bạn chưa có lớp học nào</h3>
+                    <p>Tạo lớp và chia sẻ mã lớp để học sinh tham gia, sau đó bạn sẽ thấy phân tích tại đây.</p>
+                    <a href="teacher-classes.html" class="dash-btn"><i class='bx bx-plus-circle'></i> Tạo lớp đầu tiên</a></div>`;
+                return;
+            }
+            body.innerHTML = kpiCards(d) + analysis(d);
+            const tg = document.getElementById('toggleStudents');
+            if (tg) tg.onclick = () => { showAllStudents = !showAllStudents; render(lastData); };
+            renderMath(body);
+        }
+
+        async function load(classId) {
+            body.innerHTML = `<div class="dash-loading"><i class='bx bx-loader-alt bx-spin'></i> Đang tải tổng quan...</div>`;
+            try {
+                const res = await fetch('/api/teacher/overview' + (classId ? '?classId=' + encodeURIComponent(classId) : ''));
+                if (res.status === 401) return renderError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', true);
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) return renderError(data.message || 'Không tải được dữ liệu tổng quan.');
+                showAllStudents = false;
+                render(data);
+            } catch (e) {
+                renderError('Không kết nối được tới máy chủ.');
+            }
+        }
+
+        sel.addEventListener('change', () => load(sel.value));
+        load('');
+    })();
+    </script>
+
 </body>
 
 </html>

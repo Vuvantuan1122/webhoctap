@@ -316,7 +316,7 @@
 
                 const data = await res.json();
                 if (res.ok) {
-                    const successMsg = `✅ Lớp <strong>${data.classroom.name}</strong> đã được tạo! Mã tham gia: <strong style="color:var(--primary-color);">${data.classroom.joinCode}</strong>`;
+                    const successMsg = `✅ Lớp <strong>${esc(data.classroom.name)}</strong> đã được tạo! Mã tham gia: <strong style="color:var(--primary-color);">${esc(data.classroom.joinCode)}</strong>`;
                     showMessage('create-message', successMsg, 'success');
                     document.getElementById('className').value = '';
                     document.getElementById('classDescription').value = '';
@@ -331,6 +331,10 @@
                 createBtn.innerHTML = originalBtnText;
             }
         }
+
+        // Escape mọi dữ liệu do người dùng nhập (tên lớp, username học sinh...) trước khi đưa vào HTML.
+        // Trước đây username học sinh bị nhét thẳng vào onclick/innerHTML nên có thể chạy mã độc trên trình duyệt giáo viên.
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
         async function loadMyClassrooms() {
             const listDiv = document.getElementById('my-classrooms');
@@ -352,11 +356,11 @@
                     item.className = 'card';
                     item.innerHTML = `
                         <div class="classroom-header">
-                            <h3>${classroom.name}</h3>
-                            <span class="join-code">Mã: ${classroom.joinCode}</span>
+                            <h3>${esc(classroom.name)}</h3>
+                            <span class="join-code">Mã: ${esc(classroom.joinCode)}</span>
                         </div>
                         <div class="classroom-details">
-                            <p><strong>Giáo viên:</strong> ${classroom.teacherUsername}</p>
+                            <p><strong>Giáo viên:</strong> ${esc(classroom.teacherUsername)}</p>
                             <p><strong>Số lượng học sinh:</strong> ${classroom.students.length}</p>
                         </div>
                         ${renderPendingStudents(classroom)}
@@ -365,7 +369,7 @@
                 });
 
             } catch (error) {
-                listDiv.innerHTML = `<div class="message error show">❌ Lỗi tải lớp: ${error.message}</div>`;
+                listDiv.innerHTML = `<div class="message error show">❌ Lỗi tải lớp: ${esc(error.message)}</div>`;
             }
         }
 
@@ -378,10 +382,10 @@
             classroom.pendingStudents.forEach(username => {
                 html += `
                     <li>
-                        <span>${username}</span>
+                        <span>${esc(username)}</span>
                         <div>
-                            <button class="btn btn-primary btn-sm" onclick="approveStudent(event, '${classroom._id}', '${username}', 'approve')">Duyệt</button>
-                            <button class="btn btn-danger btn-sm" onclick="approveStudent(event, '${classroom._id}', '${username}', 'reject')">Từ Chối</button>
+                            <button class="btn btn-primary btn-sm" data-c="${esc(classroom._id)}" data-u="${esc(username)}" data-a="approve" onclick="approveStudent(event, this.dataset.c, this.dataset.u, this.dataset.a)">Duyệt</button>
+                            <button class="btn btn-danger btn-sm" data-c="${esc(classroom._id)}" data-u="${esc(username)}" data-a="reject" onclick="approveStudent(event, this.dataset.c, this.dataset.u, this.dataset.a)">Từ Chối</button>
                         </div>
                     </li>
                 `;

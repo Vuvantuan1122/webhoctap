@@ -9,6 +9,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- KaTeX: hiển thị công thức toán (cùng cấu hình với thi.html) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <style>
   :root {
     --primary-color: #6f42c1;
@@ -79,7 +83,10 @@
 <nav class="navbar navbar-dark shadow-sm">
   <div class="container-fluid">
     <a class="navbar-brand" href="#"><i class="bi bi-journal-bookmark-fill"></i> <strong>ExamPro</strong> | Quản lý đề thi</a>
-    <div id="userInfo" class="text-white"></div>
+    <div class="d-flex align-items-center gap-3">
+      <a href="giaovien.html" class="btn btn-sm btn-outline-light"><i class="bi bi-house-door"></i> Trang giáo viên</a>
+      <div id="userInfo" class="text-white"></div>
+    </div>
   </div>
 </nav>
 <main class="container py-5">
@@ -123,6 +130,7 @@
             <h4 class="mt-5 border-bottom pb-2 mb-4">Danh sách câu hỏi</h4>
             <div id="questionsContainer"></div>
             <button type="button" class="btn btn-outline-primary mb-4" onclick="addQuestion()"><i class="bi bi-plus-circle-dotted"></i> Thêm câu hỏi</button>
+            <button type="button" class="btn btn-outline-success mb-4 ms-2" onclick="openBankPicker()"><i class="bi bi-collection"></i> Chọn từ ngân hàng câu hỏi</button>
             <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold"><i class="bi bi-check-circle-fill"></i> Hoàn tất & Tạo đề thi</button>
           </form>
         </div>
@@ -133,8 +141,8 @@
         <div class="card-body">
           <h3 class="card-title mb-4">Tra cứu kết quả</h3>
           <div class="input-group mb-3">
-            <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
-            <input type="text" id="examId" class="form-control" placeholder="Nhập Exam ID để xem kết quả">
+            <span class="input-group-text"><i class="bi bi-journal-text"></i></span>
+            <select id="examId" class="form-select"><option value="">Đang tải danh sách đề thi...</option></select>
             <button class="btn btn-info text-white" onclick="loadResults()"><i class="bi bi-search"></i> Xem điểm</button>
             <button class="btn btn-warning text-dark" onclick="loadExitLogs()"><i class="bi bi-shield-exclamation"></i> Lịch sử thoát</button>
           </div>
@@ -167,6 +175,40 @@
   </div>
 </div>
 
+<div class="modal fade" id="bankModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-collection"></i> Chọn câu hỏi từ ngân hàng</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-2 mb-3">
+          <div class="col-md-5"><input id="bkSearch" class="form-control" placeholder="Tìm theo nội dung câu hỏi..."></div>
+          <div class="col-md-3"><select id="bkSubject" class="form-select"><option value="">Tất cả môn</option></select></div>
+          <div class="col-md-3">
+            <select id="bkType" class="form-select">
+              <option value="">Tất cả loại</option>
+              <option value="tracnghiem">Trắc nghiệm</option>
+              <option value="truefalse">Đúng / Sai</option>
+              <option value="shortanswer">Trả lời ngắn</option>
+            </select>
+          </div>
+          <div class="col-md-1 d-grid"><button type="button" class="btn btn-primary" onclick="searchBank()"><i class="bi bi-search"></i></button></div>
+        </div>
+        <div id="bankPickList"></div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <span class="text-muted">Đã chọn <strong id="bkCount">0</strong> câu</span>
+        <div>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+          <button type="button" class="btn btn-success" onclick="addPickedFromBank()"><i class="bi bi-plus-circle"></i> Thêm vào đề</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
@@ -185,8 +227,30 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script>
+// Chỉ giáo viên được dùng trang này (giống giaovien.html)
+(function guard(){
+  try{
+    const logged=localStorage.getItem('isLoggedIn')==='true';
+    const u=JSON.parse(localStorage.getItem('userData')||'{}');
+    if(!logged||!u.username||(u.role!=='teacher'&&u.role!=='admin')){location.href='1.html';return;}
+    document.getElementById('userInfo').textContent='👤 '+u.username;
+  }catch(_){location.href='1.html';}
+})();
+
+// Escape mọi dữ liệu do người dùng nhập trước khi đưa vào innerHTML (chống XSS)
+const esc=(s)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const MATH_OPTS={delimiters:[{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false};
+function renderMath(el,tries=0){
+  if(!el)return;
+  if(window.renderMathInElement){try{renderMathInElement(el,MATH_OPTS);}catch(e){console.error(e);}}
+  else if(tries<20){setTimeout(()=>renderMath(el,tries+1),250);}
+}
+
 let questionIndex=0;
 let teacherClassrooms=[];
+let resultCache={};   // lưu kết quả theo _id để nút "Xem" không phải nhét JSON vào onclick
+let lastView='exam';  // 'exam' | 'all' — để tải lại đúng danh sách sau khi chấm điểm
 let examVideosMap={}; // Biến global để lưu trữ map video
 
 // Hàm tải danh sách lớp học
@@ -200,7 +264,7 @@ async function loadTeacherClassrooms(){
     if(!data.length){box.innerHTML="<div class='alert alert-warning'>Chưa có lớp.</div>";return;}
     data.forEach(cls=>{
       box.innerHTML+=`<div class="form-check form-check-inline"><input class="form-check-input classroom-checkbox" type="checkbox" id="class-${cls._id}" value="${cls._id}">
-      <label class="form-check-label" for="class-${cls._id}">${cls.name} <span class="text-muted">(${cls.students ? cls.students.length : 0} HS)</span></label></div>`;
+      <label class="form-check-label" for="class-${cls._id}">${esc(cls.name)} <span class="text-muted">(${cls.students ? cls.students.length : 0} HS)</span></label></div>`;
     });
   }catch(e){
     console.error(e);
@@ -208,19 +272,18 @@ async function loadTeacherClassrooms(){
   }
 }
 
-// Thêm câu hỏi thủ công
-function addQuestion(){
-  const qId="q"+Date.now();
+// Thẻ câu hỏi dùng chung cho: thêm tay, import Word, chọn từ ngân hàng.
+// - ID có bộ đếm nên thêm nhiều câu cùng lúc không bị trùng (trước đây dùng Date.now() nên import nhiều câu có thể ghi đè nhau)
+// - ID luôn được gán (trước đây câu Đúng/Sai thêm tay không có ID nên đáp án không đọc được)
+// - Nội dung gán bằng DOM nên dấu " ' < > trong câu hỏi không làm hỏng giao diện
+let qUid=0;
+function buildQuestionCard(q){
+  const qId="q"+Date.now()+"_"+(++qUid);
   const div=document.createElement("div");
+  div.id=qId;
   div.classList.add("card","p-3","mb-3","question-card-new");
+  if(q.bankId)div.dataset.bankId=q.bankId;
   questionIndex++;
-  
-  let optionsHtml = '';
-  // Tự động render 4 option mặc định cho trắc nghiệm
-  for(let i=0; i<4; i++) {
-      optionsHtml += `<div class="col-md-6"><span class="fw-bold me-2">${String.fromCharCode(65 + i)}.</span><input type="text" class="form-control option-input"></div>`;
-  }
-  
   div.innerHTML=`
 <div class="d-flex justify-content-between align-items-center mb-2">
 <h6 class="mb-0 text-primary">Câu hỏi ${questionIndex}</h6>
@@ -232,55 +295,55 @@ function addQuestion(){
 <option value="tracnghiem">Trắc nghiệm</option>
 <option value="truefalse">Đúng / Sai</option>
 <option value="shortanswer">Tự luận</option></select></div>
-<div id="${qId}-options" class="mb-2">
-    <label class="form-label">Các lựa chọn:</label>
-    <div class="row g-2">${optionsHtml}</div>
-    <select class="form-select correct-answer mt-2">
-        <option value="" disabled selected>Đáp án đúng</option>
-        <option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option>
-    </select>
-</div>`;
-
-document.getElementById("questionsContainer").appendChild(div);
+<div id="${qId}-options" class="mb-2"></div>`;
+  const type=q.type||"tracnghiem";
+  div.querySelector(".question-text").value=q.question||"";
+  div.querySelector(".question-type").value=type;
+  document.getElementById("questionsContainer").appendChild(div);
+  renderOptions(qId,type,q.options,q.correctAnswer);
+  return div;
 }
-function removeQuestion(btn){const c=btn.closest('.card');c.classList.add('question-card-removing');c.addEventListener('animationend',()=>c.remove());}
-// ✅ SỬA LỖI: Cập nhật hàm renderOptions để chọn đáp án đúng
-function renderOptions(qId,type, importedOptions=null, importedAnswer=null){
+function addQuestion(){buildQuestionCard({type:"tracnghiem"});}
+function addImportedQuestion(q){return buildQuestionCard(q);}
+function removeQuestion(btn){const c=btn.closest('.card');if(c.dataset.bankId)bankAddedIds.delete(c.dataset.bankId);c.classList.add('question-card-removing');c.addEventListener('animationend',()=>c.remove());}
+function renderOptions(qId,type,importedOptions=null,importedAnswer=null){
   const o=document.getElementById(`${qId}-options`);
+  if(!o)return;
   o.innerHTML="";
   if(type==="tracnghiem"){
-    let optionsHtml = '';
-    // Đảm bảo có ít nhất 4 ô input để chọn đáp án A, B, C, D
-    const optionsToRender = importedOptions && importedOptions.length > 0 ? importedOptions : ["", "", "", ""]; 
-    const letters = ['A', 'B', 'C', 'D'];
-    
-    optionsToRender.slice(0, 4).forEach((opt, i) => {
-        optionsHtml += `<div class="col-md-6"><span class="fw-bold me-2">${letters[i]}.</span><input type="text" class="form-control option-input" value="${opt}"></div>`;
-    });
-
-    // ✅ SỬA LỖI: Dùng importedAnswer để chọn đáp án
-    let selectOptions = letters.map((l, i) => `<option value="${i}" ${importedAnswer === i ? 'selected' : ''}>${l}</option>`).join("");
-    
+    const letters=['A','B','C','D'];
+    const given=(Array.isArray(importedOptions)&&importedOptions.length>0)?importedOptions.slice(0,4):["","","",""];
+    const inputs=given.map((_,i)=>`<div class="col-md-6"><span class="fw-bold me-2">${letters[i]}.</span><input type="text" class="form-control option-input"></div>`).join("");
+    const choices=given.map((_,i)=>`<option value="${i}">${letters[i]}</option>`).join("");
     o.innerHTML=`
 <label class="form-label">Các lựa chọn:</label>
-<div class="row g-2">${optionsHtml}</div>
-<select class="form-select correct-answer mt-2"><option value="" disabled ${importedAnswer == null ? 'selected' : ''}>Đáp án đúng</option>${selectOptions}</select>`;
-  }
-else if(type==="truefalse"){
-    const checkedDung = importedAnswer === 0 ? 'checked' : '';
-    const checkedSai = importedAnswer === 1 ? 'checked' : '';
-    // ✅ SỬA LỖI: Đặt name riêng biệt cho mỗi câu hỏi (qId-ans)
+<div class="row g-2">${inputs}</div>
+<select class="form-select correct-answer mt-2"><option value="" disabled selected>Đáp án đúng</option>${choices}</select>`;
+    o.querySelectorAll(".option-input").forEach((inp,i)=>{inp.value=given[i]??"";});
+    if(Number.isInteger(importedAnswer)&&importedAnswer>=0&&importedAnswer<given.length){
+      o.querySelector(".correct-answer").value=String(importedAnswer);
+    }
+  }else if(type==="truefalse"){
+    const sai=importedAnswer===1;
     o.innerHTML=`
 <label class="form-label">Đáp án đúng:</label>
 <div class="row g-2">
-<div class="col-md-6"><input class="form-check-input correct-answer" type="radio" name="${qId}-ans" value="0" ${checkedDung || (!checkedSai && !checkedDung ? 'checked' : '')}> Đúng</div>
-<div class="col-md-6"><input class="form-check-input correct-answer" type="radio" name="${qId}-ans" value="1" ${checkedSai}> Sai</div>
+<div class="col-md-6"><input class="form-check-input correct-answer" type="radio" name="${qId}-ans" value="0" ${sai?"":"checked"}> Đúng</div>
+<div class="col-md-6"><input class="form-check-input correct-answer" type="radio" name="${qId}-ans" value="1" ${sai?"checked":""}> Sai</div>
 </div>`;
+  }else{
+    o.innerHTML=`<label class="form-label">Đáp án đúng (Tự luận)</label><input type="text" class="form-control correct-answer">`;
+    o.querySelector(".correct-answer").value=importedAnswer==null?"":String(importedAnswer);
   }
-else{o.innerHTML=`<label class="form-label">Đáp án đúng (Tự luận)</label><input type="text" class="form-control correct-answer" value="${importedAnswer||""}">`;}
 }
 
-// Xử lý tạo đề thi (giữ nguyên)
+function flagCard(c){
+  c.scrollIntoView({behavior:"smooth",block:"center"});
+  c.classList.add("border-danger");
+  setTimeout(()=>c.classList.remove("border-danger"),2500);
+}
+
+// Xử lý tạo đề thi
 document.getElementById("createExamForm").addEventListener("submit",async e=>{
   e.preventDefault();
   const title=document.getElementById("title").value.trim();
@@ -289,221 +352,226 @@ document.getElementById("createExamForm").addEventListener("submit",async e=>{
   const passage=document.getElementById("passage").value.trim();
   const classrooms=Array.from(document.querySelectorAll(".classroom-checkbox:checked")).map(c=>c.value);
   if(!classrooms.length){alert("Vui lòng chọn ít nhất 1 lớp học.");return;}
+
   const questions=[];
-  document.querySelectorAll("#questionsContainer .card").forEach(c=>{
+  const cards=Array.from(document.querySelectorAll("#questionsContainer .card"));
+  for(let idx=0;idx<cards.length;idx++){
+    const c=cards[idx],n=idx+1;
     const question=c.querySelector(".question-text").value.trim();
     const type=c.querySelector(".question-type").value;
+    if(!question){alert(`Câu ${n}: chưa nhập nội dung câu hỏi.`);flagCard(c);return;}
+
     let options=[],correctAnswer=null;
-    
     if(type==="tracnghiem"){
-      options=Array.from(c.querySelectorAll(".option-input")).map(i=>i.value).filter(v=>v.trim());
-      const selectedIndex = c.querySelector(".correct-answer").value;
-      correctAnswer = selectedIndex ? parseInt(selectedIndex) : null;
+      // Không còn lọc bỏ ô trống: trước đây để trống một phương án làm lệch vị trí đáp án đúng
+      options=Array.from(c.querySelectorAll(".option-input")).map(i=>i.value.trim());
+      if(options.length<2||options.some(v=>!v)){alert(`Câu ${n}: cần điền đủ nội dung các phương án (không để trống).`);flagCard(c);return;}
+      const sel=c.querySelector(".correct-answer").value;
+      if(sel===""){alert(`Câu ${n}: chưa chọn đáp án đúng.`);flagCard(c);return;}
+      correctAnswer=parseInt(sel);
     }else if(type==="truefalse"){
       options=["Đúng","Sai"];
-      // SỬA LỖI: Đảm bảo lấy đúng radio button được chọn
-      const qId = c.id; // Lấy ID của card
-      correctAnswer=parseInt(c.querySelector(`input[name="${qId}-ans"]:checked`)?.value);
+      const checked=c.querySelector(`input[name="${c.id}-ans"]:checked`);
+      if(!checked){alert(`Câu ${n}: chưa chọn Đúng hoặc Sai.`);flagCard(c);return;}
+      correctAnswer=parseInt(checked.value);
     }else{
-      correctAnswer=c.querySelector(".correct-answer")?.value||null;
+      correctAnswer=c.querySelector(".correct-answer")?.value.trim()||null;
     }
-    
     questions.push({question,type,options,correctAnswer});
-  });
-  
-  if(questions.length === 0) {
-      alert("Vui lòng thêm ít nhất một câu hỏi.");
-      return;
   }
-  
+  if(questions.length===0){alert("Vui lòng thêm ít nhất một câu hỏi.");return;}
+
   try{
-    const enableCamera = document.getElementById("enableCamera").checked;
-const res = await fetch("/api/exams", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ title, subject, duration, passage, questions, classrooms, enableCamera })
-});
+    const enableCamera=document.getElementById("enableCamera").checked;
+    const res=await fetch("/api/exams",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({title,subject,duration,passage,questions,classrooms,enableCamera})
+    });
     const data=await res.json();
-    
-    if(res.ok&&data.exam){alert(`✅ Tạo đề thành công!\nExam ID: ${data.exam._id}`);}
+    if(res.ok&&data.exam){alert("✅ Tạo đề thành công!");loadExamOptions();}
     else alert("❌ Lỗi tạo đề: "+(data.message||"Không rõ"));
   }catch(err){alert("❌ Lỗi kết nối server.");}
 });
 
-// Load kết quả (giữ nguyên)
-async function loadExamVideos(examId){
-  if(!examId)return;
+// Danh sách đề của giáo viên (thay cho việc phải dán Exam ID)
+async function loadExamOptions(){
+  const sel=document.getElementById("examId");
+  const keep=sel.value;
   try{
-    const res=await fetch(`/api/exam-videos?examId=${examId}`);
+    const res=await fetch("/api/exams");
+    if(!res.ok)throw new Error("Không tải được đề");
+    const exams=await res.json();
+    sel.innerHTML=`<option value="">-- Chọn đề thi --</option>`+exams.map(e=>
+      `<option value="${esc(e._id)}">${esc(e.title)} — ${esc(e.subject||"")} (${esc(e.className||"")}) · ${new Date(e.createdAt).toLocaleDateString("vi-VN")}</option>`).join("");
+    if(keep)sel.value=keep;
+    if(!exams.length)sel.innerHTML=`<option value="">Bạn chưa tạo đề thi nào</option>`;
+  }catch(e){sel.innerHTML=`<option value="">Không tải được danh sách đề</option>`;}
+}
+
+// Load kết quả
+async function loadExamVideos(examId){
+  try{
+    const res=await fetch(examId?`/api/exam-videos?examId=${encodeURIComponent(examId)}`:"/api/exam-videos");
     if(!res.ok)throw new Error("Không thể tải video");
     const vids=await res.json();
     examVideosMap=vids.reduce((map,v)=>{
-      const key=`${v.examId._id||v.examId}_${v.userId}`;map[key]=v;return map;
+      map[`${v.examId&&v.examId._id||v.examId}_${v.userId}`]=v;return map;
     },{});
   }catch(e){console.error("❌ Lỗi tải video:",e);}
 }
+
+function scoreOf(r){
+  if(r.score!=null)return Number(r.score);
+  if(r.autoScore!=null)return Number(r.autoScore);
+  return null;
+}
+function scoreBadgeHtml(r,big=false){
+  const v=scoreOf(r),cls=big?"fs-5 ":"";
+  if(v!=null&&!Number.isNaN(v))return `<span class="badge ${v>5?"bg-success":"bg-danger"} ${cls}score-badge">${v.toFixed(1)}/10</span>`;
+  if(r.status==="pending")return `<span class="badge bg-warning text-dark ${cls}score-badge">Chờ chấm</span>`;
+  return `<span class="badge bg-secondary ${cls}score-badge">---</span>`;
+}
+
+function renderResultsTable(data,withExam){
+  resultCache={};
+  data.forEach(r=>{resultCache[r._id]=r;});
+  let html=`<div class="table-responsive"><table class="table result-table table-hover align-middle"><thead><tr>
+    <th>Học sinh</th>${withExam?"<th>Đề thi</th>":""}<th>Điểm hiện tại</th><th>Chi tiết</th><th>Chấm điểm</th><th>Video</th></tr></thead><tbody>`;
+  data.forEach(r=>{
+    const hasVideo=r.videoUrl||examVideosMap[`${r.examId}_${r.userId}`];
+    html+=`<tr>
+      <td class="fw-bold">${esc(r.userId)}</td>
+      ${withExam?`<td>${esc(r.examTitle||"")}</td>`:""}
+      <td>${scoreBadgeHtml(r)}</td>
+      <td><button class="btn btn-sm btn-outline-primary" onclick="viewDetail(resultCache['${esc(r._id)}'])"><i class="bi bi-eye"></i> Xem</button></td>
+      <td><button class="btn btn-sm btn-primary" onclick="gradeResult('${esc(r._id)}')"><i class="bi bi-check2-circle"></i> Chấm</button></td>
+      <td>${hasVideo?
+        `<button class="btn btn-sm btn-info text-white" data-e="${esc(r.examId)}" data-u="${esc(r.userId)}" onclick="showExamVideo(this.dataset.e,this.dataset.u)"><i class="bi bi-play-circle"></i></button>`:
+        "<span class='text-muted'>Không có</span>"}</td></tr>`;
+  });
+  return html+"</tbody></table></div>";
+}
+
 async function loadResults(){
   const examId=document.getElementById("examId").value.trim();
-  if(!examId){alert("Nhập Exam ID!");return;}
+  if(!examId){alert("Hãy chọn một đề thi!");return;}
+  lastView='exam';
   const spinner=document.getElementById("loadingSpinner");
   const resultsDiv=document.getElementById("results");
   const exitLogs=document.getElementById("exitLogs");
   spinner.classList.remove("d-none");
   resultsDiv.innerHTML="";exitLogs.innerHTML="";
   try{
-    const res=await fetch(`/api/exams/${examId}/results`);
+    const res=await fetch(`/api/exams/${encodeURIComponent(examId)}/results`);
     const data=await res.json();
-    if(!res.ok){throw new Error("Lỗi tải kết quả");}
-    const videoRes = await fetch(`/api/exam-videos?examId=${examId}`);
-    const videos = await videoRes.json();
-    const videoMap = {};
-    videos.forEach(v => videoMap[v.userId] = v.videoUrl);
-    data.forEach(r => {
-      if (videoMap[r.userId]) r.videoUrl = videoMap[r.userId];
-      if (!r.examId) r.examId = examId;
-    });
+    if(!res.ok)throw new Error(data.message||"Lỗi tải kết quả");
     await loadExamVideos(examId);
     if(!data.length){resultsDiv.innerHTML="<div class='alert alert-info'>Chưa có kết quả nào.</div>";return;}
-    
-    let html=`<div class="table-responsive"><table class="table result-table table-hover align-middle"><thead><tr>
-      <th>Học sinh</th><th>Điểm hiện tại</th><th>Chi tiết</th><th>Chấm điểm</th><th>Video</th></tr></thead><tbody>`;
-    data.forEach(r=>{
-      const scoreValue = r.score != null ? r.score : (r.autoScore != null ? r.autoScore : null);
-      const scoreBadge = scoreValue != null 
-          ? `<span class="badge ${scoreValue > 5 ? 'bg-success' : 'bg-danger'} score-badge">${scoreValue.toFixed(1)}/10</span>`
-          : `<span class="badge bg-warning text-dark score-badge">---</span>`;
-          
-      html+=`<tr>
-        <td class="fw-bold">${r.userId}</td>
-        <td>${scoreBadge}</td>
-        <td><button class="btn btn-sm btn-outline-primary" onclick='viewDetail(${JSON.stringify(r)})'><i class="bi bi-eye"></i> Xem</button></td>
-        <td><button class="btn btn-sm btn-primary" onclick="gradeResult('${r._id}')"><i class="bi bi-check2-circle"></i> Chấm</button></td>
-        <td>${r.videoUrl?
-          `<button class="btn btn-sm btn-info text-white" onclick="showExamVideo('${r.examId}','${r.userId}')"><i class='bi bi-play-circle'></i></button>`:
-          "<span class='text-muted'>Không có</span>"}</td></tr>`;
-    });
-    html+="</tbody></table></div>";
-    resultsDiv.innerHTML=html;
+    resultsDiv.innerHTML=renderResultsTable(data,false);
   }catch(e){
     console.error(e);
-    resultsDiv.innerHTML="<div class='alert alert-danger'>Không thể tải kết quả.</div>";
+    resultsDiv.innerHTML=`<div class='alert alert-danger'>${esc(e.message||"Không thể tải kết quả.")}</div>`;
   }finally{spinner.classList.add("d-none");}
 }
+
 async function loadAllResults(){
+  lastView='all';
   const resultsDiv=document.getElementById("results");
   const spinner=document.getElementById("loadingSpinner");
+  document.getElementById("exitLogs").innerHTML="";
   spinner.classList.remove("d-none");resultsDiv.innerHTML="";
   try{
     const res=await fetch("/api/results");
     const data=await res.json();
+    if(!res.ok)throw new Error(data.message||"Lỗi tải kết quả");
     if(!data.length){resultsDiv.innerHTML="<div class='alert alert-info'>Chưa có kết quả nào.</div>";return;}
-    await loadExamVideos(); 
-    let html=`<div class="table-responsive"><table class="table result-table table-hover align-middle"><thead><tr>
-    <th>Học sinh</th><th>Điểm hiện tại</th><th>Chi tiết</th><th>Chấm điểm</th><th>Video</th></tr></thead><tbody>`;
-    data.forEach(r=>{
-      const videoEntry = examVideosMap[`${r.examId}_${r.userId}`];
-      r.videoUrl = videoEntry ? videoEntry.videoUrl : null;
-      
-      const scoreValue = r.score != null ? r.score : (r.autoScore != null ? r.autoScore : null);
-      const scoreBadge = scoreValue != null 
-          ? `<span class="badge ${scoreValue > 5 ? 'bg-success' : 'bg-danger'} score-badge">${scoreValue.toFixed(1)}/10</span>`
-          : `<span class="badge bg-secondary score-badge">---</span>`;
-
-      html+=`<tr><td class="fw-bold">${r.userId}</td><td>${scoreBadge}</td>
-      <td><button class="btn btn-sm btn-outline-primary" onclick='viewDetail(${JSON.stringify(r)})'><i class="bi bi-eye"></i> Xem</button></td>
-      <td><button class="btn btn-sm btn-primary" onclick="gradeResult('${r._id}')"><i class="bi bi-check2-circle"></i> Chấm</button></td>
-      <td>${r.videoUrl?
-        `<button class="btn btn-sm btn-info text-white" onclick="showExamVideo('${r.examId}','${r.userId}')"><i class='bi bi-play-circle'></i></button>`:
-        "<span class='text-muted'>Không có</span>"}</td></tr>`;
-    });
-    html+="</tbody></table></div>";
-    resultsDiv.innerHTML=html;
+    await loadExamVideos();
+    resultsDiv.innerHTML=renderResultsTable(data,true);
   }catch(err){
-    resultsDiv.innerHTML="<div class='alert alert-danger'>Không thể tải tất cả kết quả.</div>";
+    resultsDiv.innerHTML=`<div class='alert alert-danger'>${esc(err.message||"Không thể tải tất cả kết quả.")}</div>`;
   }finally{spinner.classList.add("d-none");}
 }
+
 async function loadExitLogs(){
   const examId=document.getElementById("examId").value.trim();
-  if(!examId){alert("Nhập Exam ID!");return;}
+  if(!examId){alert("Hãy chọn một đề thi!");return;}
   const spinner=document.getElementById("loadingSpinner");
   const exitLogs=document.getElementById("exitLogs");
   const results=document.getElementById("results");
   spinner.classList.remove("d-none");exitLogs.innerHTML="";results.innerHTML="";
   try{
-    const res=await fetch(`/api/exams/${examId}/exit-log`);
+    const res=await fetch(`/api/exams/${encodeURIComponent(examId)}/exit-log`);
     const logs=await res.json();
+    if(!res.ok)throw new Error(logs.message||"Lỗi tải lịch sử thoát");
     if(!logs.length){exitLogs.innerHTML="<div class='alert alert-success'>Không có học sinh thoát giữa chừng.</div>";return;}
     let html=`<h5><i class="bi bi-clock-history"></i> Lịch sử thoát</h5><table class="table table-bordered"><thead class="table-light"><tr>
       <th>Học sinh</th><th>Lý do</th><th>Thời gian</th></tr></thead><tbody>`;
     logs.forEach(l=>{
       const time=new Date(l.timestamp).toLocaleString("vi-VN");
-      html+=`<tr><td>${l.userId}</td><td><span class='badge bg-danger'>${l.reason}</span></td><td>${time}</td></tr>`;
+      html+=`<tr><td>${esc(l.userId)}</td><td><span class='badge bg-danger'>${esc(l.reason)}</span></td><td>${time}</td></tr>`;
     });
     html+="</tbody></table>";
     exitLogs.innerHTML=html;
   }catch(err){
-    exitLogs.innerHTML="<div class='alert alert-danger'>Lỗi tải lịch sử thoát.</div>";
+    exitLogs.innerHTML=`<div class='alert alert-danger'>${esc(err.message||"Lỗi tải lịch sử thoát.")}</div>`;
   }finally{spinner.classList.add("d-none");}
 }
-function getStatusBadge(stuAns,correct,type,opts){
+
+function getStatusBadge(stuAns,correct,type){
   if(type==='shortanswer')return"<span class='badge bg-warning text-dark'>📝 GV Chấm</span>";
   if(stuAns==null)return"<span class='badge bg-secondary'>Chưa trả lời</span>";
   if(parseInt(stuAns)===parseInt(correct))return"<span class='badge bg-success'>✅ Đúng</span>";
   return"<span class='badge bg-danger'>❌ Sai</span>";
 }
-function viewDetail(result){
-  const modalBody = document.getElementById("detailModalBody");
-  const scoreValue = result.score != null ? result.score : (result.autoScore != null ? result.autoScore : null);
-  let scoreBadge = scoreValue != null 
-      ? `<span class="badge ${scoreValue > 5 ? 'bg-success' : 'bg-danger'} fs-5 score-badge">${scoreValue.toFixed(1)}/10</span>`
-      : `<span class="badge bg-secondary text-dark fs-5 score-badge">---</span>`;
 
+function viewDetail(result){
+  if(!result)return;
+  const modalBody=document.getElementById("detailModalBody");
   let html=`
     <div class="row mb-4 align-items-center p-3 border rounded shadow-sm">
       <div class="col-md-7">
-        <p class="mb-1"><strong class="text-primary"><i class="bi bi-person-circle"></i> Học sinh:</strong> ${result.userId}</p>
+        <p class="mb-1"><strong class="text-primary"><i class="bi bi-person-circle"></i> Học sinh:</strong> ${esc(result.userId)}</p>
         <p class="mb-1"><strong class="text-primary"><i class="bi bi-calendar-check"></i> Nộp bài:</strong> ${new Date(result.createdAt).toLocaleString('vi-VN')}</p>
-        <p class="mb-0"><strong class="text-primary"><i class="bi bi-patch-check"></i> Điểm hiện tại:</strong> ${scoreBadge}</p>
+        <p class="mb-0"><strong class="text-primary"><i class="bi bi-patch-check"></i> Điểm hiện tại:</strong> ${scoreBadgeHtml(result,true)}</p>
       </div>
       <div class="col-md-5 text-md-end mt-3 mt-md-0">
-          ${result.videoUrl ? 
-            `<button class="btn btn-info text-white fw-bold" onclick="showExamVideo('${result.examId}', '${result.userId}')"><i class='bi bi-play-circle me-2'></i> Xem Video Giám Sát</button>` : 
-            `<p class="text-muted"><i class="bi bi-camera-off"></i> Không có video giám sát</p>`}
+        ${(result.videoUrl||examVideosMap[`${result.examId}_${result.userId}`])?
+          `<button class="btn btn-info text-white fw-bold" data-e="${esc(result.examId)}" data-u="${esc(result.userId)}" onclick="showExamVideo(this.dataset.e,this.dataset.u)"><i class='bi bi-play-circle me-2'></i> Xem Video Giám Sát</button>`:
+          `<p class="text-muted"><i class="bi bi-camera-off"></i> Không có video giám sát</p>`}
       </div>
     </div>
-  `;
+    <h6 class="mt-4 mb-3 text-muted border-bottom pb-2">Chi tiết từng câu hỏi</h6>
+    <div class="table-responsive"><table class="table table-striped table-bordered detail-table align-middle">
+    <thead><tr><th style="width: 50px;">#</th><th>Nội dung câu hỏi</th><th style="width: 20%;">Trả lời HS</th><th style="width: 20%;">Đáp án đúng</th><th style="width: 100px;">Trạng thái</th></tr></thead><tbody>`;
 
-  html+=`<h6 class="mt-4 mb-3 text-muted border-bottom pb-2">Chi tiết từng câu hỏi</h6>
-  <div class="table-responsive"><table class="table table-striped table-bordered detail-table align-middle">
-  <thead><tr>
-  <th style="width: 50px;">#</th><th>Nội dung câu hỏi</th><th style="width: 20%;">Trả lời HS</th><th style="width: 20%;">Đáp án đúng</th><th style="width: 100px;">Trạng thái</th></tr></thead><tbody>`;
-  
-  result.answers.forEach((a,i)=>{
+  (result.answers||[]).forEach((a,i)=>{
     let stuAns,correct;
     if(a.type==="tracnghiem"||a.type==="truefalse"){
       const s=(a.answer!=null)?parseInt(a.answer):null,c=(a.correctAnswer!=null)?parseInt(a.correctAnswer):null;
-      stuAns=a.options?.[s]??"<i class='text-muted'>(Chưa trả lời)</i>";
-      correct=a.options?.[c]??"-";
+      const sv=a.options?.[s],cv=a.options?.[c];
+      stuAns=sv!=null?esc(sv):"<i class='text-muted'>(Chưa trả lời)</i>";
+      correct=cv!=null?esc(cv):"-";
     }else{
-      stuAns=`<div class="text-break">${a.answer||"<i class='text-muted'>(chưa)</i>"}</div>`;
-      correct=`<div class="text-break">${a.correctAnswer||"<i class='text-muted'>(GV chấm)</i>"}</div>`;
+      stuAns=`<div class="text-break">${a.answer?esc(a.answer):"<i class='text-muted'>(chưa)</i>"}</div>`;
+      correct=`<div class="text-break">${a.correctAnswer?esc(a.correctAnswer):"<i class='text-muted'>(GV chấm)</i>"}</div>`;
     }
-    const status=getStatusBadge(a.answer,a.correctAnswer,a.type,a.options);
-    html+=`<tr><td>${i+1}</td><td>${a.question}</td><td>${stuAns}</td><td>${correct}</td><td>${status}</td></tr>`;
+    html+=`<tr><td>${i+1}</td><td style="white-space:pre-wrap">${esc(a.question)}</td><td>${stuAns}</td><td>${correct}</td><td>${getStatusBadge(a.answer,a.correctAnswer,a.type)}</td></tr>`;
   });
   html+="</tbody></table></div>";
-  
+
   modalBody.innerHTML=html;
-  const detailModal = new bootstrap.Modal(document.getElementById("detailModal"));
-  detailModal.show();
+  renderMath(modalBody);
+  new bootstrap.Modal(document.getElementById("detailModal")).show();
 }
+
 async function gradeResult(id){
-  const score=prompt("Nhập điểm (0-10):");if(!score)return;
-  const val=parseFloat(score);if(isNaN(val)||val<0||val>10){alert("Điểm không hợp lệ.");return;}
+  const score=prompt("Nhập điểm (0-10):");if(score===null||score.trim()==="")return;
+  const val=parseFloat(score.replace(",","."));if(isNaN(val)||val<0||val>10){alert("Điểm không hợp lệ.");return;}
   try{
-    const res=await fetch(`/api/results/${id}/grade`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({score:val})});
+    const res=await fetch(`/api/results/${encodeURIComponent(id)}/grade`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({score:val})});
     const data=await res.json();
-    if(res.ok){alert("✅ Chấm thành công!");loadResults();}
+    if(res.ok){alert("✅ Chấm thành công!");lastView==='all'?loadAllResults():loadResults();}
     else alert("❌ Lỗi: "+(data.message||"Không rõ"));
   }catch(e){alert("❌ Lỗi kết nối.");}
 }
@@ -562,14 +630,17 @@ function parseAndAddQuestions(text){
       }
       
       current={
-          question: questionText.replace(/\(.*\)/, "").replace(/\[.*\]/, "").trim(),
+          // Chỉ bỏ dấu hiệu loại câu hỏi; trước đây xóa mọi nội dung trong ngoặc nên f(x), (a+b)^2... bị mất
+          question: questionText.replace(/\((Tự luận|Trả lời ngắn)\)|\[Tự luận\]/gi, "").trim(),
           type: type,
           options: [],
           correctAnswer: null 
       };
     } 
     // 2. Nhận diện các lựa chọn (Dạng: A. Lựa chọn)
-    else if(current && current.type === "tracnghiem" && /^[A-D]\./i.test(t)){
+    else if(current && current.type !== "shortanswer" && /^[A-D]\./i.test(t)){
+      // Có phương án A-D thì chắc chắn là trắc nghiệm (câu kết thúc bằng chữ "đúng" từng bị nhận nhầm là Đúng/Sai)
+      current.type = "tracnghiem";
       current.options.push(t.replace(/^[A-D]\./i,"").trim());
     } 
     // 3. Nhận diện đáp án đúng (Dạng: Đáp án: A hoặc Đáp án: Nội dung)
@@ -598,37 +669,87 @@ function parseAndAddQuestions(text){
   alert(`✅ Import xong ${questionsToImport.length} câu hỏi.`);
 }
 
-// Tạo cấu trúc HTML giống như addQuestion()
-function addImportedQuestion(q){
-  const qId="q"+Date.now();
-  const div=document.createElement("div");
-  // ✅ SỬA LỖI: Gán ID cho card để hàm renderOptions có thể tìm thấy
-  div.id = qId; 
-  div.classList.add("card","p-3","mb-3","question-card-new");
-  questionIndex++; 
+/* ======================= CHỌN CÂU HỎI TỪ NGÂN HÀNG ======================= */
+const bankAddedIds=new Set();   // câu từ ngân hàng đã có trong đề (tránh thêm trùng)
+const bankPicked=new Map();     // câu đang được tick trong hộp thoại
+let bankShown={};               // id -> câu đang hiển thị
+const BANK_TYPE={tracnghiem:"Trắc nghiệm",truefalse:"Đúng / Sai",shortanswer:"Trả lời ngắn"};
 
-  div.innerHTML=`
-<div class="d-flex justify-content-between align-items-center mb-2">
-<h6 class="mb-0 text-primary">Câu hỏi ${questionIndex}</h6>
-<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(this)"><i class="bi bi-trash3"></i> Xóa</button>
-</div>
-<div class="mb-2"><label class="form-label">Nội dung</label><input type="text" class="form-control question-text" value="${q.question}"></div>
-<div class="mb-2"><label class="form-label">Loại câu hỏi</label>
-<select class="form-select question-type" onchange="renderOptions('${qId}',this.value)">
-  <option value="tracnghiem" ${q.type === 'tracnghiem' ? 'selected' : ''}>Trắc nghiệm</option>
-  <option value="truefalse" ${q.type === 'truefalse' ? 'selected' : ''}>Đúng / Sai</option>
-  <option value="shortanswer" ${q.type === 'shortanswer' ? 'selected' : ''}>Tự luận</option>
-</select></div>
-<div id="${qId}-options" class="mb-2"></div>`; 
-
-  document.getElementById("questionsContainer").appendChild(div);
-  
-  // Gọi renderOptions để điền các lựa chọn và đáp án đã import
-  renderOptions(qId, q.type, q.options, q.correctAnswer);
+async function openBankPicker(){
+  bankPicked.clear();updateBankCount();
+  new bootstrap.Modal(document.getElementById("bankModal")).show();
+  try{
+    const res=await fetch("/api/question-bank/subjects");
+    if(res.ok){
+      const {subjects=[],extra=[]}=await res.json();
+      const cur=document.getElementById("bkSubject").value;
+      document.getElementById("bkSubject").innerHTML=`<option value="">Tất cả môn</option>`+[...subjects,...extra].map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join("");
+      document.getElementById("bkSubject").value=cur;
+    }
+  }catch(_){}
+  searchBank();
 }
 
-// Gọi hàm loadTeacherClassrooms khi tải trang
+async function searchBank(){
+  const box=document.getElementById("bankPickList");
+  box.innerHTML=`<div class="text-center text-muted py-4">Đang tải...</div>`;
+  const p=new URLSearchParams({scope:"approved"});
+  const q=document.getElementById("bkSearch").value.trim(),t=document.getElementById("bkType").value,sj=document.getElementById("bkSubject").value;
+  if(q)p.set("q",q);if(t)p.set("type",t);if(sj)p.set("subject",sj);
+  try{
+    const res=await fetch("/api/question-bank?"+p);
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.message||"Lỗi tải ngân hàng");
+    bankShown=Object.fromEntries(data.questions.map(x=>[x._id,x]));
+    if(!data.questions.length){box.innerHTML=`<div class="alert alert-info">Không có câu hỏi nào phù hợp.</div>`;return;}
+    box.innerHTML=data.questions.map(x=>{
+      const added=bankAddedIds.has(x._id);
+      const tooMany=x.type==="tracnghiem"&&x.options.length>4;
+      const disabled=added||tooMany;
+      let body="";
+      if(x.type==="shortanswer")body=`<div class="small text-success mt-1">Đáp án: ${esc(x.correctAnswer)}</div>`;
+      else body=x.options.map((o,i)=>`<div class="small ${i===Number(x.correctAnswer)?"text-success fw-bold":"text-muted"}">${String.fromCharCode(65+i)}. ${esc(o)}${i===Number(x.correctAnswer)?" ✓":""}</div>`).join("");
+      return `<label class="d-flex gap-3 border rounded p-3 mb-2 ${disabled?"bg-light":""}" style="cursor:${disabled?"not-allowed":"pointer"}">
+        <input type="checkbox" class="form-check-input mt-1" ${disabled?"disabled":""} ${bankPicked.has(x._id)?"checked":""} onchange="toggleBankPick('${esc(x._id)}',this.checked)">
+        <div class="flex-grow-1">
+          <div><span class="badge bg-primary">${BANK_TYPE[x.type]||esc(x.type)}</span> <span class="badge bg-secondary">${esc(x.subject)}</span>
+          ${added?'<span class="badge bg-success">Đã thêm vào đề</span>':""}${tooMany?'<span class="badge bg-warning text-dark">Hơn 4 phương án, không thêm được</span>':""}</div>
+          <div class="fw-semibold mt-1" style="white-space:pre-wrap">${esc(x.question)}</div>${body}
+        </div></label>`;
+    }).join("");
+    renderMath(box);
+  }catch(e){box.innerHTML=`<div class="alert alert-danger">${esc(e.message)}</div>`;}
+}
+
+function toggleBankPick(id,on){
+  if(on&&bankShown[id])bankPicked.set(id,bankShown[id]);else bankPicked.delete(id);
+  updateBankCount();
+}
+function updateBankCount(){document.getElementById("bkCount").textContent=bankPicked.size;}
+
+function addPickedFromBank(){
+  if(bankPicked.size===0){alert("Hãy tick chọn ít nhất một câu.");return;}
+  let n=0;
+  bankPicked.forEach(x=>{
+    buildQuestionCard({
+      question:x.question,type:x.type,
+      options:x.type==="tracnghiem"?x.options:[],
+      correctAnswer:x.correctAnswer,
+      bankId:x._id
+    });
+    bankAddedIds.add(x._id);n++;
+  });
+  bankPicked.clear();updateBankCount();
+  bootstrap.Modal.getInstance(document.getElementById("bankModal"))?.hide();
+  alert(`✅ Đã thêm ${n} câu từ ngân hàng vào đề. Kéo xuống để kiểm tra lại trước khi tạo đề.`);
+}
+
+document.getElementById("bkSearch").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();searchBank();}});
+document.getElementById("results-tab").addEventListener("shown.bs.tab",loadExamOptions);
+
+// Khởi tạo
 loadTeacherClassrooms();
+loadExamOptions();
 </script>
 </body>
 </html>

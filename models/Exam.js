@@ -18,7 +18,9 @@ const ExamSchema = new mongoose.Schema({
   createdBy: String,
   createdAt: { type: Date, default: Date.now },
   // ✅ TRƯỜNG ĐÃ THÊM: Dùng cho việc phân bổ đề thi theo lớp
-  classrooms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Classroom' }] 
+  classrooms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Classroom' }],
+  // Bật camera ghi hình giám sát khi học sinh làm bài (đề cũ không có trường này = tắt)
+  enableCamera: { type: Boolean, default: false }
 });
 
 module.exports = mongoose.model("Exam", ExamSchema);
