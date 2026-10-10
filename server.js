@@ -1386,6 +1386,8 @@ app.post('/api/submitExam', async (req, res) => {
 app.use('/api/question-bank', require('./routes/questionBank'));
 // API tổng quan cho giáo viên (phân tích cả lớp)
 app.use('/api/teacher', require('./routes/teacher'));
+// Bảng xếp hạng và hồ sơ học sinh (dựa trên ngân hàng câu hỏi)
+app.use('/api/leaderboard', require('./routes/leaderboard'));
 
 // Route test cho Render nhận biết server đã sẵn sàng
 app.get('/', (req, res) => {

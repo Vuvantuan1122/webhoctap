@@ -1,237 +1,103 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ảnh đã nộp</title>
-  <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: #eee;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-    }
-    h1 {
-      margin-bottom: 30px;
-      color: #333;
-    }
-    
-    /* THÊM: CSS cho Controls */
-    .controls {
-        margin-bottom: 20px;
-        text-align: left;
-        max-width: 1200px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-    #classFilter {
-        padding: 10px;
-        border-radius: 5px;
-        border: 1px solid #ccc;
-        font-size: 16px;
-        width: 300px;
-        max-width: 90%;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    /* KẾT THÚC THÊM */
-    
-    .gallery {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 30px;
-      min-height: 100px; /* Giúp giao diện ổn định */
-    }
-    .card {
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-      padding: 10px;
-      width: 200px;
-      transition: 0.3s;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    }
-    .card img {
-      width: 100%;
-      height: 150px; /* Chiều cao cố định để card đều nhau */
-      object-fit: cover; /* Đảm bảo ảnh vừa vặn */
-      border-radius: 8px;
-      cursor: pointer;
-      margin-bottom: 10px;
-    }
-    .timestamp {
-      font-size: 0.85em;
-      color: #555;
-      margin-top: 5px;
-      text-align: center;
-      word-break: break-word; /* Đảm bảo tên người dùng dài không làm vỡ bố cục */
-    }
-
-    /* Lightbox popup */
-    #lightbox {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.9);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-
-    #lightbox-img {
-      max-width: 90%;
-      max-height: 90%;
-      border-radius: 5px;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-    }
-  </style>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bài tập về nhà | NT</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="hw.css">
 </head>
-<body>
-  <h1>Ảnh bài tập đã nộp</h1>
-  
-  <div class="controls">
-      <select id="classFilter" onchange="loadImages()">
-          <option value="" disabled selected>-- Đang tải lớp học... --</option>
-          <option value="all">Tất cả bài nộp (Nếu có quyền)</option>
+<body data-active="homework">
+<main>
+  <div class="wrap">
+    <div class="page-head">
+      <div>
+        <h1>Bài tập về nhà</h1>
+        <p id="sub">Xem bài đã nộp và nhận xét lỗi sai</p>
+      </div>
+      <div class="tabs">
+        <a href="bai tap.html"><i class='bx bx-upload'></i> Nộp bài</a>
+        <a href="baitapvn.html" class="on"><i class='bx bx-folder-open'></i> Bài đã nộp</a>
+      </div>
+    </div>
+
+    <div class="panel filters">
+      <select id="classFilter" class="hw-sel"><option value="">Đang tải lớp học…</option></select>
+      <select id="statusFilter" class="hw-sel">
+        <option value="all">Tất cả trạng thái</option>
+        <option value="none">Chưa nhận xét</option>
+        <option value="done">Đã nhận xét</option>
       </select>
+    </div>
+
+    <div class="kpi-row" id="stats" style="display:none">
+      <div class="card kpi"><div class="kpi-icon" style="background:rgba(58,123,253,.18);color:#7fb0ff"><i class='bx bx-file'></i></div>
+        <div><div class="kpi-num" id="kTotal">0</div><div class="kpi-label">Bài đã nộp</div></div></div>
+      <div class="card kpi"><div class="kpi-icon" style="background:rgba(46,204,113,.18);color:#2ecc71"><i class='bx bx-check-circle'></i></div>
+        <div><div class="kpi-num" id="kDone">0</div><div class="kpi-label">Đã nhận xét</div></div></div>
+      <div class="card kpi"><div class="kpi-icon" style="background:rgba(255,159,67,.18);color:#ff9f43"><i class='bx bx-time-five'></i></div>
+        <div><div class="kpi-num" id="kPending">0</div><div class="kpi-label">Chưa nhận xét</div></div></div>
+    </div>
+
+    <div id="grid" class="grid"></div>
+    <div id="msg" class="card empty"><i class='bx bx-book-content'></i><span id="msgText">Vui lòng chọn lớp học để xem bài nộp.</span></div>
   </div>
-  <div id="gallery" class="gallery">
-      <p>Vui lòng chọn lớp học để xem bài nộp.</p>
-  </div>
+</main>
 
-  <div id="lightbox" onclick="hideFullImage()">
-    <img id="lightbox-img" src="" />
-  </div>
+<script src="shell.js"></script>
+<script src="hw.js"></script>
+<script>
+let me = null, subs = [];
+const $ = id => document.getElementById(id);
+const isTeacher = () => me && me.role === 'teacher';
+const setMsg = t => { $('msg').style.display = ''; $('msgText').textContent = t; };
 
-  <script>
-    
-    // Hàm tải danh sách lớp học
-    async function loadClassrooms() {
-        const select = document.getElementById('classFilter');
-        select.innerHTML = '<option value="" disabled selected>-- Đang tải lớp học... --</option>';
+async function init() {
+  try { const r = await fetch('/me'); if (r.ok) me = await r.json(); } catch {}
+  if (!isTeacher()) $('sub').textContent = 'Xem bài đã nộp của bạn và lời nhận xét từ thầy cô / AI';
+  try {
+    const r = await fetch('/api/classrooms/my'); if (!r.ok) throw 0;
+    const cls = await r.json();
+    $('classFilter').innerHTML = '<option value="">— Chọn lớp học —</option><option value="all">Tất cả các lớp</option>' +
+      cls.map(c => `<option value="${HW.esc(c._id)}">${HW.esc(c.name)}</option>`).join('');
+  } catch { $('classFilter').innerHTML = '<option value="">Lỗi tải lớp (hãy đăng nhập lại)</option>'; }
+}
 
-        try {
-            const res = await fetch('/api/classrooms/my'); 
-            if (!res.ok) throw new Error("Không thể tải danh sách lớp học. Vui lòng kiểm tra đăng nhập.");
-            
-            const classrooms = await res.json();
-            
-            select.innerHTML = '<option value="" disabled selected>-- Chọn lớp để xem bài nộp --</option>';
-            select.innerHTML += '<option value="all">Tất cả bài nộp (Nếu có quyền)</option>';
+async function load() {
+  const id = $('classFilter').value;
+  if (!id) { subs = []; render(); return; }
+  setMsg('Đang tải bài nộp…'); $('grid').innerHTML = '';
+  try {
+    const r = await fetch('/api/images?classId=' + encodeURIComponent(id));
+    const d = await r.json(); if (!r.ok) throw new Error(d.message || 'Lỗi ' + r.status);
+    subs = d;
+  } catch (e) { subs = []; setMsg('❌ ' + e.message); return; }
+  render();
+}
 
-            if (classrooms && classrooms.length > 0) {
-                classrooms.forEach(cls => {
-                    const option = document.createElement('option');
-                    option.value = cls._id;
-                    option.textContent = cls.name;
-                    select.appendChild(option);
-                });
-            } else {
-                 // Nếu không có lớp, chọn "Tất cả bài nộp" làm mặc định nếu có thể
-                 select.value = 'all';
-                 loadImages();
-            }
+function render() {
+  const f = $('statusFilter').value;
+  const list = subs.filter(s => f === 'all' || (f === 'done' ? s.feedback : !s.feedback));
+  const done = subs.filter(s => s.feedback).length;
+  $('stats').style.display = subs.length ? '' : 'none';
+  $('kTotal').textContent = subs.length; $('kDone').textContent = done; $('kPending').textContent = subs.length - done;
+  if (list.length) $('msg').style.display = 'none';
+  else setMsg(subs.length ? 'Không có bài nào khớp bộ lọc.' : ($('classFilter').value ? 'Chưa có bài nào được nộp cho lớp này.' : 'Vui lòng chọn lớp học để xem bài nộp.'));
+  $('grid').innerHTML = list.map(s => `<div class="sub" data-id="${s.id}">
+    <div class="th" style="${HW.thumb(s.url)}">${HW.isPdf(s.url) ? '<i class="fas fa-file-pdf"></i>' : ''}</div>
+    <div class="bd"><div class="who">${HW.esc(s.userId)}</div><div class="when">${HW.fmt(s.timestamp)}</div>${HW.tag(s.feedback)}
+    ${s.feedback ? `<div class="when">${s.feedback.mistakes?.length || 0} lỗi cần sửa${s.feedback.score != null ? ' · ' + s.feedback.score + '/10' : ''}</div>` : ''}</div></div>`).join('');
+}
 
-        } catch (error) {
-            console.error("Lỗi khi tải lớp học:", error);
-            select.innerHTML = '<option value="" disabled selected>Lỗi tải lớp học</option>';
-            document.getElementById('gallery').innerHTML = `<p style="color: red;">❌ Lỗi: ${error.message}</p>`;
-        }
-    }
-
-    // SỬA: Hàm tải ảnh, thêm logic lọc theo lớp học và xử lý lỗi rõ ràng hơn
-    async function loadImages() {
-      const gallery = document.getElementById('gallery');
-      const classId = document.getElementById('classFilter').value;
-      
-      let apiUrl = '/api/images';
-
-      if (!classId || classId === '') {
-          gallery.innerHTML = "<p>Vui lòng chọn lớp học để xem bài nộp.</p>";
-          return;
-      }
-      
-      gallery.innerHTML = "<p>Đang tải ảnh...</p>";
-
-      if (classId !== 'all') {
-          // Lọc theo lớp đã chọn
-          apiUrl = `/api/images?classId=${classId}`;
-      }
-
-      try {
-          const res = await fetch(apiUrl);
-          
-          if (!res.ok) {
-              const errorData = await res.json();
-              throw new Error(errorData.message || `Lỗi không xác định (${res.status})`);
-          }
-          
-          const images = await res.json();
-          
-          gallery.innerHTML = '';
-
-          if (!images || images.length === 0) {
-              gallery.innerHTML = "<p>Chưa có ảnh nào được nộp cho lớp này.</p>";
-              return;
-          }
-
-          // Hiển thị ảnh
-          images.forEach(img => {
-              const card = document.createElement('div');
-              card.className = 'card';
-
-              const image = document.createElement('img');
-              image.src = img.url;
-              image.alt = "Bài đã nộp";
-              image.onclick = () => showFullImage(img.url);
-
-              const time = document.createElement('div');
-              time.className = 'timestamp';
-              const date = new Date(img.timestamp);
-              // Hiển thị userId (tên học sinh)
-              time.textContent = (img.userId ? `${img.userId} - ` : '') + date.toLocaleTimeString() + " " + date.toLocaleDateString();
-
-              card.appendChild(image);
-              card.appendChild(time);
-              gallery.appendChild(card);
-          });
-      } catch (error) {
-          gallery.innerHTML = `<p style="color: red;">❌ Lỗi khi tải ảnh: ${error.message}. Vui lòng kiểm tra quyền truy cập hoặc ID lớp.</p>`;
-          console.error("Lỗi tải ảnh BTVN:", error);
-      }
-    }
-
-    function showFullImage(src) {
-      const lightbox = document.getElementById("lightbox");
-      const lightboxImg = document.getElementById("lightbox-img");
-      lightboxImg.src = src;
-      lightbox.style.display = "flex";
-    }
-
-    function hideFullImage() {
-        document.getElementById("lightbox").style.display = "none";
-    }
-    
-    // Khởi tạo
-    window.onload = () => {
-        loadClassrooms(); 
-        // loadImages() sẽ được gọi sau khi loadClassrooms() thành công 
-        // và người dùng chọn lớp, hoặc nếu không có lớp nào được tải.
-    };
-
-  </script>
+$('grid').onclick = e => {
+  const c = e.target.closest('.sub'); if (!c) return;
+  const s = subs.find(x => x.id === c.dataset.id);
+  HW.open(s, { role: isTeacher() ? 'teacher' : 'student', onChange: render });
+};
+$('classFilter').onchange = load; $('statusFilter').onchange = render;
+init();
+</script>
 </body>
 </html>

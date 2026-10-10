@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bảng xếp hạng | NT Education</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="rank.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" id="brandLink" href="index.html"><img src="5.jpg" alt=""><span>NT Education</span></a>
+  <nav class="topnav">
+    <a id="navHome" href="index.html"><i class='bx bx-home'></i> Trang chủ</a>
+    <a href="nganhangcauhoi.html"><i class='bx bxs-book-content'></i> Ngân hàng câu hỏi</a>
+    <a href="bangxephang.html" class="active"><i class='bx bxs-trophy'></i> Bảng xếp hạng</a>
+    <a href="profile.html"><i class='bx bx-user-circle'></i> Hồ sơ của tôi</a>
+  </nav>
+</header>
+
+<main class="wrap">
+  <div class="page-head">
+    <h1>🏆 Bảng xếp hạng</h1>
+    <p>Xếp hạng theo số câu đã làm và tỉ lệ đúng trong Ngân hàng câu hỏi</p>
+  </div>
+
+  <div class="card filters">
+    <div class="seg" id="segPeriod">
+      <button data-v="week">Tuần này</button>
+      <button data-v="month">Tháng này</button>
+      <button data-v="all" class="on">Tất cả</button>
+    </div>
+    <div class="seg" id="segSort">
+      <button data-v="score" class="on" title="Kết hợp tỉ lệ đúng và số câu đã làm">Tổng hợp</button>
+      <button data-v="accuracy" title="Tỉ lệ đúng cao nhất (cần làm ít nhất 20 câu)">Chính xác</button>
+      <button data-v="answered" title="Làm được nhiều câu nhất">Chăm chỉ</button>
+    </div>
+    <select class="sel" id="selScope" aria-label="Phạm vi"><option value="all">Toàn trường</option></select>
+    <select class="sel" id="selSubject" aria-label="Môn học"><option value="">Tất cả môn</option></select>
+  </div>
+
+  <div id="meCard"></div>
+  <div id="podium"></div>
+  <div id="boardBox"></div>
+
+  <div class="card mt">
+    <details class="how">
+      <summary>Điểm xếp hạng được tính như thế nào?</summary>
+      <div class="body">
+        <p><b>Điểm = độ chính xác đáng tin × hệ số chăm chỉ</b> (thang 0–100).</p>
+        <ul>
+          <li><b>Độ chính xác đáng tin:</b> tỉ lệ đúng đã được điều chỉnh theo số câu. Làm ít câu thì bị trừ, vì chưa đủ cơ sở để kết luận bạn giỏi (đúng 3/3 câu có thể chỉ là may mắn).</li>
+          <li><b>Hệ số chăm chỉ:</b> tăng dần theo số câu đã làm, đạt tối đa khi bạn làm đủ <b>100 câu</b>.</li>
+          <li>Ví dụ: <b>10/10</b> câu → 37,5 điểm · <b>48/50</b> → 73,7 · <b>80/100</b> → 71,1 · <b>100/100</b> → 96,3.</li>
+          <li>Mỗi câu hỏi chỉ tính <b>lần làm đầu tiên</b>. Làm lại một câu nhiều lần không làm tăng điểm.</li>
+          <li>Cần làm ít nhất <b>10 câu</b> để có tên trên bảng (bảng "Chính xác" cần 20 câu). Giáo viên không tham gia xếp hạng.</li>
+          <li>Bảng "<b>Tuần này</b>" bắt đầu lại vào 0h thứ Hai, bảng "<b>Tháng này</b>" bắt đầu lại vào ngày mùng 1 (giờ Việt Nam). Số liệu cập nhật sau tối đa 30 giây.</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+</main>
+
+<script>
+(function () {
+  // ---- đăng nhập ----
+  let user = {};
+  try { user = JSON.parse(localStorage.getItem('userData') || '{}'); } catch (_) {}
+  if (localStorage.getItem('isLoggedIn') !== 'true' || !user.username) { location.href = '1.html'; return; }
+  const home = user.role === 'teacher' ? 'giaovien.html' : 'index.html';
+  document.getElementById('navHome').href = home;
+  document.getElementById('brandLink').href = home;
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
+  const state = { period: 'all', sort: 'score', scope: 'all', subject: '' };
+  let classesLoaded = false, subjectsLoaded = false, reqId = 0;
+
+  // avatar chữ cái đầu, màu theo tên
+  const hue = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.codePointAt(0)) % 360; return h; };
+  const avatar = (name, cls = '') => `<span class="avatar ${cls}" style="--h:${hue(name)}">${esc(Array.from(String(name))[0]?.toUpperCase() || '?')}</span>`;
+  const profileHref = (u) => 'profile.html?u=' + encodeURIComponent(u);
+  const fmt = (n) => Number(n).toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+  const accColor = (a) => a >= 75 ? 'var(--good)' : a >= 50 ? 'var(--warn)' : 'var(--bad)';
+
+  // giá trị chính hiển thị theo kiểu xếp hạng
+  function primary(r) {
+    if (state.sort === 'accuracy') return { v: fmt(r.accuracy) + '%', u: '', meta: `${r.answered} câu · ${fmt(r.score)} điểm` };
+    if (state.sort === 'answered') return { v: fmt(r.answered), u: 'câu', meta: `đúng ${fmt(r.accuracy)}% · ${fmt(r.score)} điểm` };
+    return { v: fmt(r.score), u: 'điểm', meta: `${r.answered} câu · đúng ${fmt(r.accuracy)}%` };
+  }
+
+  function renderMe(d) {
+    const box = $('meCard');
+    if (!d.me) { box.innerHTML = ''; return; }
+    const me = d.me;
+    if (me.ranked) {
+      const medal = MEDAL[me.rank] || '';
+      box.innerHTML = `<div class="card me-card">
+        ${avatar(user.username, 'sm')}
+        <div class="me-rank">${medal || '#'}${medal ? '' : me.rank}</div>
+        <div class="me-info"><b>Hạng của bạn: ${me.rank}/${me.total}</b>
+          <div class="muted small">${esc(user.username)} · ${me.answered} câu · đúng ${fmt(me.accuracy)}% · ${fmt(me.score)} điểm</div></div>
+        <a class="btn ghost" href="profile.html"><i class='bx bx-user-circle'></i> Hồ sơ của tôi</a></div>`;
+    } else {
+      const left = Math.max(0, me.needed - me.answered);
+      const pct = Math.min(100, Math.round(me.answered * 100 / me.needed));
+      box.innerHTML = `<div class="card me-card">
+        ${avatar(user.username, 'sm')}
+        <div class="me-info"><b>Bạn chưa có tên trên bảng này</b>
+          <div class="muted small">Mới làm ${me.answered}/${me.needed} câu. Làm thêm <b>${left}</b> câu nữa để được xếp hạng.</div>
+          <div class="progress"><span style="width:${pct}%"></span></div></div>
+        <a class="btn" href="nganhangcauhoi.html"><i class='bx bx-play-circle'></i> Luyện tập ngay</a></div>`;
+    }
+  }
+
+  function renderPodium(rows) {
+    const top = rows.slice(0, 3);
+    if (!top.length) { $('podium').innerHTML = ''; return; }
+    // thứ tự hiển thị: hạng 2 - hạng 1 - hạng 3
+    const order = [top[1], top[0], top[2]].filter(Boolean);
+    $('podium').innerHTML = `<div class="podium">` + order.map((r) => {
+      const p = primary(r);
+      return `<a class="pod p${r.rank} ${r.isMe ? 'me' : ''}" href="${profileHref(r.username)}" title="Xem hồ sơ ${esc(r.username)}">
+        <div class="crown">${r.rank === 1 ? '👑' : ''}</div>
+        ${avatar(r.username)}
+        <div class="medal">${MEDAL[r.rank]}</div>
+        <div class="pname">${esc(r.username)}</div>
+        <div class="pclass">${esc(r.class || r.school || '')}</div>
+        <div class="pscore">${p.v} <small>${p.u}</small></div>
+        <div class="pmeta">${p.meta}</div>
+        <div class="base">${r.rank}</div></a>`;
+    }).join('') + `</div>`;
+  }
+
+  function renderBoard(d) {
+    const rows = d.rows;
+    const box = $('boardBox');
+    if (!rows.length) {
+      box.innerHTML = `<div class="card empty"><div class="ico">🏁</div>
+        <h3>Chưa có ai trên bảng xếp hạng này</h3>
+        <p>Cần làm ít nhất <b>${d.meta.minRanked}</b> câu hỏi khác nhau để có tên. Hãy là người đầu tiên!</p>
+        <a class="btn" href="nganhangcauhoi.html"><i class='bx bx-play-circle'></i> Luyện tập ngay</a></div>`;
+      return;
+    }
+    const rest = rows.slice(3);
+    if (!rest.length) { box.innerHTML = ''; return; }
+    const head = state.sort === 'accuracy' ? ['Tỉ lệ đúng', 'Số câu', 'Điểm'] : state.sort === 'answered' ? ['Số câu', 'Tỉ lệ đúng', 'Điểm'] : ['Điểm', 'Số câu', 'Tỉ lệ đúng'];
+    box.innerHTML = `<div class="card board-wrap"><table class="board"><thead><tr>
+      <th>Hạng</th><th>Học sinh</th><th>Lớp</th><th>${head[0]}</th><th>${head[1]}</th><th>${head[2]}</th></tr></thead><tbody>` +
+      rest.map((r) => {
+        const accCell = `<div class="acc"><div class="bar"><span style="width:${Math.max(2, r.accuracy)}%;--c:${accColor(r.accuracy)}"></span></div><b>${fmt(r.accuracy)}%</b></div>`;
+        const cells = { score: `<b>${fmt(r.score)}</b>`, answered: `${r.answered}`, accuracy: accCell };
+        const order = state.sort === 'accuracy' ? ['accuracy', 'answered', 'score'] : state.sort === 'answered' ? ['answered', 'accuracy', 'score'] : ['score', 'answered', 'accuracy'];
+        return `<tr class="${r.isMe ? 'me' : ''}"><td class="rk">#${r.rank}</td>
+          <td><a class="who" href="${profileHref(r.username)}">${avatar(r.username, 'sm')}<span>${esc(r.username)}</span>${r.isMe ? ' <span class="pill">Bạn</span>' : ''}</a></td>
+          <td class="muted">${esc(r.class || '—')}</td>${order.map((k) => `<td>${cells[k]}</td>`).join('')}</tr>`;
+      }).join('') + `</tbody></table>
+      ${d.meta.totalRanked > rows.length ? `<div class="muted small" style="padding:10px 12px">Hiển thị ${rows.length}/${d.meta.totalRanked} người đứng đầu.</div>` : ''}</div>`;
+  }
+
+  function fillScope(d) {
+    if (classesLoaded) return;
+    classesLoaded = true;
+    const cs = d.classes || [];
+    let html = `<option value="all">Toàn trường</option>`;
+    if (cs.length > 1) html += `<option value="class:">Tất cả lớp của tôi</option>`;
+    html += cs.map((c) => `<option value="class:${esc(c._id)}">Lớp ${esc(c.name)}</option>`).join('');
+    $('selScope').innerHTML = html;
+  }
+
+  async function loadSubjects() {
+    if (subjectsLoaded) return;
+    subjectsLoaded = true;
+    try {
+      const res = await fetch('/api/question-bank/subjects');
+      if (!res.ok) return;
+      const { subjects = [], extra = [] } = await res.json();
+      $('selSubject').innerHTML = `<option value="">Tất cả môn</option>` + [...subjects, ...extra].map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    } catch (_) {}
+  }
+
+  async function load() {
+    const my = ++reqId;
+    $('boardBox').innerHTML = `<div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Đang tải bảng xếp hạng...</div>`;
+    const p = new URLSearchParams({ period: state.period, sort: state.sort });
+    if (state.scope.startsWith('class:')) {
+      p.set('scope', 'class');
+      const id = state.scope.slice(6);
+      if (id) p.set('classId', id);
+    }
+    if (state.subject) p.set('subject', state.subject);
+    try {
+      const res = await fetch('/api/leaderboard?' + p);
+      if (res.status === 401) { location.href = '1.html'; return; }
+      const d = await res.json().catch(() => ({}));
+      if (my !== reqId) return; // đã có yêu cầu mới hơn
+      if (!res.ok) {
+        $('meCard').innerHTML = ''; $('podium').innerHTML = '';
+        $('boardBox').innerHTML = `<div class="card empty"><div class="ico">⚠️</div><p>${esc(d.message || 'Không tải được bảng xếp hạng.')}</p></div>`;
+        return;
+      }
+      fillScope(d);
+      renderMe(d);
+      renderPodium(d.rows);
+      renderBoard(d);
+    } catch (e) {
+      if (my !== reqId) return;
+      $('boardBox').innerHTML = `<div class="card empty"><div class="ico">⚠️</div><p>Không kết nối được tới máy chủ.</p></div>`;
+    }
+  }
+
+  function bindSeg(id, key) {
+    $(id).addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      state[key] = b.dataset.v;
+      [...$(id).children].forEach((x) => x.classList.toggle('on', x === b));
+      load();
+    });
+  }
+  bindSeg('segPeriod', 'period');
+  bindSeg('segSort', 'sort');
+  $('selScope').addEventListener('change', (e) => { state.scope = e.target.value; load(); });
+  $('selSubject').addEventListener('change', (e) => { state.subject = e.target.value; load(); });
+
+  loadSubjects();
+  load();
+})();
+</script>
+</body>
+</html>

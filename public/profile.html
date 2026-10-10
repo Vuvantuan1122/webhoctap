@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hồ sơ | NT Education</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="rank.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" id="brandLink" href="index.html"><img src="5.jpg" alt=""><span>NT Education</span></a>
+  <nav class="topnav">
+    <a id="navHome" href="index.html"><i class='bx bx-home'></i> Trang chủ</a>
+    <a href="nganhangcauhoi.html"><i class='bx bxs-book-content'></i> Ngân hàng câu hỏi</a>
+    <a href="bangxephang.html"><i class='bx bxs-trophy'></i> Bảng xếp hạng</a>
+    <a href="profile.html" id="navProfile"><i class='bx bx-user-circle'></i> Hồ sơ của tôi</a>
+  </nav>
+</header>
+
+<main class="wrap">
+  <div id="pf"><div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Đang tải hồ sơ...</div></div>
+</main>
+
+<script>
+(function () {
+  let me = {};
+  try { me = JSON.parse(localStorage.getItem('userData') || '{}'); } catch (_) {}
+  if (localStorage.getItem('isLoggedIn') !== 'true' || !me.username) { location.href = '1.html'; return; }
+  const home = me.role === 'teacher' ? 'giaovien.html' : 'index.html';
+  document.getElementById('navHome').href = home;
+  document.getElementById('brandLink').href = home;
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
+  const PERIODS = [['week', 'Tuần này'], ['month', 'Tháng này'], ['all', 'Tất cả thời gian']];
+  const hue = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.codePointAt(0)) % 360; return h; };
+  const fmt = (n) => Number(n).toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+  const accColor = (a) => a >= 75 ? 'var(--good)' : a >= 50 ? 'var(--warn)' : 'var(--bad)';
+  const dateVN = (iso) => iso ? new Date(iso).toLocaleDateString('vi-VN') : '—';
+
+  const params = new URLSearchParams(location.search);
+  const target = params.get('u') || 'me';
+
+  function showMessage(icon, text, extra = '') {
+    $('pf').innerHTML = `<div class="card empty"><div class="ico">${icon}</div><p>${esc(text)}</p>${extra}</div>`;
+  }
+
+  function render(p) {
+    document.title = `Hồ sơ ${p.username} | NT Education`;
+    if (p.isSelf) $('navProfile').classList.add('active');
+
+    // ảnh đại diện: chỉ có trên máy của chính người dùng (chưa lưu trên server), người khác dùng chữ cái đầu
+    const letter = esc(Array.from(p.username)[0]?.toUpperCase() || '?');
+    const saved = p.isSelf ? localStorage.getItem('userAvatar') : null;
+    const avatarHtml = `<span class="avatar xl" id="pfAvatar" style="--h:${hue(p.username)}">${letter}</span>`;
+
+    const roleText = p.isStudent ? 'Học sinh' : p.role === 'teacher' ? 'Giáo viên' : esc(p.role);
+    const sub = [roleText, p.class ? 'Lớp ' + esc(p.class) : '', p.school ? esc(p.school) : ''].filter(Boolean).join(' · ');
+    const earned = (p.badges || []).filter((b) => b.earned);
+
+    let html = `<div class="card pf-head">${avatarHtml}
+      <div style="flex:1;min-width:220px">
+        <h1>${esc(p.username)} ${p.isSelf ? '<span class="pill">Bạn</span>' : ''}</h1>
+        <div class="pf-sub">${sub}</div>
+        ${earned.length ? `<div class="chips">${earned.map((b) => `<span class="chip" title="${esc(b.desc)}">${b.icon} ${esc(b.title)}</span>`).join('')}</div>` : ''}
+        <div class="pf-actions">
+          <a class="btn" href="bangxephang.html"><i class='bx bxs-trophy'></i> Bảng xếp hạng</a>
+          ${p.isSelf && p.isStudent ? `<a class="btn ghost" href="nganhangcauhoi.html"><i class='bx bx-play-circle'></i> Luyện tập tiếp</a>` : ''}
+        </div></div></div>`;
+
+    if (!p.isStudent) {
+      html += `<div class="card empty mt"><div class="ico">👩‍🏫</div><p>Tài khoản giáo viên không tham gia luyện tập và xếp hạng.</p></div>`;
+      $('pf').innerHTML = html;
+      return;
+    }
+
+    const s = p.stats;
+    // thứ hạng 3 kỳ
+    html += `<div class="grid g3 mt">` + PERIODS.map(([k, label]) => {
+      const r = p.ranks[k];
+      const top = r && r.rank <= 3;
+      return `<div class="card rank-box ${top ? 'top' : ''}"><div class="t">${label}</div>
+        <div class="v">${r ? `${MEDAL[r.rank] || '#'}${MEDAL[r.rank] ? '' : r.rank} <small>/ ${r.total}</small>` : '<small>Chưa xếp hạng</small>'}</div></div>`;
+    }).join('') + `</div>`;
+
+    // chưa đủ điều kiện xếp hạng
+    if (!p.ranked) {
+      const left = Math.max(0, p.minRanked - s.answered);
+      const pct = Math.min(100, Math.round(s.answered * 100 / p.minRanked));
+      html += `<div class="card mt"><b>${p.isSelf ? 'Bạn' : esc(p.username)} chưa vào bảng xếp hạng</b>
+        <div class="muted small">Mới làm ${s.answered}/${p.minRanked} câu hỏi khác nhau. Cần thêm <b>${left}</b> câu để được xếp hạng.</div>
+        <div class="progress"><span style="width:${pct}%"></span></div></div>`;
+    }
+
+    // chỉ số
+    html += `<div class="grid g4 mt">
+      <div class="card"><div class="kpi-n">${fmt(s.score)}</div><div class="kpi-l">Điểm xếp hạng</div></div>
+      <div class="card"><div class="kpi-n">${s.answered}</div><div class="kpi-l">Câu hỏi đã làm</div></div>
+      <div class="card"><div class="kpi-n" style="color:${accColor(s.accuracy)}">${fmt(s.accuracy)}%</div><div class="kpi-l">Tỉ lệ đúng (${s.correct}/${s.answered})</div></div>
+      <div class="card"><div class="kpi-n">🔥 ${p.streak.current}</div><div class="kpi-l">Chuỗi ngày luyện tập · kỷ lục ${p.streak.longest} ngày</div></div></div>`;
+
+    // môn học + hoạt động
+    const subj = p.subjects.length ? p.subjects.map((g) => {
+      const star = p.strongest && p.strongest.subject === g.subject ? ' ⭐' : '';
+      return `<div class="subj"><div class="subj-top"><span>${esc(g.subject)}${star}</span><span style="color:${accColor(g.accuracy)}">${fmt(g.accuracy)}%</span></div>
+        <div class="bar2"><span style="width:${Math.max(2, g.accuracy)}%;--c:${accColor(g.accuracy)}"></span></div>
+        <div class="meta">${g.correct}/${g.answered} câu đúng</div></div>`;
+    }).join('') : `<div class="muted">Chưa làm câu nào.</div>`;
+    const maxN = Math.max(1, ...p.activity.map((d) => d.count));
+    const days = p.activity.map((d) => `<div class="day" title="${d.label}: ${d.count} lượt làm">
+      <div class="n">${d.count || ''}</div><div class="col ${d.count ? '' : 'zero'}" style="height:${d.count ? Math.max(8, Math.round(d.count / maxN * 100)) : 4}px"></div>
+      <div class="l">${d.label.slice(0, 5)}</div></div>`).join('');
+    html += `<div class="grid g2 mt">
+      <div class="card"><h3>Kết quả theo môn</h3><div class="sub">${p.strongest ? `Môn mạnh nhất: <b>${esc(p.strongest.subject)}</b> (${fmt(p.strongest.accuracy)}%) ⭐` : 'Làm từ 5 câu mỗi môn để xác định môn mạnh nhất'}</div>${subj}</div>
+      <div class="card"><h3>Hoạt động 14 ngày gần đây</h3><div class="sub">Số lượt làm bài mỗi ngày</div><div class="days">${days}</div></div></div>`;
+
+    // huy hiệu
+    html += `<div class="card mt"><h3>Huy hiệu</h3><div class="sub">${earned.length}/${p.badges.length} huy hiệu đã đạt</div><div class="badges">` +
+      p.badges.map((b) => `<div class="badge ${b.earned ? 'earned' : 'locked'}"><div class="ic">${b.icon}</div><div style="flex:1"><b>${esc(b.title)}</b>
+        <div class="d">${esc(b.desc)}</div>
+        ${!b.earned && b.progress ? `<div class="progress" style="height:6px"><span style="width:${Math.min(100, Math.round(b.progress.value * 100 / b.progress.target))}%"></span></div><div class="d">${b.progress.value}/${b.progress.target}</div>` : ''}</div></div>`).join('') +
+      `</div></div>`;
+
+    html += `<div class="muted small mt" style="text-align:center">Bắt đầu luyện từ ${dateVN(p.firstSeen)} · Hoạt động gần nhất ${dateVN(p.lastActive)}</div>`;
+    $('pf').innerHTML = html;
+
+    // gán ảnh đại diện bằng DOM (không qua innerHTML) và chỉ nhận ảnh dạng data:image
+    if (saved && /^data:image\//.test(saved)) {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = saved;
+      const box = $('pfAvatar');
+      box.textContent = '';
+      box.appendChild(img);
+    }
+  }
+
+  async function load() {
+    try {
+      const res = await fetch('/api/leaderboard/profile/' + encodeURIComponent(target));
+      if (res.status === 401) { location.href = '1.html'; return; }
+      const d = await res.json().catch(() => ({}));
+      if (res.status === 404) return showMessage('🔍', 'Không tìm thấy người dùng này.', `<a class="btn" href="bangxephang.html">Về bảng xếp hạng</a>`);
+      if (!res.ok) return showMessage('⚠️', d.message || 'Không tải được hồ sơ.');
+      render(d.profile);
+    } catch (e) {
+      showMessage('⚠️', 'Không kết nối được tới máy chủ.');
+    }
+  }
+  load();
+})();
+</script>
+</body>
+</html>

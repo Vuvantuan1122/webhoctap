@@ -1,25 +1,27 @@
-// ✅ Khởi tạo kết nối socket
-// Nếu chạy cùng server backend (localhost hoặc Render)
+// Khởi tạo kết nối socket (cùng server backend)
 const socket = io();
 
-// Nếu frontend tách riêng (VD: GitHub Pages, còn backend ở Render) thì dùng:
-// const socket = io("https://ten-backend.onrender.com");
-
-// ------------------------
-// Xử lý DOM
-// ------------------------
 const form = document.getElementById('form');
 const input = document.getElementById('input');
 const messages = document.getElementById('messages');
-const fileInput = document.getElementById('file-input');   // đúng id trong <input type="file" id="file-input">
-const attachFileBtn = document.getElementById('attach-file');   // đúng id trong <button id="attach-file">
-const attachImageBtn = document.getElementById('attach-image'); // đúng id trong <button id="attach-image">
-const attachVideoBtn = document.getElementById('attach-video'); // đúng id trong <button id="attach-video">
+const fileInput = document.getElementById('file-input');
+const attachFileBtn = document.getElementById('attach-file');
+const attachImageBtn = document.getElementById('attach-image');
+const attachVideoBtn = document.getElementById('attach-video');
+const esc = (window.Shell && Shell.esc) || (s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
 
+// Tên người dùng hiện tại (để căn tin nhắn của mình sang phải)
+let myName = (window.Shell && Shell.userData && Shell.userData.username) || null;
+fetch('/me').then(r => r.ok ? r.json() : null).then(u => { if (u && u.username) myName = u.username; }).catch(() => {});
 
-// ------------------------
+function pushItem(li) {
+  const empty = document.getElementById('chat-empty');
+  if (empty) empty.remove();
+  messages.appendChild(li);
+  messages.scrollTop = messages.scrollHeight;
+}
+
 // Gửi tin nhắn text
-// ------------------------
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   const text = input.value?.trim();
@@ -28,76 +30,61 @@ form.addEventListener('submit', (e) => {
   input.value = '';
 });
 
-// ------------------------
 // Gửi file upload
-// ------------------------
 attachFileBtn.addEventListener('click', () => fileInput.click());
 attachImageBtn.addEventListener('click', () => fileInput.click());
 attachVideoBtn.addEventListener('click', () => fileInput.click());
 
-
 fileInput.addEventListener('change', async () => {
   const file = fileInput.files[0];
   if (!file) return;
-
   const formData = new FormData();
   formData.append('file', file);
-
   try {
-    // ✅ Sử dụng window.location.origin để chạy đúng cả local lẫn deploy
-    const res = await fetch(`${window.location.origin}/chat-upload`, {
-      method: 'POST',
-      body: formData
-    });
+    const res = await fetch(`${window.location.origin}/chat-upload`, { method: 'POST', body: formData });
     const data = await res.json();
-    if (data.url) {
-      socket.emit('chatMessage', data.url);
-    }
+    if (data.url) socket.emit('chatMessage', data.url);
   } catch (err) {
     console.error('Upload thất bại:', err);
   }
+  fileInput.value = '';
 });
 
-// ------------------------
 // Nhận tin nhắn
-// ------------------------
 socket.on('chatMessage', (raw) => {
-  const payload = (raw && typeof raw === 'object')
-    ? raw
-    : { user: 'Ẩn danh', message: String(raw ?? '') };
-
+  const payload = (raw && typeof raw === 'object') ? raw : { user: 'Ẩn danh', message: String(raw ?? '') };
   const user = payload.user ?? 'Ẩn danh';
   const msg = String(payload.message ?? '');
-
-  const li = document.createElement('li');
   const url = msg.split('?')[0].split('#')[0];
+  const safe = esc(msg);
 
-  if (/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(url)) {
-    li.innerHTML = `<b>${user}:</b><br><img src="${msg}" style="max-width:220px;border-radius:8px">`;
-  } else if (/\.(mp4|webm|ogg|mov|m4v)$/i.test(url)) {
-    li.innerHTML = `<b>${user}:</b><br><video src="${msg}" controls style="max-width:260px;border-radius:8px"></video>`;
+  let body;
+  if (/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(url) && /^https?:\/\//i.test(msg)) {
+    body = `<a href="${safe}" target="_blank" rel="noopener"><img src="${safe}" alt="Hình ảnh"></a>`;
+  } else if (/\.(mp4|webm|ogg|mov|m4v)$/i.test(url) && /^https?:\/\//i.test(msg)) {
+    body = `<video src="${safe}" controls></video>`;
   } else if (/^https?:\/\//i.test(msg)) {
-    li.innerHTML = `<b>${user}:</b> <a href="${msg}" target="_blank">📎 Tệp đính kèm</a>`;
+    body = `<a href="${safe}" target="_blank" rel="noopener">📎 Tệp đính kèm</a>`;
   } else {
-    li.textContent = `${user}: ${msg}`;
+    body = safe;
   }
 
-  messages.appendChild(li);
-  window.scrollTo(0, document.body.scrollHeight);
+  const li = document.createElement('li');
+  li.className = 'msg' + (myName && user === myName ? ' mine' : '');
+  li.innerHTML = `<span class="who">${esc(user)}</span><div class="bubble">${body}</div>`;
+  pushItem(li);
 });
 
-// ------------------------
-// Nhận thông báo từ server
-// ------------------------
+// Thông báo từ server
 socket.on('serverMessage', (msg) => {
   const li = document.createElement('li');
-  li.style.color = "gray";
+  li.className = 'sys';
   li.textContent = msg;
-  messages.appendChild(li);
+  pushItem(li);
 });
 
 // Đếm số người online
 socket.on('onlineCount', (n) => {
-  const el = document.getElementById('onlineCount');
-  if (el) el.textContent = `👥 ${n} người đang online`;
+  const el = document.getElementById('online-users');
+  if (el) el.textContent = n;
 });

@@ -1,0 +1,20 @@
+/* Trang lớp học (học sinh + giáo viên) */
+.cls-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.class-card{background:rgba(255,255,255,.04);border:1px solid var(--border-color);border-radius:16px;padding:18px;transition:.2s}
+.class-card:hover{transform:translateY(-3px);border-color:rgba(58,123,253,.6)}
+.class-card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.class-card h4{font-size:1.05rem;font-weight:600;overflow-wrap:anywhere}
+.join-code{display:inline-flex;align-items:center;gap:6px;background:rgba(58,123,253,.15);color:#9cc0ff;border:1px solid rgba(58,123,253,.4);padding:4px 12px;border-radius:999px;font-weight:600;font-size:.8rem;letter-spacing:1px}
+.class-card .meta{display:grid;gap:6px;color:var(--text-secondary);font-size:.88rem}
+.class-card .meta b{color:var(--text-primary);font-weight:500}
+.class-card .meta i{color:var(--primary-color);margin-right:6px}
+.pending-list{margin-top:14px;padding-top:14px;border-top:1px solid var(--border-color)}
+.pending-list h5{font-size:.85rem;font-weight:600;color:#ffc58a;margin-bottom:10px}
+.pending-list ul{list-style:none;display:grid;gap:8px}
+.pending-list li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:rgba(255,159,67,.08);border:1px solid rgba(255,159,67,.25);font-size:.88rem}
+.pending-list li > div{display:flex;gap:6px}
+.all-ok{margin-top:14px;color:#7be3a6;font-size:.85rem;display:flex;align-items:center;gap:6px}
+#joinCode{text-transform:uppercase;letter-spacing:3px;text-align:center;font-weight:600}
+.who-line{color:var(--text-secondary);font-size:.88rem;margin:-8px 0 18px}
+.side-sticky{position:sticky;top:calc(var(--header-height) + 30px)}
+@media(max-width:992px){.side-sticky{position:static}}

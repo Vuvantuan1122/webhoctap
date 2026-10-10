@@ -869,6 +869,8 @@
                 <a href="forum.html"><i class='bx bxs-help-circle'></i> <span>Góc Hỏi Đáp</span></a>
                 <a href="exams.html"><i class='bx bxs-edit-alt'></i> <span>Kiểm tra</span></a>
                 <a href="nganhangcauhoi.html"><i class='bx bxs-book-content'></i> <span>Ngân hàng câu hỏi</span></a>
+                <a href="bangxephang.html"><i class='bx bxs-trophy'></i> <span>Bảng xếp hạng</span></a>
+                <a href="profile.html"><i class='bx bx-id-card'></i> <span>Hồ sơ của tôi</span></a>
                 <a href="chat.html"><i class='bx bxs-message-dots'></i> <span>Trò chuyện</span></a>
             </nav>
             <button id="logoutBtn">
@@ -893,6 +895,7 @@
     <div class="modal-overlay" id="modal-overlay"></div>
 
     <div class="modal" id="avatarMenu">
+        <button id="viewProfile"><i class='bx bx-id-card'></i> Xem hồ sơ của tôi</button>
         <button id="viewAvatar"><i class='bx bx-user-circle'></i> Xem ảnh đại diện</button>
         <button id="changeAvatar"><i class='bx bx-image-add'></i> Đổi ảnh đại diện</button>
         <button id="deleteAvatar"><i class='bx bx-trash'></i> Xoá ảnh đại diện</button>
@@ -972,6 +975,10 @@
         avatar.addEventListener('click', (e) => {
             e.stopPropagation();
             openModal(avatarMenu);
+        });
+
+        document.getElementById('viewProfile').addEventListener('click', () => {
+            window.location.href = 'profile.html';
         });
 
         document.getElementById('viewAvatar').addEventListener('click', () => {

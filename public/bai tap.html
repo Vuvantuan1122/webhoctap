@@ -1,487 +1,115 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nộp bài tập</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary-color: #4a90e2;
-            --primary-hover-color: #357ABD;
-            --danger-color: #e94e77;
-            --danger-hover-color: #D93B65;
-            --success-color: #4bb543;
-            --warning-color: #f0ad4e;
-            --dark-color: #2c3e50;
-            --light-color: #f8f9fa;
-            --text-color: #34495e;
-            --text-light: #7f8c8d;
-            --border-color: #ecf0f1;
-            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--light-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .container {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: var(--card-shadow);
-            max-width: 800px;
-            width: 100%;
-        }
-
-        .header {
-            color: var(--primary-color);
-            margin-bottom: 30px;
-            font-weight: 700;
-            text-align: center;
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 15px;
-        }
-
-        /* --- Sửa cho Dropdown Lớp học --- */
-        .input-container {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        .form-select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            font-size: 16px;
-            box-sizing: border-box;
-            background-color: #fff;
-            color: var(--text-color);
-        }
-        /* --- Kết thúc Sửa cho Dropdown Lớp học --- */
-
-
-        .upload-zone {
-            border: 2px dashed var(--primary-color);
-            border-radius: 10px;
-            padding: 40px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 20px;
-            background-color: rgba(74, 144, 226, 0.05);
-        }
-
-        .upload-zone.dragover {
-            background-color: rgba(74, 144, 226, 0.15);
-            border-color: var(--primary-hover-color);
-        }
-
-        .upload-zone i {
-            font-size: 3em;
-            color: var(--primary-color);
-            margin-bottom: 10px;
-        }
-
-        .upload-zone p {
-            margin: 0;
-            font-weight: 500;
-            color: var(--text-color);
-        }
-
-        .btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.1s;
-        }
-
-        .btn:active {
-            transform: scale(0.98);
-        }
-
-        .btn-primary {
-            background-color: var(--primary-color);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: var(--primary-hover-color);
-        }
-
-        .btn-danger {
-            background-color: var(--danger-color);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background-color: var(--danger-hover-color);
-        }
-
-        .file-list {
-            list-style: none;
-            padding: 0;
-            margin-top: 20px;
-        }
-
-        .file-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 15px;
-            margin-bottom: 8px;
-            background-color: #f0f3f5;
-            border-radius: 6px;
-            font-size: 0.9em;
-        }
-
-        .file-item span {
-            flex-grow: 1;
-            text-align: left;
-            margin-right: 15px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .delete-file-btn {
-            background: none;
-            border: none;
-            color: var(--danger-color);
-            cursor: pointer;
-            font-size: 1.1em;
-            transition: color 0.2s;
-        }
-
-        .delete-file-btn:hover {
-            color: var(--danger-hover-color);
-        }
-
-        .controls-group {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 30px;
-            gap: 10px;
-        }
-        
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, .2);
-            border-top: 4px solid #fff;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            margin-right: 8px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 600px) {
-            .container {
-                padding: 20px;
-            }
-            .controls-group {
-                flex-direction: column;
-            }
-            .btn {
-                width: 100%;
-                margin-bottom: 10px;
-            }
-            .file-item {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 10px;
-            }
-            .file-item span {
-                margin-bottom: 5px;
-                white-space: normal;
-                word-break: break-all;
-            }
-        }
-    </style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nộp bài tập | NT</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="hw.css">
 </head>
-
-<body>
-    <div class="container">
-        <h1 class="header">Nộp bài tập</h1>
-        
-        <div class="input-container">
-            <label for="classroomSelect" style="font-weight: 500;">Chọn Lớp học:</label>
-            <select id="classroomSelect" class="form-select" required>
-                <option value="" disabled selected>-- Đang tải lớp học... --</option>
-            </select>
-        </div>
-        <div class="upload-zone" id="dropZone">
-            <input type="file" id="fileInput" multiple accept="image/*, .pdf" hidden>
-            <i class="fas fa-cloud-upload-alt"></i>
-            <p>Kéo thả ảnh/PDF vào đây hoặc <span style="color: var(--primary-color); font-weight: 600;">Chọn tệp</span></p>
-        </div>
-
-        <ul class="file-list" id="fileList">
-            </ul>
-        
-        <div class="controls-group">
-            <button class="btn btn-danger" id="deleteAllBtn">
-                <i class="fas fa-trash-alt"></i> Xóa tất cả
-            </button>
-            <button class="btn btn-primary" id="submitBtn">
-                <i class="fas fa-paper-plane"></i> <span>Gửi Bài</span>
-            </button>
-        </div>
+<body data-active="homework">
+<main>
+  <div class="wrap" style="max-width:820px">
+    <div class="page-head">
+      <div>
+        <h1>Nộp bài tập</h1>
+        <p>Chụp ảnh bài làm, nộp và nhận ngay nhận xét lỗi sai</p>
+      </div>
+      <div class="tabs">
+        <a href="bai tap.html" class="on"><i class='bx bx-upload'></i> Nộp bài</a>
+        <a href="baitapvn.html"><i class='bx bx-folder-open'></i> Bài đã nộp</a>
+      </div>
     </div>
 
-    <script>
-        let fileList = [];
-        let uploadedImages = [];
-        const fileInput = document.getElementById('fileInput');
-        const dropZone = document.getElementById('dropZone');
-        const submitBtn = document.getElementById('submitBtn');
-        const deleteAllBtn = document.getElementById('deleteAllBtn');
-        const fileListContainer = document.getElementById('fileList');
+    <div class="panel">
+      <h2><span class="step">1</span> Chọn lớp học</h2>
+      <select id="cls" class="hw-sel"><option value="">Đang tải lớp học…</option></select>
+    </div>
 
-        // Hàm hỗ trợ: Định dạng kích thước file
-        function formatBytes(bytes, decimals = 2) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-        }
+    <div class="panel">
+      <h2><span class="step">2</span> Tải bài làm lên</h2>
+      <div class="drop" id="drop"><i class="fas fa-cloud-arrow-up"></i>
+        <p>Kéo thả ảnh/PDF vào đây hoặc <b style="color:#7fb0ff">chọn tệp</b></p>
+        <p style="font-size:.8rem">Tối đa 10 tệp · ảnh nên rõ nét, đủ sáng</p></div>
+      <input type="file" id="file" multiple accept="image/*,.pdf" hidden>
+      <div class="prev" id="prev"></div>
+      <div class="acts" style="justify-content:flex-end">
+        <button class="btn btn-r" id="clr"><i class='bx bx-trash'></i> Xóa tất cả</button>
+        <button class="btn btn-p" id="send"><i class='bx bx-send'></i> <span>Gửi bài</span></button>
+      </div>
+    </div>
 
-        // --- Logic Xử lý File ---
-        function handleFileSelection(files) {
-            Array.from(files).forEach(file => {
-                if (file.type.startsWith('image/') || file.type === 'application/pdf') {
-                    // Kiểm tra trùng lặp
-                    const isDuplicate = fileList.some(existingFile => existingFile.name === file.name && existingFile.size === file.size);
-                    if (!isDuplicate) {
-                        fileList.push(file);
-                    } else {
-                        alert(`File "${file.name}" đã tồn tại và bị bỏ qua.`);
-                    }
-                } else {
-                    alert(`File "${file.name}" không phải là ảnh hoặc PDF và đã bị bỏ qua.`);
-                }
-            });
-            renderFileList();
-        }
+    <div class="panel">
+      <h2><span class="step">3</span> Bài đã nộp &amp; nhận xét</h2>
+      <div id="done"><div class="empty">Chọn lớp để xem bài đã nộp.</div></div>
+    </div>
+  </div>
+</main>
 
-        function renderFileList() {
-            fileListContainer.innerHTML = '';
-            
-            // 1. Hiển thị danh sách ảnh/file chuẩn bị nộp
-            if (fileList.length > 0) {
-                fileList.forEach((file, index) => {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'file-item';
-                    listItem.innerHTML = `
-                        <span>${file.name} (${formatBytes(file.size)})</span>
-                        <button class="delete-file-btn" data-index="${index}"><i class="fas fa-times"></i></button>
-                    `;
-                    fileListContainer.appendChild(listItem);
-                });
-            } else {
-                fileListContainer.innerHTML = '<li class="file-item" style="justify-content: center; color: var(--text-light);">Chưa có tệp nào được chọn.</li>';
-            }
+<script src="shell.js"></script>
+<script src="hw.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let files = [], mine = [], me = null;
 
-            // 2. Hiển thị danh sách ảnh/file đã nộp trước đó (dưới dạng thông báo)
-            const classroomId = document.getElementById('classroomSelect').value;
-            const filteredImages = uploadedImages.filter(img => img.classId === classroomId);
+(async () => {
+  try { const r = await fetch('/me'); if (r.ok) me = await r.json(); } catch {}
+  try {
+    const r = await fetch('/api/classrooms/my'); const c = await r.json();
+    if (!r.ok || !c.length) { $('cls').innerHTML = '<option value="">Không tìm thấy lớp học</option>'; return; }
+    $('cls').innerHTML = '<option value="">— Chọn lớp học của bạn —</option>' + c.map(x => `<option value="${HW.esc(x._id)}">${HW.esc(x.name)}</option>`).join('');
+  } catch { $('cls').innerHTML = '<option value="">Lỗi tải lớp học</option>'; }
+})();
 
-            if (filteredImages.length > 0) {
-                const infoItem = document.createElement('li');
-                infoItem.className = 'file-item';
-                infoItem.style.backgroundColor = '#d4edda'; // Xanh lá nhẹ
-                infoItem.style.color = '#155724'; // Chữ xanh đậm
-                infoItem.style.justifyContent = 'center';
-                infoItem.innerHTML = `
-                    <i class="fas fa-check-circle me-2"></i> 
-                    <span>Bạn đã nộp ${filteredImages.length} bài cho lớp này trước đó.</span>
-                `;
-                fileListContainer.appendChild(infoItem);
-            }
+function addFiles(list) {
+  [...list].forEach(f => {
+    if (!(f.type.startsWith('image/') || f.type === 'application/pdf')) return HW.toast(`"${f.name}" không phải ảnh/PDF`);
+    if (files.some(x => x.name === f.name && x.size === f.size)) return HW.toast(`"${f.name}" đã được chọn`);
+    if (files.length >= 10) return HW.toast('Tối đa 10 tệp mỗi lần nộp');
+    files.push(f);
+  });
+  drawPrev();
+}
+function drawPrev() {
+  $('prev').innerHTML = files.map((f, i) => `<div class="it">${f.type === 'application/pdf' ? '<div class="pdf"><i class="fas fa-file-pdf"></i></div>' : `<img src="${URL.createObjectURL(f)}" alt="">`}<small>${HW.esc(f.name)}</small><button class="x" data-i="${i}">×</button></div>`).join('');
+}
+$('prev').onclick = e => { const b = e.target.closest('.x'); if (b) { files.splice(+b.dataset.i, 1); drawPrev(); } };
+$('drop').onclick = () => $('file').click();
+$('file').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+$('drop').ondragover = e => { e.preventDefault(); $('drop').classList.add('over'); };
+$('drop').ondragleave = () => $('drop').classList.remove('over');
+$('drop').ondrop = e => { e.preventDefault(); $('drop').classList.remove('over'); addFiles(e.dataTransfer.files); };
+$('clr').onclick = () => { if (files.length && confirm('Xóa tất cả tệp đã chọn?')) { files = []; drawPrev(); } };
 
-            // Cập nhật sự kiện xóa
-            document.querySelectorAll('.delete-file-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const index = parseInt(e.currentTarget.getAttribute('data-index'));
-                    fileList.splice(index, 1);
-                    renderFileList();
-                });
-            });
-        }
+$('send').onclick = async () => {
+  if (!$('cls').value) return HW.toast('⚠️ Hãy chọn lớp học trước');
+  if (!files.length) return HW.toast('⚠️ Hãy chọn ít nhất một tệp');
+  const b = $('send'); b.disabled = true; b.querySelector('span').textContent = 'Đang gửi…';
+  const fd = new FormData(); files.forEach(f => fd.append('images', f)); fd.append('classId', $('cls').value);
+  try {
+    const r = await fetch('/api/upload', { method: 'POST', body: fd }); const d = await r.json();
+    if (!r.ok) throw new Error(d.message || d.error || 'Không thể nộp bài');
+    HW.toast('✅ Nộp bài thành công! Bấm vào bài để nhờ AI nhận xét.'); files = []; drawPrev(); loadMine();
+  } catch (e) { HW.toast('❌ ' + e.message); }
+  b.disabled = false; b.querySelector('span').textContent = 'Gửi bài';
+};
 
-        function deleteAllImages() {
-            if (confirm("Bạn có chắc chắn muốn xóa tất cả các tệp đã chọn?")) {
-                fileList = [];
-                renderFileList();
-            }
-        }
-
-        // --- Logic Tải và Nộp ---
-
-        // THÊM: Hàm tải danh sách lớp học
-        async function loadClassrooms() {
-            try {
-                const select = document.getElementById('classroomSelect');
-                select.innerHTML = '<option value="" disabled selected>-- Đang tải lớp học... --</option>';
-
-                const res = await fetch('/api/classrooms/my'); 
-                const classrooms = await res.json();
-                
-                if (!res.ok || classrooms.length === 0) {
-                    select.innerHTML = '<option value="" disabled selected>Không tìm thấy lớp học</option>';
-                    return;
-                }
-
-                select.innerHTML = '<option value="" disabled selected>-- Chọn lớp học của bạn --</option>';
-                classrooms.forEach(cls => {
-                    const option = document.createElement('option');
-                    option.value = cls._id;
-                    option.textContent = cls.name;
-                    select.appendChild(option);
-                });
-
-                // GỌI loadImages khi lớp học được chọn
-                select.addEventListener('change', loadImages);
-
-            } catch (error) {
-                console.error("Lỗi khi tải lớp học:", error);
-                document.getElementById('classroomSelect').innerHTML = '<option value="" disabled selected>Lỗi tải lớp học</option>';
-            }
-        }
-
-        // SỬA: Hàm tải ảnh đã nộp, lọc theo lớp học
-        async function loadImages() {
-            const classroomId = document.getElementById('classroomSelect').value;
-            if (!classroomId) {
-                uploadedImages = [];
-                renderFileList();
-                return; 
-            }
-            
-            try {
-                // Thêm classId vào query
-                const res = await fetch(`/api/images?classId=${classroomId}`);
-                if (!res.ok) throw new Error("Không thể tải ảnh đã nộp.");
-                
-                const data = await res.json();
-                uploadedImages = data || []; // SỬA: Xử lý trực tiếp array từ API (không dùng .images)
-                renderFileList();
-
-            } catch(error) {
-                console.error("Lỗi tải ảnh:", error);
-                uploadedImages = [];
-                renderFileList();
-            }
-        }
-
-        // SỬA: Hàm nộp bài, gửi kèm classId
-        async function uploadFiles() {
-            const classId = document.getElementById('classroomSelect').value;
-            if (!classId) {
-                alert("⚠️ Vui lòng chọn lớp học trước khi nộp bài!");
-                return;
-            }
-
-            if (fileList.length === 0) {
-                alert("⚠️ Vui lòng chọn ảnh để nộp.");
-                return;
-            }
-
-            setLoading(true);
-            const formData = new FormData();
-
-            fileList.forEach(file => {
-                formData.append('images', file);
-            });
-            
-            // THÊM classId vào formData
-            formData.append('classId', classId);
-
-            try {
-                const res = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                const result = await res.json();
-                if (res.ok) {
-                    alert("✅ Nộp bài tập thành công!");
-                    fileList = []; 
-                    loadImages(); // Tải lại danh sách ảnh đã nộp cho lớp hiện tại
-                } else {
-                    alert("❌ Lỗi: " + (result.error || "Không thể nộp bài."));
-                }
-            } catch (error) {
-                alert("❌ Đã xảy ra lỗi kết nối server.");
-            } finally {
-                setLoading(false);
-            }
-        }
-        
-        // --- Utility ---
-        function setLoading(isLoading) {
-             const icon = submitBtn.querySelector('i');
-             const text = submitBtn.querySelector('span');
-             submitBtn.disabled = isLoading;
-             if (isLoading) {
-                 icon.className = 'spinner';
-                 text.textContent = 'Đang gửi...';
-             } else {
-                 icon.className = 'fas fa-paper-plane';
-                 text.textContent = 'Gửi Bài';
-             }
-        }
-
-        // --- Event Listeners ---\
-        submitBtn.addEventListener('click', uploadFiles);
-        deleteAllBtn.addEventListener('click', deleteAllImages);
-        
-        dropZone.addEventListener('click', () => fileInput.click()); // Kích hoạt input khi click dropzone
-        
-        fileInput.addEventListener('change', (e) => {
-             handleFileSelection(e.target.files);
-             e.target.value = ''; // Reset input to allow re-selecting the same file
-        });
-        
-        if (dropZone) {
-            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-            dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('dragover');
-                if (e.dataTransfer.files.length > 0) {
-                    handleFileSelection(e.dataTransfer.files);
-                }
-            });
-        }
-
-        // --- Initial Load ---
-        window.onload = () => {
-            loadClassrooms();
-            renderFileList(); // Show empty message on start
-        };
-
-    </script>
+async function loadMine() {
+  const id = $('cls').value; if (!id) { mine = []; return drawDone(); }
+  try { const r = await fetch('/api/images?classId=' + encodeURIComponent(id)); const d = await r.json(); mine = r.ok ? d.filter(s => !me || s.userId === me.username) : []; }
+  catch { mine = []; }
+  drawDone();
+}
+function drawDone() {
+  $('done').innerHTML = !$('cls').value ? '<div class="empty">Chọn lớp để xem bài đã nộp.</div>' : !mine.length ? '<div class="empty">Bạn chưa nộp bài nào cho lớp này.</div>' :
+    mine.map(s => `<div class="srow" data-id="${s.id}"><div class="t" style="${HW.thumb(s.url)}">${HW.isPdf(s.url) ? '<i class="fas fa-file-pdf"></i>' : ''}</div>
+      <div class="m"><b>${HW.esc(s.fileName || 'Bài nộp')}</b><span>${HW.fmt(s.timestamp)}</span><div style="margin-top:4px">${HW.tag(s.feedback)}${s.feedback ? ` <span style="font-size:.78rem;color:var(--text-secondary)">· ${s.feedback.mistakes?.length || 0} lỗi cần sửa</span>` : ''}</div></div>
+      <i class="fas fa-chevron-right" style="color:var(--text-secondary)"></i></div>`).join('');
+}
+$('done').onclick = e => { const r = e.target.closest('.srow'); if (r) HW.open(mine.find(x => x.id === r.dataset.id), { role: 'student', onChange: drawDone }); };
+$('cls').onchange = loadMine;
+</script>
 </body>
 </html>
