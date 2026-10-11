@@ -31,6 +31,16 @@ const submissionSchema = new mongoose.Schema({
     fileUrl: { type: String, required: true },
     fileName: { type: String, required: true },
     timestamp: { type: Date, default: Date.now },
+    feedback: {
+        by: { type: String, enum: ['teacher', 'ai'] },
+        score: Number,
+        summary: String,
+        strengths: [String],
+        mistakes: [{ issue: String, fix: String, _id: false }],
+        tips: String,
+        reviewer: String,
+        at: Date,
+    },
 });
 const Submission = mongoose.model("Submission", submissionSchema);
 
@@ -466,6 +476,9 @@ app.get('/api/images', async (req, res) => {
 
     // 🖼️ Chuẩn hóa dữ liệu trả về
     const images = submissions.map(sub => ({
+      id: sub._id.toString(),
+      fileName: sub.fileName,
+      feedback: sub.feedback && sub.feedback.by ? sub.feedback : null,
       url: sub.fileUrl,
       classId: sub.classId?.toString(),
       userId: sub.userId,
@@ -478,6 +491,102 @@ app.get('/api/images', async (req, res) => {
     res.status(500).json({ message: "Lỗi server khi tải ảnh bài tập." });
   }
 });
+// =================================================================
+// NHẬN XÉT BÀI NỘP (giáo viên tự viết / AI chấm)
+// =================================================================
+async function loadSubmissionForUser(req, res) {
+  const user = req.session.user;
+  if (!user) { res.status(401).json({ message: "Bạn cần đăng nhập." }); return null; }
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) { res.status(400).json({ message: "ID bài nộp không hợp lệ." }); return null; }
+  const sub = await Submission.findById(req.params.id);
+  if (!sub) { res.status(404).json({ message: "Không tìm thấy bài nộp." }); return null; }
+  if (user.role === "teacher") {
+    const cls = await Classroom.findById(sub.classId);
+    if (!cls || cls.teacherUsername !== user.username) { res.status(403).json({ message: "Bạn không có quyền với bài nộp của lớp này." }); return null; }
+  } else if (sub.userId !== user.username) {
+    res.status(403).json({ message: "Bạn chỉ được nhờ AI nhận xét bài của mình." }); return null;
+  }
+  return sub;
+}
+
+// Giáo viên tự viết / sửa nhận xét
+app.post('/api/submissions/:id/feedback', async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user || user.role !== "teacher") return res.status(403).json({ message: "Chỉ giáo viên mới được viết nhận xét." });
+    const sub = await loadSubmissionForUser(req, res); if (!sub) return;
+    const b = req.body || {};
+    const clean = a => (Array.isArray(a) ? a : []).map(x => String(x || '').trim()).filter(Boolean);
+    let score = b.score === '' || b.score == null ? undefined : Number(b.score);
+    if (score !== undefined && (!Number.isFinite(score) || score < 0 || score > 10)) return res.status(400).json({ message: "Điểm phải từ 0 đến 10." });
+    sub.feedback = {
+      by: 'teacher', score,
+      summary: String(b.summary || '').trim(),
+      strengths: clean(b.strengths),
+      mistakes: (Array.isArray(b.mistakes) ? b.mistakes : []).map(m => ({ issue: String(m.issue || '').trim(), fix: String(m.fix || '').trim() })).filter(m => m.issue || m.fix),
+      tips: String(b.tips || '').trim(),
+      reviewer: user.fullName || user.name || user.username,
+      at: new Date(),
+    };
+    await sub.save();
+    res.json({ feedback: sub.feedback });
+  } catch (err) {
+    console.error("❌ Lỗi lưu nhận xét:", err);
+    res.status(500).json({ message: "Lỗi server khi lưu nhận xét." });
+  }
+});
+
+// Nhờ AI nhận xét (cần model có đọc được ảnh)
+app.post('/api/submissions/:id/ai-feedback', async (req, res) => {
+  try {
+    const sub = await loadSubmissionForUser(req, res); if (!sub) return;
+    if (req.session.user.role !== "teacher" && sub.feedback && sub.feedback.by === 'teacher')
+      return res.status(403).json({ message: "Giáo viên đã nhận xét bài này." });
+    if (/\.pdf($|\?)/i.test(sub.fileUrl)) return res.status(400).json({ message: "AI hiện chỉ đọc được file ảnh, chưa đọc được PDF." });
+
+    const apiKey = process.env.AI_API_KEY || process.env.GROQ_API_KEY;
+    if (!apiKey) return res.status(503).json({ message: "Chưa cấu hình AI_API_KEY (hoặc GROQ_API_KEY) trong file .env." });
+    const apiUrl = process.env.AI_API_URL || "https://api.groq.com/openai/v1/chat/completions";
+    const model = process.env.AI_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct";
+
+    const prompt = `Bạn là giáo viên chấm bài tập về nhà. Hãy xem ảnh bài làm của học sinh và nhận xét bằng tiếng Việt.
+Chỉ trả về JSON hợp lệ, không thêm chữ nào khác, đúng dạng:
+{"score": số từ 0 đến 10, "summary": "nhận xét chung", "strengths": ["điểm làm tốt"], "mistakes": [{"issue": "lỗi sai ở đâu", "fix": "cách sửa"}], "tips": "lời khuyên ôn tập"}`;
+    const r = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model, temperature: 0.2,
+        messages: [{ role: 'user', content: [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: sub.fileUrl } }
+        ] }]
+      })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error((data.error && data.error.message) || `AI trả lỗi ${r.status}`);
+    const text = (((data.choices || [])[0] || {}).message || {}).content || '';
+    const m = text.match(/\{[\s\S]*\}/);
+    if (!m) throw new Error("AI trả về định dạng không đọc được, hãy thử lại.");
+    const j = JSON.parse(m[0]);
+    const score = Number(j.score);
+    sub.feedback = {
+      by: 'ai',
+      score: Number.isFinite(score) ? Math.min(10, Math.max(0, score)) : undefined,
+      summary: String(j.summary || ''),
+      strengths: (Array.isArray(j.strengths) ? j.strengths : []).map(String),
+      mistakes: (Array.isArray(j.mistakes) ? j.mistakes : []).map(x => ({ issue: String(x.issue || ''), fix: String(x.fix || '') })),
+      tips: String(j.tips || ''),
+      at: new Date(),
+    };
+    await sub.save();
+    res.json({ feedback: sub.feedback });
+  } catch (err) {
+    console.error("❌ Lỗi AI nhận xét:", err);
+    res.status(500).json({ message: "AI nhận xét thất bại: " + err.message });
+  }
+});
+
 // XÓA ĐOẠN CODE CŨ VÀ KHÔNG SỬ DỤNG:
 // app.post('/api/upload-baitap', baiTapUpload.single('file'), async (req, res) => { /* ... */ });
 
