@@ -544,28 +544,37 @@ app.post('/api/submissions/:id/ai-feedback', async (req, res) => {
       return res.status(403).json({ message: "Giáo viên đã nhận xét bài này." });
     if (/\.pdf($|\?)/i.test(sub.fileUrl)) return res.status(400).json({ message: "AI hiện chỉ đọc được file ảnh, chưa đọc được PDF." });
 
-    const apiKey = process.env.AI_API_KEY || process.env.GROQ_API_KEY;
-    if (!apiKey) return res.status(503).json({ message: "Chưa cấu hình AI_API_KEY (hoặc GROQ_API_KEY) trong file .env." });
-    const apiUrl = process.env.AI_API_URL || "https://api.groq.com/openai/v1/chat/completions";
-    const model = process.env.AI_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct";
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return res.status(503).json({ message: "Chưa cấu hình GEMINI_API_KEY trong file .env." });
+    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+
+    // Tải ảnh về và gửi dạng base64 (Gemini không tự tải ảnh từ link)
+    const imgRes = await fetch(sub.fileUrl);
+    if (!imgRes.ok) throw new Error("Không tải được ảnh bài nộp (" + imgRes.status + ").");
+    const imgBuf = Buffer.from(await imgRes.arrayBuffer());
+    if (imgBuf.length > 15 * 1024 * 1024) throw new Error("Ảnh quá lớn (trên 15MB) để AI đọc.");
+    let mime = (imgRes.headers.get('content-type') || '').split(';')[0].trim();
+    if (!/^image\//.test(mime)) mime = 'image/jpeg';
 
     const prompt = `Bạn là giáo viên chấm bài tập về nhà. Hãy xem ảnh bài làm của học sinh và nhận xét bằng tiếng Việt.
 Chỉ trả về JSON hợp lệ, không thêm chữ nào khác, đúng dạng:
 {"score": số từ 0 đến 10, "summary": "nhận xét chung", "strengths": ["điểm làm tốt"], "mistakes": [{"issue": "lỗi sai ở đâu", "fix": "cách sửa"}], "tips": "lời khuyên ôn tập"}`;
-    const r = await fetch(apiUrl, {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
-        model, temperature: 0.2,
-        messages: [{ role: 'user', content: [
-          { type: 'text', text: prompt },
-          { type: 'image_url', image_url: { url: sub.fileUrl } }
-        ] }]
+        contents: [{ parts: [
+          { text: prompt },
+          { inline_data: { mime_type: mime, data: imgBuf.toString('base64') } }
+        ] }],
+        generationConfig: { temperature: 0.2, responseMimeType: 'application/json' }
       })
     });
     const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error((data.error && data.error.message) || `AI trả lỗi ${r.status}`);
-    const text = (((data.choices || [])[0] || {}).message || {}).content || '';
+    if (!r.ok) throw new Error((data.error && data.error.message) || `Gemini trả lỗi ${r.status}`);
+    const cand = (data.candidates || [])[0] || {};
+    const text = ((cand.content || {}).parts || []).map(x => x.text || '').join('');
+    if (!text) throw new Error("Gemini không trả về nội dung (có thể bị chặn bởi bộ lọc an toàn), hãy thử lại.");
     const m = text.match(/\{[\s\S]*\}/);
     if (!m) throw new Error("AI trả về định dạng không đọc được, hãy thử lại.");
     const j = JSON.parse(m[0]);
