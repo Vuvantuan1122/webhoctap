@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const QuestionBank = require("../models/QuestionBank");
 const QuestionAttempt = require("../models/QuestionAttempt");
 const { buildStats } = require("../utils/questionStats");
+const { isMultiTF, validateTfData, toBit, gradeAuto, TF_STATEMENTS } = require("../utils/scoring");
 
 const router = express.Router();
 
@@ -75,12 +76,11 @@ function validateQuestion(body) {
     }
     correctAnswer = idx;
   } else if (type === "truefalse") {
-    options = ["Đúng", "Sai"];
-    const idx = Number(body.correctAnswer);
-    if (!Number.isInteger(idx) || idx < 0 || idx > 1) {
-      return { error: "Vui lòng chọn Đúng hoặc Sai." };
-    }
-    correctAnswer = idx;
+    // Đúng/Sai theo Bộ GD&ĐT: 4 ý a, b, c, d; mỗi ý chọn Đúng (0) hoặc Sai (1)
+    options = (Array.isArray(body.options) ? body.options : []).map((o) => String(o || "").trim());
+    const tfErr = validateTfData(options, body.correctAnswer);
+    if (tfErr) return { error: tfErr };
+    correctAnswer = body.correctAnswer.map((v) => toBit(v));
   } else {
     const ans = String(body.correctAnswer || "").trim();
     if (!ans) return { error: "Vui lòng nhập đáp án cho câu trả lời ngắn." };
@@ -192,11 +192,20 @@ router.post("/attempts", requireLogin, async (req, res) => {
     if (!q) return res.status(404).json({ message: "Không tìm thấy câu hỏi." });
 
     let isCorrect;
+    let points = null, correctStatements = null; // chỉ có với câu Đúng/Sai 4 ý
     if (q.type === "shortanswer") {
       if (typeof answer !== "string" || !answer.trim()) {
         return res.status(400).json({ message: "Thiếu câu trả lời." });
       }
       isCorrect = sameShort(answer, q.correctAnswer);
+    } else if (isMultiTF(q)) {
+      if (!Array.isArray(answer) || answer.length !== TF_STATEMENTS || answer.some((v) => toBit(v) === null)) {
+        return res.status(400).json({ message: "Hãy chọn Đúng/Sai cho cả 4 ý." });
+      }
+      const g = gradeAuto(q, answer);
+      isCorrect = g.full;
+      points = g.points;
+      correctStatements = g.correctCount;
     } else {
       const idx = Number(answer);
       if (!Number.isInteger(idx) || idx < 0 || idx >= q.options.length) {
@@ -212,7 +221,7 @@ router.post("/attempts", requireLogin, async (req, res) => {
       type: q.type,
       isCorrect
     });
-    res.status(201).json({ success: true, isCorrect });
+    res.status(201).json({ success: true, isCorrect, points, correctStatements });
   } catch (err) {
     console.error("Lỗi ghi nhận lượt làm bài:", err);
     res.status(500).json({ message: "Lỗi server khi lưu kết quả." });
