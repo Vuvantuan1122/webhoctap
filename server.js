@@ -19,6 +19,7 @@ const Classroom = require("./models/Classroom");
 const http = require('http');
 const { Server } = require('socket.io');
 const { sendVerificationEmail } = require('./utils/mailer');
+const { isMultiTF, gradeAuto, validateTfData, toBit } = require('./utils/scoring');
 const User = require('./models/user');
 const Student = require('./models/student');
 
@@ -31,16 +32,6 @@ const submissionSchema = new mongoose.Schema({
     fileUrl: { type: String, required: true },
     fileName: { type: String, required: true },
     timestamp: { type: Date, default: Date.now },
-    feedback: {
-        by: { type: String, enum: ['teacher', 'ai'] },
-        score: Number,
-        summary: String,
-        strengths: [String],
-        mistakes: [{ issue: String, fix: String, _id: false }],
-        tips: String,
-        reviewer: String,
-        at: Date,
-    },
 });
 const Submission = mongoose.model("Submission", submissionSchema);
 
@@ -277,11 +268,16 @@ const examVideoStorage = new CloudinaryStorage({
 const videoUpload = multer({ storage: examVideoStorage });
 
 app.post("/api/upload-exam-video",
+  (req, res, next) => (req.session.user ? next() : res.status(401).json({ message: "Bạn cần đăng nhập." })),
   videoUpload.single("video"),
   async (req, res) => {
     console.log("🎥 Server vừa nhận video:", req.file?.path);
     try {
-      const { examId, classId, userId } = req.body;
+      const { examId, classId } = req.body;
+      const userId = req.session.user.username; // lấy từ phiên đăng nhập, không tin dữ liệu client gửi
+      if (!mongoose.Types.ObjectId.isValid(examId)) {
+        return res.status(400).json({ message: "ID bài thi không hợp lệ." });
+      }
       if (!req.file) {
         console.warn("⚠️ Không có file trong request");
         return res.status(400).json({ message: "Không có video" });
@@ -350,32 +346,6 @@ app.get("/api/exam-videos", async (req, res) => {
 });
 
 
-app.post("/api/upload-exam-video",
-  videoUpload.single("video"),
-  async (req, res) => {
-    console.log("🎥 Server vừa nhận video:", req.file?.path); // ← thêm
-    try {
-      const { examId, classId, userId } = req.body;
-      if (!req.file) {
-        console.warn("⚠️ Không có file trong request"); // ← thêm
-        return res.status(400).json({ message: "Không có video" });
-      }
-
-      const newVideo = new ExamVideo({
-        userId,
-        examId: new mongoose.Types.ObjectId(examId),
-        classId: classId ? new mongoose.Types.ObjectId(classId) : null,
-        videoUrl: req.file.path
-      });
-      await newVideo.save();
-      console.log("✅ Đã lưu ExamVideo:", newVideo); // ← thêm
-
-      res.json({ message: "✅ Upload thành công!", url: req.file.path });
-    } catch (e) {
-      console.error("❌ Lỗi upload video:", e); // ← thêm
-      res.status(500).json({ message: "Lỗi server" });
-    }
-  });
 // Đảm bảo bạn đã import mongoose ở đầu file, ví dụ: const mongoose = require('mongoose');
 
 // =================================================================
@@ -476,9 +446,6 @@ app.get('/api/images', async (req, res) => {
 
     // 🖼️ Chuẩn hóa dữ liệu trả về
     const images = submissions.map(sub => ({
-      id: sub._id.toString(),
-      fileName: sub.fileName,
-      feedback: sub.feedback && sub.feedback.by ? sub.feedback : null,
       url: sub.fileUrl,
       classId: sub.classId?.toString(),
       userId: sub.userId,
@@ -491,111 +458,6 @@ app.get('/api/images', async (req, res) => {
     res.status(500).json({ message: "Lỗi server khi tải ảnh bài tập." });
   }
 });
-// =================================================================
-// NHẬN XÉT BÀI NỘP (giáo viên tự viết / AI chấm)
-// =================================================================
-async function loadSubmissionForUser(req, res) {
-  const user = req.session.user;
-  if (!user) { res.status(401).json({ message: "Bạn cần đăng nhập." }); return null; }
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) { res.status(400).json({ message: "ID bài nộp không hợp lệ." }); return null; }
-  const sub = await Submission.findById(req.params.id);
-  if (!sub) { res.status(404).json({ message: "Không tìm thấy bài nộp." }); return null; }
-  if (user.role === "teacher") {
-    const cls = await Classroom.findById(sub.classId);
-    if (!cls || cls.teacherUsername !== user.username) { res.status(403).json({ message: "Bạn không có quyền với bài nộp của lớp này." }); return null; }
-  } else if (sub.userId !== user.username) {
-    res.status(403).json({ message: "Bạn chỉ được nhờ AI nhận xét bài của mình." }); return null;
-  }
-  return sub;
-}
-
-// Giáo viên tự viết / sửa nhận xét
-app.post('/api/submissions/:id/feedback', async (req, res) => {
-  try {
-    const user = req.session.user;
-    if (!user || user.role !== "teacher") return res.status(403).json({ message: "Chỉ giáo viên mới được viết nhận xét." });
-    const sub = await loadSubmissionForUser(req, res); if (!sub) return;
-    const b = req.body || {};
-    const clean = a => (Array.isArray(a) ? a : []).map(x => String(x || '').trim()).filter(Boolean);
-    let score = b.score === '' || b.score == null ? undefined : Number(b.score);
-    if (score !== undefined && (!Number.isFinite(score) || score < 0 || score > 10)) return res.status(400).json({ message: "Điểm phải từ 0 đến 10." });
-    sub.feedback = {
-      by: 'teacher', score,
-      summary: String(b.summary || '').trim(),
-      strengths: clean(b.strengths),
-      mistakes: (Array.isArray(b.mistakes) ? b.mistakes : []).map(m => ({ issue: String(m.issue || '').trim(), fix: String(m.fix || '').trim() })).filter(m => m.issue || m.fix),
-      tips: String(b.tips || '').trim(),
-      reviewer: user.fullName || user.name || user.username,
-      at: new Date(),
-    };
-    await sub.save();
-    res.json({ feedback: sub.feedback });
-  } catch (err) {
-    console.error("❌ Lỗi lưu nhận xét:", err);
-    res.status(500).json({ message: "Lỗi server khi lưu nhận xét." });
-  }
-});
-
-// Nhờ AI nhận xét (cần model có đọc được ảnh)
-app.post('/api/submissions/:id/ai-feedback', async (req, res) => {
-  try {
-    const sub = await loadSubmissionForUser(req, res); if (!sub) return;
-    if (req.session.user.role !== "teacher" && sub.feedback && sub.feedback.by === 'teacher')
-      return res.status(403).json({ message: "Giáo viên đã nhận xét bài này." });
-    if (/\.pdf($|\?)/i.test(sub.fileUrl)) return res.status(400).json({ message: "AI hiện chỉ đọc được file ảnh, chưa đọc được PDF." });
-
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return res.status(503).json({ message: "Chưa cấu hình GEMINI_API_KEY trong file .env." });
-    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-
-    // Tải ảnh về và gửi dạng base64 (Gemini không tự tải ảnh từ link)
-    const imgRes = await fetch(sub.fileUrl);
-    if (!imgRes.ok) throw new Error("Không tải được ảnh bài nộp (" + imgRes.status + ").");
-    const imgBuf = Buffer.from(await imgRes.arrayBuffer());
-    if (imgBuf.length > 15 * 1024 * 1024) throw new Error("Ảnh quá lớn (trên 15MB) để AI đọc.");
-    let mime = (imgRes.headers.get('content-type') || '').split(';')[0].trim();
-    if (!/^image\//.test(mime)) mime = 'image/jpeg';
-
-    const prompt = `Bạn là giáo viên chấm bài tập về nhà. Hãy xem ảnh bài làm của học sinh và nhận xét bằng tiếng Việt.
-Chỉ trả về JSON hợp lệ, không thêm chữ nào khác, đúng dạng:
-{"score": số từ 0 đến 10, "summary": "nhận xét chung", "strengths": ["điểm làm tốt"], "mistakes": [{"issue": "lỗi sai ở đâu", "fix": "cách sửa"}], "tips": "lời khuyên ôn tập"}`;
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-      body: JSON.stringify({
-        contents: [{ parts: [
-          { text: prompt },
-          { inline_data: { mime_type: mime, data: imgBuf.toString('base64') } }
-        ] }],
-        generationConfig: { temperature: 0.2, responseMimeType: 'application/json' }
-      })
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error((data.error && data.error.message) || `Gemini trả lỗi ${r.status}`);
-    const cand = (data.candidates || [])[0] || {};
-    const text = ((cand.content || {}).parts || []).map(x => x.text || '').join('');
-    if (!text) throw new Error("Gemini không trả về nội dung (có thể bị chặn bởi bộ lọc an toàn), hãy thử lại.");
-    const m = text.match(/\{[\s\S]*\}/);
-    if (!m) throw new Error("AI trả về định dạng không đọc được, hãy thử lại.");
-    const j = JSON.parse(m[0]);
-    const score = Number(j.score);
-    sub.feedback = {
-      by: 'ai',
-      score: Number.isFinite(score) ? Math.min(10, Math.max(0, score)) : undefined,
-      summary: String(j.summary || ''),
-      strengths: (Array.isArray(j.strengths) ? j.strengths : []).map(String),
-      mistakes: (Array.isArray(j.mistakes) ? j.mistakes : []).map(x => ({ issue: String(x.issue || ''), fix: String(x.fix || '') })),
-      tips: String(j.tips || ''),
-      at: new Date(),
-    };
-    await sub.save();
-    res.json({ feedback: sub.feedback });
-  } catch (err) {
-    console.error("❌ Lỗi AI nhận xét:", err);
-    res.status(500).json({ message: "AI nhận xét thất bại: " + err.message });
-  }
-});
-
 // XÓA ĐOẠN CODE CŨ VÀ KHÔNG SỬ DỤNG:
 // app.post('/api/upload-baitap', baiTapUpload.single('file'), async (req, res) => { /* ... */ });
 
@@ -1002,12 +864,11 @@ app.post('/api/exams', async (req, res) => {
           return res.status(400).json({ message: 'Câu trắc nghiệm phải có ít nhất 2 lựa chọn và đáp án đúng hợp lệ.' });
         }
       } else if (q.type === 'truefalse') {
-        if (!q.options || q.options.length !== 2 || q.correctAnswer === undefined || q.correctAnswer === null || !Number.isInteger(Number(q.correctAnswer)) || Number(q.correctAnswer) < 0 || Number(q.correctAnswer) > 1) {
-          return res.status(400).json({ message: 'Câu Đúng/Sai phải có đúng 2 lựa chọn và đáp án đúng hợp lệ.' });
-        }
-        if (q.options[0] !== 'Đúng' || q.options[1] !== 'Sai') {
-          return res.status(400).json({ message: 'Câu Đúng/Sai phải có lựa chọn "Đúng" và "Sai".' });
-        }
+        // Câu Đúng/Sai theo quy định của Bộ GD&ĐT: 4 ý a, b, c, d; mỗi ý có đáp án Đúng hoặc Sai
+        const tfErr = validateTfData(q.options, q.correctAnswer);
+        if (tfErr) return res.status(400).json({ message: tfErr });
+        q.options = q.options.map((o) => String(o).trim());
+        q.correctAnswer = q.correctAnswer.map((v) => toBit(v));
       } else if (q.type === 'shortanswer') {
         if (q.options && q.options.length > 0) {
           return res.status(400).json({ message: 'Câu trả lời ngắn không được có lựa chọn.' });
@@ -1197,8 +1058,8 @@ app.post("/api/exams/:id/submit", async (req, res) => {
     if (user.role === "student") {
       const studentClassrooms = await Classroom.find({ students: user.username });
       const studentIds = studentClassrooms.map(c => c._id.toString());
-      const examIds = exam.classrooms.map(c => c.toString());
-      if (!examIds.some(id => studentIds.includes(id)))
+      const examIds = (exam.classrooms || []).map(c => c.toString());
+      if (examIds.length > 0 && !examIds.some(id => studentIds.includes(id)))
         return res.status(403).json({ message: "Bạn không thuộc lớp được giao bài thi này." });
     }
 
@@ -1208,7 +1069,7 @@ app.post("/api/exams/:id/submit", async (req, res) => {
       return res.status(400).json({ message: "Danh sách câu trả lời không hợp lệ." });
 
     // Chấm điểm
-    let correctCount = 0, hasShortAnswer = false; // <--- KHAI BÁO BIẾN correctCount Ở ĐÂY
+    let correctCount = 0, totalPoints = 0, hasShortAnswer = false; // correctCount = số câu đúng hoàn toàn; totalPoints = tổng điểm (mỗi câu tối đa 1)
     const detailedAnswers = exam.questions.map((q, i) => {
 // ... (Giữ nguyên logic tính detailedAnswers)
       const studentAns = answers[i];
@@ -1225,23 +1086,43 @@ app.post("/api/exams/:id/submit", async (req, res) => {
         };
       }
 
-      // Trắc nghiệm / Đúng sai
-      const ansIndex = (studentAns !== null && studentAns !== undefined) ? Number(studentAns) : NaN;
-      const correctIndex = Number(q.correctAnswer);
+      // Đúng/Sai 4 ý: chấm theo thang của Bộ GD&ĐT (1 ý 0,1đ; 2 ý 0,25đ; 3 ý 0,5đ; 4 ý 1đ)
+      if (isMultiTF(q)) {
+        const given = Array.isArray(studentAns) ? studentAns : [];
+        const normalized = [0, 1, 2, 3].map((k) => toBit(given[k]));
+        const g = gradeAuto(q, normalized);
+        totalPoints += g.points;
+        if (g.full) correctCount++;
+        return {
+          question: q.question,
+          type: q.type,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          answer: normalized,
+          points: g.points,
+          correctStatements: g.correctCount
+        };
+      }
 
-      if (!Number.isNaN(ansIndex) && ansIndex === correctIndex) correctCount++;
+      // Trắc nghiệm (và Đúng/Sai kiểu cũ): đúng = 1 điểm
+      const ansIndex = (studentAns !== null && studentAns !== undefined) ? Number(studentAns) : NaN;
+      const g = gradeAuto(q, Number.isNaN(ansIndex) ? null : ansIndex);
+      totalPoints += g.points;
+      if (g.full) correctCount++;
       return {
         question: q.question,
         type: q.type,
         options: q.options,
         correctAnswer: q.correctAnswer,
-        answer: Number.isNaN(ansIndex) ? null : ansIndex
+        answer: Number.isNaN(ansIndex) ? null : ansIndex,
+        points: g.points
       };
     });
 // ... (Phần tính score)
+    // Mỗi câu tối đa 1 điểm => điểm thang 10 = tổng điểm các câu / số câu tự chấm * 10
     const autoGradedQuestions = exam.questions.filter(q => q.type !== "shortanswer").length;
     const score = autoGradedQuestions > 0
-      ? Math.round((correctCount / autoGradedQuestions) * 10 * 10) / 10
+      ? Math.round((totalPoints / autoGradedQuestions) * 10 * 100) / 100
       : null;
 
     const result = new Result({
@@ -1257,7 +1138,10 @@ app.post("/api/exams/:id/submit", async (req, res) => {
     // SỬA: Thay score (điểm trên thang 10) bằng correctCount (số câu đúng) cho frontend
     res.json({
       message: "Nộp bài thành công",
-      correctCount: correctCount, // <--- THÊM correctCount
+      correctCount: correctCount, // số câu đúng hoàn toàn
+      totalPoints: Math.round(totalPoints * 100) / 100, // tổng điểm các câu tự chấm (mỗi câu tối đa 1 điểm)
+      autoGradedCount: autoGradedQuestions,
+      score,
       status: result.status,
       submittedAt: result.createdAt,
     });
@@ -1427,35 +1311,88 @@ io.on("connection", (socket) => {
     io.emit("onlineCount", onlineUsers);
   });
 });
+const AI_SYSTEM_PROMPT = [
+  "Bạn là AI Học Tập, trợ lý học tập thân thiện trên nền tảng nộp bài của lớp học.",
+  "Luôn trả lời bằng tiếng Việt (trừ khi người dùng yêu cầu ngôn ngữ khác), ngắn gọn, dễ hiểu, giải từng bước khi là bài tập.",
+  "Định dạng bằng Markdown: **đậm**, danh sách gạch đầu dòng, bảng khi cần.",
+  "Mọi công thức toán/lý/hóa PHẢI viết bằng LaTeX: dùng $...$ cho công thức trong dòng và $$...$$ cho công thức riêng một dòng.",
+  "Ví dụ: $x^2 - 5x + 6 = 0$, $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$. Không dùng \\( \\) hay \\[ \\], không viết công thức dạng chữ thô như x^2 hay sqrt(x).",
+  "Khi cần chèn tiền tệ hãy viết bằng chữ (ví dụ: 5 đô la) để không nhầm với ký hiệu công thức."
+].join("\n");
+
 app.post("/api/chat", async (req, res) => {
   try {
-    const { message } = req.body;
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: message }] }]
-        })
-      }
-    );
-
-    const data = await response.json();
-    let reply = "⚠️ Không có phản hồi từ Gemini.";
-
-    if (data?.candidates?.length > 0) {
-      const parts = data.candidates[0].content?.parts;
-      if (parts && parts.length > 0) {
-        reply = parts.map(p => p.text || "").join("\n");
-      }
+    const message = typeof req.body?.message === "string" ? req.body.message.trim().slice(0, 4000) : "";
+    if (!message) return res.status(400).json({ reply: "⚠️ Bạn chưa nhập câu hỏi." });
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ reply: "⚠️ Server chưa cấu hình GEMINI_API_KEY." });
     }
 
+    // Lịch sử hội thoại (tối đa 10 lượt gần nhất) để AI hiểu ngữ cảnh
+    const history = Array.isArray(req.body?.history) ? req.body.history.slice(-10) : [];
+    const contents = [];
+    for (const h of history) {
+      const text = typeof h?.text === "string" ? h.text.slice(0, 4000) : "";
+      if (!text) continue;
+      const role = h.role === "user" ? "user" : "model";
+      if (contents.length && contents[contents.length - 1].role === role) {
+        contents[contents.length - 1].parts[0].text += "\n" + text; // Gemini yêu cầu xen kẽ user/model
+      } else {
+        contents.push({ role, parts: [{ text }] });
+      }
+    }
+    // Gemini bắt đầu bằng lượt "user"
+    while (contents.length && contents[0].role !== "user") contents.shift();
+    if (contents.length && contents[contents.length - 1].role === "user") {
+      contents[contents.length - 1].parts[0].text += "\n" + message;
+    } else {
+      contents.push({ role: "user", parts: [{ text: message }] });
+    }
+
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 40000);
+    let response;
+    try {
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: ctrl.signal,
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
+            contents,
+            generationConfig: { temperature: 0.6, maxOutputTokens: 2048 }
+          })
+        }
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.error) {
+      console.error("Gemini lỗi:", response.status, data?.error?.message);
+      const busy = response.status === 429 || response.status === 503;
+      return res.status(busy ? 503 : 502).json({
+        reply: busy ? "⚠️ AI đang quá tải, bạn thử lại sau ít giây nhé." : "⚠️ AI gặp lỗi, vui lòng thử lại."
+      });
+    }
+
+    const cand = data?.candidates?.[0];
+    let reply = (cand?.content?.parts || []).map((p) => p.text || "").join("").trim();
+    if (!reply) {
+      reply = cand?.finishReason === "SAFETY" || data?.promptFeedback?.blockReason
+        ? "⚠️ Mình không thể trả lời nội dung này. Bạn thử hỏi theo cách khác nhé."
+        : "⚠️ Không có phản hồi từ AI.";
+    }
     res.json({ reply });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ reply: "⚠️ Lỗi khi gọi Gemini API." });
+    console.error("Lỗi /api/chat:", err);
+    const timeout = err?.name === "AbortError";
+    res.status(timeout ? 504 : 500).json({
+      reply: timeout ? "⏱️ AI phản hồi quá lâu, bạn thử gửi lại nhé." : "⚠️ Lỗi khi gọi AI."
+    });
   }
 });
 // Khởi động server
