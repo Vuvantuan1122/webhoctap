@@ -243,14 +243,6 @@ function buildBadges(p, ranks) {
     badges.push({ id: "accuracy", icon: "🎯", title: "Chính xác", desc: "Đúng từ 90% trở lên với ít nhất 30 câu.", earned: false, progress: { value: Math.min(p.answered, 30), target: 30 } });
   }
 
-  const st = [[30, "Chuỗi 30 ngày"], [7, "Chuỗi 7 ngày"], [3, "Chuỗi 3 ngày"]];
-  const stHit = st.find(([n]) => p.streak.longest >= n);
-  if (stHit) {
-    badges.push({ id: "streak", icon: "🔥", title: stHit[1], desc: `Luyện tập liên tiếp ${p.streak.longest} ngày (kỷ lục).`, earned: true });
-  } else {
-    badges.push({ id: "streak", icon: "🔥", title: "Chuỗi 3 ngày", desc: "Luyện tập 3 ngày liên tiếp.", earned: false, progress: { value: p.streak.longest, target: 3 } });
-  }
-
   const deep = p.subjects.filter((g) => g.answered >= 10 && g.accuracy >= 70).length;
   if (deep >= 3) {
     badges.push({ id: "versatile", icon: "🧠", title: "Học đều nhiều môn", desc: `Đúng từ 70% ở ${deep} môn (mỗi môn từ 10 câu).`, earned: true });

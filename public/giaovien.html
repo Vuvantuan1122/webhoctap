@@ -625,9 +625,6 @@
                     <span>Giới thiệu</span>
                 </a>
 
-                <div class="streak-box">
-                    🔥 <span id="streak-count">0</span>
-                </div>
                 <img id="avatar" src="default-avatar.png" alt="Avatar" />
             </div>
         </header>
@@ -635,7 +632,6 @@
         <aside class="sidebar" id="sidebar">
             <nav class="sidebar-menu">
                 <a href="#" id="homeworkBtn"><i class='bx bxs-book-content'></i> <span>Bài Tập Về Nhà</span></a>
-                <a href="bangdiem.html"><i class='bx bxs-bar-chart-alt-2'></i> <span>Bảng Điểm</span></a>
                 <a href="bai giang.html"><i class='bx bxs-videos'></i> <span>Bài Giảng</span></a>
                 <a href="forum.html"><i class='bx bxs-help-circle'></i> <span>Góc Hỏi Đáp</span></a>
                 <a href="nganhangcauhoi.html"><i class='bx bxs-book-content'></i> <span>Ngân hàng câu hỏi</span></a>
@@ -765,8 +761,6 @@
         document.getElementById('logoutBtn').addEventListener('click', async () => {
             localStorage.removeItem('isLoggedIn');
             localStorage.removeItem('userData');
-            localStorage.removeItem('loginStreak');
-            localStorage.removeItem('lastLoginDate');
             alert('Đăng xuất thành công!');
             window.location.href = '1.html';
         });
@@ -820,30 +814,6 @@
             avatar.src = savedAvatar ? savedAvatar : defaultAvatar;
         });
 
-        // === Phần Streak Counter ===
-        const streakKey = "loginStreak";
-        const lastLoginKey = "lastLoginDate";
-        let streak = parseInt(localStorage.getItem(streakKey)) || 0;
-        let lastLogin = localStorage.getItem(lastLoginKey);
-        const today = new Date().toDateString();
-
-        function daysBetween(date1Str, date2Str) {
-            const d1 = new Date(date1Str);
-            const d2 = new Date(date2Str);
-            const diffTime = d2.setHours(0, 0, 0, 0) - d1.setHours(0, 0, 0, 0);
-            return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        }
-
-        if (lastLogin !== today) {
-            if (lastLogin && daysBetween(lastLogin, today) === 1) {
-                streak++;
-            } else {
-                streak = 1;
-            }
-            localStorage.setItem(streakKey, streak);
-            localStorage.setItem(lastLoginKey, today);
-        }
-        document.getElementById("streak-count").textContent = streak;
 
         // === Phần Menu Môn Học ===
         document.getElementById('homeworkBtn').addEventListener('click', () => {

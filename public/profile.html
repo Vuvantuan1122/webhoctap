@@ -100,8 +100,7 @@
     html += `<div class="grid g4 mt">
       <div class="card"><div class="kpi-n">${fmt(s.score)}</div><div class="kpi-l">Điểm xếp hạng</div></div>
       <div class="card"><div class="kpi-n">${s.answered}</div><div class="kpi-l">Câu hỏi đã làm</div></div>
-      <div class="card"><div class="kpi-n" style="color:${accColor(s.accuracy)}">${fmt(s.accuracy)}%</div><div class="kpi-l">Tỉ lệ đúng (${s.correct}/${s.answered})</div></div>
-      <div class="card"><div class="kpi-n">🔥 ${p.streak.current}</div><div class="kpi-l">Chuỗi ngày luyện tập · kỷ lục ${p.streak.longest} ngày</div></div></div>`;
+      <div class="card"><div class="kpi-n" style="color:${accColor(s.accuracy)}">${fmt(s.accuracy)}%</div><div class="kpi-l">Tỉ lệ đúng (${s.correct}/${s.answered})</div></div></div>`;
 
     // môn học + hoạt động
     const subj = p.subjects.length ? p.subjects.map((g) => {

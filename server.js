@@ -191,9 +191,6 @@ app.delete(`${STUDENT_API_PREFIX}/:id`, async (req, res) => {
 });
 // --- KẾT THÚC KHỐI CODE API STUDENT ---
 
-app.get('/videocall', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/videocall.html'));
-});
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Cloudinary cấu hình
@@ -1300,9 +1297,6 @@ io.on("connection", (socket) => {
     io.emit("chatMessage", payload);
   });
 
-  socket.on("offer", (data) => socket.broadcast.emit("offer", { ...data, from: socket.id }));
-  socket.on("answer", (data) => socket.broadcast.emit("answer", { ...data, from: socket.id }));
-  socket.on("ice-candidate", (data) => socket.broadcast.emit("ice-candidate", { ...data, from: socket.id }));
 
   socket.on("disconnect", () => {
     onlineUsers = Math.max(0, onlineUsers - 1);
@@ -1443,6 +1437,8 @@ app.use('/api/question-bank', require('./routes/questionBank'));
 app.use('/api/teacher', require('./routes/teacher'));
 // Bảng xếp hạng và hồ sơ học sinh (dựa trên ngân hàng câu hỏi)
 app.use('/api/leaderboard', require('./routes/leaderboard'));
+// API bài giảng (giáo viên đăng, mọi người xem)
+app.use('/api/lectures', require('./routes/lectures'));
 
 // Route test cho Render nhận biết server đã sẵn sàng
 app.get('/', (req, res) => {
