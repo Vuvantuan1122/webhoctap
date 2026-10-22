@@ -108,7 +108,7 @@ function drawDone() {
       <div class="m"><b>${HW.esc(s.fileName || 'Bài nộp')}</b><span>${HW.fmt(s.timestamp)}</span><div style="margin-top:4px">${HW.tag(s.feedback)}${s.feedback ? ` <span style="font-size:.78rem;color:var(--text-secondary)">· ${s.feedback.mistakes?.length || 0} lỗi cần sửa</span>` : ''}</div></div>
       <i class="fas fa-chevron-right" style="color:var(--text-secondary)"></i></div>`).join('');
 }
-$('done').onclick = e => { const r = e.target.closest('.srow'); if (r) HW.open(mine.find(x => String(x.id) === r.dataset.id), { role: 'student', onChange: drawDone }); };
+$('done').onclick = e => { const r = e.target.closest('.srow'); if (r) HW.open(mine.find(x => x.id === r.dataset.id), { role: 'student', onChange: drawDone }); };
 $('cls').onchange = loadMine;
 </script>
 </body>

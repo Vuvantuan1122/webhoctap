@@ -291,19 +291,44 @@
           <div id="mcOptions" class="d-flex flex-column gap-2"></div>
         </div>
 
-        <!-- Đúng / Sai -->
+        <!-- Đúng / Sai (4 ý theo Bộ GD&ĐT) -->
         <div class="col-12 d-none" id="boxTf">
-          <label class="form-label d-block">Đáp án chuẩn</label>
-          <div class="d-flex gap-4">
-            <div class="form-check">
-              <input class="form-check-input fs-5" type="radio" name="tf" id="tf0" value="0" checked>
-              <label class="form-check-label mt-1 fw-medium" for="tf0">Mệnh đề Đúng</label>
+          <label class="form-label d-block">4 ý a, b, c, d <span class="text-muted fw-normal">(chọn Đúng hoặc Sai cho từng ý)</span></label>
+          <div id="tfStatements" class="d-flex flex-column gap-2">
+            <div class="input-group shadow-sm rounded-3">
+              <span class="input-group-text bg-white fw-bold px-2">a)</span>
+              <input class="form-control tf-stmt py-2" placeholder="Nội dung ý a" maxlength="500">
+              <div class="input-group-text bg-white gap-3">
+                <label class="form-check-label"><input class="form-check-input mt-0" type="radio" name="tf0" value="0" checked> Đúng</label>
+                <label class="form-check-label"><input class="form-check-input mt-0" type="radio" name="tf0" value="1"> Sai</label>
+              </div>
             </div>
-            <div class="form-check">
-              <input class="form-check-input fs-5" type="radio" name="tf" id="tf1" value="1">
-              <label class="form-check-label mt-1 fw-medium" for="tf1">Mệnh đề Sai</label>
+            <div class="input-group shadow-sm rounded-3">
+              <span class="input-group-text bg-white fw-bold px-2">b)</span>
+              <input class="form-control tf-stmt py-2" placeholder="Nội dung ý b" maxlength="500">
+              <div class="input-group-text bg-white gap-3">
+                <label class="form-check-label"><input class="form-check-input mt-0" type="radio" name="tf1" value="0" checked> Đúng</label>
+                <label class="form-check-label"><input class="form-check-input mt-0" type="radio" name="tf1" value="1"> Sai</label>
+              </div>
+            </div>
+            <div class="input-group shadow-sm rounded-3">
+              <span class="input-group-text bg-white fw-bold px-2">c)</span>
+              <input class="form-control tf-stmt py-2" placeholder="Nội dung ý c" maxlength="500">
+              <div class="input-group-text bg-white gap-3">
+                <label class="form-check-label"><input class="form-check-input mt-0" type="radio" name="tf2" value="0" checked> Đúng</label>
+                <label class="form-check-label"><input class="form-check-input mt-0" type="radio" name="tf2" value="1"> Sai</label>
+              </div>
+            </div>
+            <div class="input-group shadow-sm rounded-3">
+              <span class="input-group-text bg-white fw-bold px-2">d)</span>
+              <input class="form-control tf-stmt py-2" placeholder="Nội dung ý d" maxlength="500">
+              <div class="input-group-text bg-white gap-3">
+                <label class="form-check-label"><input class="form-check-input mt-0" type="radio" name="tf3" value="0" checked> Đúng</label>
+                <label class="form-check-label"><input class="form-check-input mt-0" type="radio" name="tf3" value="1"> Sai</label>
+              </div>
             </div>
           </div>
+          <div class="form-text mt-2">Cách tính điểm của Bộ GD&amp;ĐT: đúng 1 ý được 0,1 điểm · 2 ý được 0,25 điểm · 3 ý được 0,5 điểm · đủ 4 ý được 1 điểm.</div>
         </div>
 
         <!-- Trả lời ngắn -->
@@ -387,7 +412,7 @@
   // Ô đang nhập gần nhất (chỉ câu hỏi, lựa chọn, giải thích; không gồm đáp án trả lời ngắn
   // vì đáp án đó được chấm bằng cách so khớp chữ)
   let lastField = null;
-  const isMathField = (el) => el && (el.id === 'cQuestion' || el.id === 'cExplain' || el.classList.contains('mc-opt'));
+  const isMathField = (el) => el && (el.id === 'cQuestion' || el.id === 'cExplain' || el.classList.contains('mc-opt') || el.classList.contains('tf-stmt'));
 
   function insertAtCursor(text, fixedEl) {
     const el = fixedEl || (isMathField(lastField) ? lastField : $('cQuestion'));
@@ -427,14 +452,15 @@
     previewTimer = setTimeout(() => {
       const q = $('cQuestion').value.trim();
       const type = $('cType').value;
-      const opts = type === 'tracnghiem' ? [...document.querySelectorAll('.mc-opt')].map((i) => i.value.trim()) : [];
+      const opts = type === 'tracnghiem' ? [...document.querySelectorAll('.mc-opt')].map((i) => i.value.trim())
+        : type === 'truefalse' ? [...document.querySelectorAll('.tf-stmt')].map((i) => i.value.trim()) : [];
       const ex = $('cExplain').value.trim();
       const has = q || ex || opts.some(Boolean);
       $('previewWrap').classList.toggle('d-none', !has);
       if (!has) return;
       $('mathPreview').innerHTML =
         `<div class="pv-q">${esc(q)}</div>` +
-        opts.map((o, i) => o ? `<div class="mt-2"><strong>${String.fromCharCode(65 + i)}.</strong> ${esc(o)}</div>` : '').join('') +
+        opts.map((o, i) => o ? `<div class="mt-2"><strong>${type === 'truefalse' ? String.fromCharCode(97 + i) + ')' : String.fromCharCode(65 + i) + '.'}</strong> ${esc(o)}</div>` : '').join('') +
         (ex ? `<div class="mt-3 small text-muted"><i class="bi bi-lightbulb"></i> ${esc(ex)}</div>` : '');
       renderMath($('mathPreview'));
     }, 200);
@@ -464,6 +490,13 @@
       body = practiceBody(q); // ẩn đáp án, chờ người học chọn
     } else if (q.type === 'shortanswer') {
       body = `<div class="opt correct mt-3"><span class="text-dark">Đáp án:</span> <strong>${esc(q.correctAnswer)}</strong> <i class="bi bi-check-circle-fill fs-5"></i></div>`;
+    } else if (isMultiTF(q)) {
+      body = `<div class="mt-3">` + q.options.map((o, i) =>
+        `<div class="opt ${q.correctAnswer[i] === 0 ? 'correct' : ''}">
+          <span><strong>${String.fromCharCode(97 + i)})</strong> ${esc(o)}</span>
+          <span class="fw-bold">${q.correctAnswer[i] === 0 ? 'Đúng' : 'Sai'}</span>
+        </div>`
+      ).join('') + `</div>`;
     } else {
       body = `<div class="mt-3">` + q.options.map((o, i) =>
         `<div class="opt ${i === Number(q.correctAnswer) ? 'correct' : ''}">
@@ -511,6 +544,12 @@
   const attempted = new Set();     // câu đã làm (tính điểm lần đầu)
   const stats = { done: 0, right: 0 };
 
+  // Câu Đúng/Sai 4 ý theo Bộ GD&ĐT: đúng 1/2/3/4 ý được 0,1 / 0,25 / 0,5 / 1 điểm
+  const TF_POINTS = [0, 0.1, 0.25, 0.5, 1];
+  const isMultiTF = (q) => q && q.type === 'truefalse' && Array.isArray(q.correctAnswer);
+  const fmtPt = (n) => String(Math.round(n * 100) / 100).replace('.', ',');
+  const tfSel = {}; // id -> lựa chọn hiện tại của 4 ý
+
   function practiceBody(q) {
     const id = q._id;
     let inner;
@@ -520,6 +559,17 @@
                onkeydown="if(event.key==='Enter'){checkShort('${id}')}">
         <button class="btn btn-primary" onclick="checkShort('${id}')">Kiểm tra</button>
       </div>`;
+    } else if (isMultiTF(q)) {
+      tfSel[id] = [null, null, null, null];
+      inner = `<div class="text-muted small mb-2">Chọn Đúng hoặc Sai cho từng ý, rồi bấm Kiểm tra.</div>` + q.options.map((o, i) =>
+        `<div class="opt tf-row" id="tfr-${id}-${i}">
+          <span><strong>${String.fromCharCode(97 + i)})</strong> ${esc(o)}</span>
+          <span class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-primary tf-btn" data-v="0" onclick="pickTf('${id}', ${i}, 0)">Đúng</button>
+            <button type="button" class="btn btn-sm btn-outline-primary tf-btn" data-v="1" onclick="pickTf('${id}', ${i}, 1)">Sai</button>
+          </span>
+        </div>`
+      ).join('') + `<button type="button" class="btn btn-primary mt-2" id="tfcheck-${id}" onclick="checkTf('${id}')">Kiểm tra</button>`;
     } else {
       inner = q.options.map((o, i) =>
         `<button type="button" class="opt opt-btn" data-i="${i}" onclick="answerChoice('${id}', ${i})">
@@ -539,12 +589,14 @@
     return a !== '' && b !== '' && !isNaN(na) && !isNaN(nb) && na === nb;
   }
 
-  function showFeedback(q, isRight, rightText) {
+  function showFeedback(q, isRight, rightText, partial) {
     const id = q._id;
     const explain = q.explanation
       ? `<div class="alert alert-info border-0 mt-2 mb-0 py-2 text-dark"><i class="bi bi-lightbulb-fill text-warning me-2"></i><strong>Giải thích:</strong> <span class="expl-text">${esc(q.explanation)}</span></div>`
       : `<div class="text-muted small mt-2"><i class="bi bi-lightbulb"></i> Câu hỏi này chưa có giải thích.</div>`;
-    const head = isRight
+    const head = partial
+      ? `<div class="alert alert-${isRight ? 'success' : (partial.n > 0 ? 'warning' : 'danger')} border-0 mt-3 mb-0 py-2"><i class="bi bi-${isRight ? 'check' : 'x'}-circle-fill me-2"></i><strong>${isRight ? 'Chính xác!' : 'Chưa đúng hoàn toàn.'}</strong> Bạn đúng ${partial.n}/4 ý → được <strong>${fmtPt(partial.points)}</strong>/1 điểm.${isRight ? '' : ` Đáp án đúng: <strong>${rightText}</strong>`}</div>`
+      : isRight
       ? `<div class="alert alert-success border-0 mt-3 mb-0 py-2"><i class="bi bi-check-circle-fill me-2"></i><strong>Chính xác!</strong></div>`
       : `<div class="alert alert-danger border-0 mt-3 mb-0 py-2"><i class="bi bi-x-circle-fill me-2"></i><strong>Chưa đúng.</strong> Đáp án đúng là: <strong>${rightText}</strong></div>`;
     $('fb-' + id).innerHTML = head + explain +
@@ -586,6 +638,37 @@
     const rightText = `${String.fromCharCode(65 + right)}. ${esc(q.options[right])}`;
     showFeedback(q, isRight, rightText);
     recordResult(id, isRight, i);
+  }
+
+  function pickTf(id, i, v) {
+    if (answered.has(id) || !tfSel[id]) return;
+    tfSel[id][i] = v;
+    document.querySelectorAll(`#tfr-${id}-${i} .tf-btn`).forEach((b) => {
+      const on = Number(b.dataset.v) === v;
+      b.classList.toggle('btn-primary', on);
+      b.classList.toggle('btn-outline-primary', !on);
+    });
+  }
+
+  function checkTf(id) {
+    const q = bankQuestions[id];
+    const sel = tfSel[id];
+    if (!q || !sel || answered.has(id)) return;
+    if (sel.some((v) => v === null)) { notify('Hãy chọn Đúng hoặc Sai cho cả 4 ý trước khi kiểm tra.', 'warning'); return; }
+    answered.add(id);
+    let n = 0;
+    q.correctAnswer.forEach((c, i) => {
+      const ok = sel[i] === Number(c);
+      if (ok) n++;
+      const row = $(`tfr-${id}-${i}`);
+      row.classList.add(ok ? 'correct' : 'wrong');
+      row.querySelectorAll('.tf-btn').forEach((b) => { b.disabled = true; });
+    });
+    $('tfcheck-' + id).disabled = true;
+    const points = TF_POINTS[n];
+    const rightText = q.correctAnswer.map((c, i) => `${String.fromCharCode(97 + i)}) ${c === 0 ? 'Đúng' : 'Sai'}`).join(', ');
+    showFeedback(q, n === 4, rightText, { n, points });
+    recordResult(id, n === 4, sel.slice());
   }
 
   function checkShort(id) {
@@ -735,7 +818,9 @@
   }
 
   function resetForm() {
-    $('cQuestion').value = '';$('cExplain').value = ''; $('saAnswer').value = '';$('tf0').checked = true;
+    $('cQuestion').value = '';$('cExplain').value = ''; $('saAnswer').value = '';
+    document.querySelectorAll('.tf-stmt').forEach((i) => { i.value = ''; });
+    [0, 1, 2, 3].forEach((k) => { document.querySelector(`input[name=tf${k}][value="0"]`).checked = true; });
     $('cSubject').value = ''; // buộc người dùng chọn lại môn cho câu tiếp theo
     $('mcOptions').innerHTML = '';
     for (let i = 0; i < MC_OPTION_COUNT; i++) addOptionRow();
@@ -764,7 +849,9 @@
       payload.options = [...document.querySelectorAll('.mc-opt')].map((i) => i.value.trim());
       payload.correctAnswer = Number(document.querySelector('input[name=mcCorrect]:checked').value);
     } else if (type === 'truefalse') {
-      payload.correctAnswer = Number(document.querySelector('input[name=tf]:checked').value);
+      payload.options = [...document.querySelectorAll('.tf-stmt')].map((i) => i.value.trim());
+      if (payload.options.some((o) => !o)) return notify('Câu Đúng/Sai cần điền đủ nội dung 4 ý a, b, c, d.', 'warning');
+      payload.correctAnswer = [0, 1, 2, 3].map((k) => Number(document.querySelector(`input[name=tf${k}]:checked`).value));
     } else {
       payload.correctAnswer = $('saAnswer').value.trim();
     }

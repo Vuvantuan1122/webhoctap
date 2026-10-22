@@ -93,7 +93,7 @@ function render() {
 
 $('grid').onclick = e => {
   const c = e.target.closest('.sub'); if (!c) return;
-  const s = subs.find(x => String(x.id) === c.dataset.id);
+  const s = subs.find(x => x.id === c.dataset.id);
   HW.open(s, { role: isTeacher() ? 'teacher' : 'student', onChange: render });
 };
 $('classFilter').onchange = load; $('statusFilter').onchange = render;

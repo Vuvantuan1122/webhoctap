@@ -90,6 +90,24 @@
       .form-check-input {
           display: none;
       }
+
+      /* Câu Đúng/Sai 4 ý: nút Đúng / Sai dạng "viên thuốc", tô màu khi được chọn */
+      .tf-row .form-check { padding-left: 0; margin: 0; }
+      .tf-row .tf-btn {
+        display: inline-block;
+        min-width: 72px;
+        text-align: center;
+        padding: .4rem .9rem;
+        border: 1px solid #ced4da;
+        border-radius: 999px;
+        cursor: pointer;
+        user-select: none;
+        transition: all .15s ease;
+        margin-bottom: 0;
+      }
+      .tf-row .tf-btn:hover { background-color: #e9ecef; border-color: #0d6efd; }
+      .tf-row .form-check-input:checked + .tf-btn.tf-true  { background-color: #198754; border-color: #198754; color: #fff; font-weight: 600; }
+      .tf-row .form-check-input:checked + .tf-btn.tf-false { background-color: #dc3545; border-color: #dc3545; color: #fff; font-weight: 600; }
       
       /* CÀI ĐẶT MỚI CHO WEBCAM */
       #cameraContainer {
@@ -175,6 +193,10 @@
         font-size: 0.8rem;
     }
   }
+      /* Nội dung câu hỏi/lựa chọn có thể chứa công thức và xuống dòng */
+      .math-text { white-space: pre-wrap; word-break: break-word; }
+      .katex { font-size: 1.08em; }
+      .katex-display { overflow-x: auto; overflow-y: hidden; padding: .25rem 0; }
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -256,7 +278,13 @@
       const urlParams = new URLSearchParams(window.location.search);
       const examId = urlParams.get("id");
       let examData = null;
+
+      // Escape toàn bộ nội dung do giáo viên nhập trước khi đưa vào innerHTML.
+      // Trước đây chèn thẳng nên công thức có < > & (vd: $x < 3$, $a<b$) bị trình duyệt hiểu là thẻ HTML và hỏng.
+      const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
       let timeLeft = 0;
+      let deadline = 0;
+      let storeKey = '';
       let timerInterval = null;
       let examSubmitted = false;
       const confirmModal = new bootstrap.Modal(document.getElementById('confirmSubmitModal'));
@@ -323,14 +351,6 @@
       }
 
       console.log("Loading exam with ID:", examId);  // ✅ Log cho debug
-async function startCamera() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    document.getElementById("examCamera").srcObject = stream;
-  } catch (err) {
-    console.warn("Không thể truy cập camera:", err);
-  }
-}
       async function loadExam() {
         try {
           // ✅ THÊM: credentials cho session
@@ -359,11 +379,20 @@ async function startCamera() {
           console.log("Exam data loaded:", examData);  // Log data cho debug
           
           document.getElementById('examTitle').textContent = `✏️ ${examData.title}`;
-          timeLeft = examData.duration * 60;
+          // Mốc kết thúc lưu lại: tải lại trang (F5) không được reset đồng hồ
+          storeKey = `exam_${examId}_${(JSON.parse(localStorage.getItem('userData') || '{}').username) || 'u'}`;
+          let saved = {};
+          try { saved = JSON.parse(localStorage.getItem(storeKey) || '{}'); } catch (_) {}
+          if (!saved.deadline || saved.deadline < Date.now() - 24*3600*1000) {
+            saved = { deadline: Date.now() + examData.duration * 60 * 1000, answers: {} };
+            localStorage.setItem(storeKey, JSON.stringify(saved));
+          }
+          deadline = saved.deadline;
+          timeLeft = Math.max(0, Math.round((deadline - Date.now()) / 1000));
           
           // Hiển thị đoạn văn
           if (examData.passage) {
-            document.getElementById('passage-content').innerHTML = `<p>${examData.passage.replace(/\n/g, '<br>')}</p>`;
+            document.getElementById('passage-content').innerHTML = `<p class="math-text">${esc(examData.passage)}</p>`;
           } else {
             document.getElementById("passageColumn").style.display = "none";
             document.getElementById("questionColumn").classList.remove("col-md-7");
@@ -375,7 +404,7 @@ async function startCamera() {
           examData.questions.forEach((q, i) => {
             html += `
               <div class="card question-card mb-4">
-                <div class="card-header">Câu ${i+1}: ${q.question}</div>
+                <div class="card-header math-text">Câu ${i+1}: ${esc(q.question)}</div>
                 <div class="card-body">`;
             
             if (q.type === "tracnghiem") {
@@ -383,7 +412,21 @@ async function startCamera() {
                 html += `
                   <div class="form-check">
                     <input class="form-check-input" type="radio" name="q${i}" id="q${i}o${j}" value="${j}">
-                    <label class="form-check-label option-label" for="q${i}o${j}">${opt}</label>
+                    <label class="form-check-label option-label" for="q${i}o${j}"><span class="math-text">${esc(opt)}</span></label>
+                  </div>`;
+              });
+            } else if (q.type === "truefalse" && Array.isArray(q.options) && q.options.length === 4) {
+              // Đúng/Sai theo Bộ GD&ĐT: 4 ý a, b, c, d — chọn Đúng hoặc Sai cho từng ý
+              html += `<div class="text-muted small mb-2">Trong mỗi ý a), b), c), d), chọn Đúng hoặc Sai.</div>`;
+              q.options.forEach((opt, j) => {
+                const letter = String.fromCharCode(97 + j);
+                html += `
+                  <div class="tf-row d-flex flex-wrap align-items-start justify-content-between gap-2 gap-md-3 py-2 border-bottom">
+                    <div class="flex-grow-1"><strong>${letter})</strong> <span class="math-text">${esc(opt)}</span></div>
+                    <div class="d-flex gap-3 flex-shrink-0">
+                      <div class="form-check"><input class="form-check-input" type="radio" name="q${i}s${j}" id="q${i}s${j}t" value="0"><label class="form-check-label tf-btn tf-true" for="q${i}s${j}t">Đúng</label></div>
+                      <div class="form-check"><input class="form-check-input" type="radio" name="q${i}s${j}" id="q${i}s${j}f" value="1"><label class="form-check-label tf-btn tf-false" for="q${i}s${j}f">Sai</label></div>
+                    </div>
                   </div>`;
               });
             } else if (q.type === "truefalse") {
@@ -403,6 +446,9 @@ async function startCamera() {
           });
 
           document.getElementById("examForm").innerHTML = html;
+          restoreAnswers();
+          document.getElementById("examForm").addEventListener('change', saveAnswers);
+          document.getElementById("examForm").addEventListener('input', saveAnswers);
 
           // --- RENDER LaTeX ở đây, sau khi nội dung đã có trong DOM ---
           const renderOptions = {
@@ -415,7 +461,8 @@ async function startCamera() {
             throwOnError: false
           };
 
-          function tryRender() {
+          // KaTeX được tải bằng defer nên có thể chưa sẵn sàng; thử lại tối đa ~10 giây
+          function tryRender(n = 0) {
             if (window.renderMathInElement) {
               try {
                 const passageEl = document.getElementById('passage-content');
@@ -425,19 +472,10 @@ async function startCamera() {
               } catch (err) {
                 console.error("Lỗi khi render LaTeX:", err);
               }
+            } else if (n < 40) {
+              setTimeout(() => tryRender(n + 1), 250);
             } else {
-              // nếu auto-render chưa sẵn sàng thì thử lại sau 200ms (vài lần)
-              setTimeout(() => {
-                if (window.renderMathInElement) {
-                  tryRender();
-                } else {
-                  // một lần nữa thử sau 400ms
-                  setTimeout(() => {
-                    if (window.renderMathInElement) tryRender();
-                    else console.warn("renderMathInElement không tìm thấy — KaTeX có thể chưa load.");
-                  }, 400);
-                }
-              }, 200);
+              console.warn("KaTeX chưa tải được — công thức sẽ hiện dạng mã.");
             }
           }
           tryRender();
@@ -450,7 +488,7 @@ async function startCamera() {
             <div class="container mt-5 text-center">
               <div class="alert alert-danger">
                 <i class="bi bi-exclamation-triangle fs-1 mb-3"></i>
-                <h4>${error.message}</h4>
+                <h4>${esc(error.message)}</h4>
                 <p>Vui lòng quay lại <a href="exams.html">danh sách đề thi</a> và thử lại.</p>
               </div>
             </div>
@@ -458,18 +496,45 @@ async function startCamera() {
         }
       }
 
-      // ✅ ĐỊNH NGHĨA FUNCTION startTimer
+      // Lưu / khôi phục đáp án đang làm (tránh mất bài khi lỡ F5)
+      function saveAnswers() {
+        if (examSubmitted || !storeKey) return;
+        const ans = {};
+        document.querySelectorAll('#examForm input:checked').forEach(el => { ans[el.id] = true; });
+        document.querySelectorAll('#examForm textarea').forEach(el => { if (el.value) ans['ta:' + el.name] = el.value; });
+        try {
+          const cur = JSON.parse(localStorage.getItem(storeKey) || '{}');
+          cur.answers = ans;
+          localStorage.setItem(storeKey, JSON.stringify(cur));
+        } catch (_) {}
+      }
+      function restoreAnswers() {
+        try {
+          const cur = JSON.parse(localStorage.getItem(storeKey) || '{}');
+          Object.entries(cur.answers || {}).forEach(([k, v]) => {
+            if (k.startsWith('ta:')) {
+              const ta = document.querySelector(`textarea[name="${k.slice(3)}"]`);
+              if (ta) ta.value = v;
+            } else {
+              const el = document.getElementById(k);
+              if (el) el.checked = true;
+            }
+          });
+        } catch (_) {}
+      }
+
+      // ✅ ĐỊNH NGHĨA FUNCTION startTimer (tính theo mốc deadline nên không bị lệch khi tab bị throttle)
       function startTimer() {
         const timerEl = document.getElementById("timer");
-        timerInterval = setInterval(() => {
+        clearInterval(timerInterval);
+        const tick = () => {
+          timeLeft = Math.max(0, Math.round((deadline - Date.now()) / 1000));
           if (timeLeft <= 0) {
             clearInterval(timerInterval);
             timerEl.textContent = "⌛ Hết giờ!";
             submitExam(true); // Tự động nộp bài khi hết giờ
             return;
           }
-
-          timeLeft--;
           const minutes = String(Math.floor(timeLeft / 60)).padStart(2, '0');
           const seconds = String(timeLeft % 60).padStart(2, '0');
           timerEl.innerHTML = `⏳ ${minutes}:${seconds}`;
@@ -477,27 +542,32 @@ async function startCamera() {
           if (timeLeft < 60) {
             timerEl.classList.add('timer-warning');
           }
-        }, 1000);
+        };
+        tick();
+        timerInterval = setInterval(tick, 1000);
       }
 
       async function submitExam(isAutoSubmit = false) {
+    if (examSubmitted) return; // chống nộp 2 lần (bấm đúp, hoặc hết giờ trùng lúc bấm nộp)
     if (!isAutoSubmit) {
       confirmModal.hide();
     }
     clearInterval(timerInterval);
     examSubmitted = true; 
-    console.log("⏹ Dừng ghi hình và lưu video trước khi nộp bài...");
+    // Khóa form ngay để học sinh không sửa được trong lúc đang xử lý
+    document.querySelectorAll('#examForm input, #examForm textarea').forEach(el => el.disabled = true);
+    document.querySelector('.exam-header .btn-success')?.setAttribute('disabled', 'disabled');
 
-  try {
-    const videoBlob = await stopRecording(); // Dừng camera và lấy video
-    if (videoBlob) await uploadExamVideo(videoBlob); // Upload video nếu có
-  } catch (err) {
-    console.error("⚠️ Không thể lưu video:", err);
-  }
     let answers = [];
     examData.questions.forEach((q, i) => {
       let val = null;
-      if (q.type === "tracnghiem" || q.type === "truefalse") {
+      if (q.type === "truefalse" && Array.isArray(q.options) && q.options.length === 4) {
+        // mảng 4 giá trị: 0 = Đúng, 1 = Sai, null = chưa chọn
+        val = [0, 1, 2, 3].map(j => {
+          const c = document.querySelector(`input[name="q${i}s${j}"]:checked`);
+          return c ? Number(c.value) : null;
+        });
+      } else if (q.type === "tracnghiem" || q.type === "truefalse") {
         const checked = document.querySelector(`input[name="q${i}"]:checked`);
         val = checked ? checked.value : null;
       } else { // 'shortanswer' or other types
@@ -507,6 +577,7 @@ async function startCamera() {
       answers.push(val);
     });
 
+    // Nộp bài TRƯỚC, rồi mới dừng camera + upload video (video lỗi không được làm mất bài làm)
     try {
       const res = await fetch(`/api/exams/${examId}/submit`, {
         method: "POST",
@@ -514,42 +585,54 @@ async function startCamera() {
         credentials: "include",  
         body: JSON.stringify({ answers })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Nộp bài thất bại');
+      localStorage.removeItem(storeKey);
+      
+      // Dừng ghi hình + lưu video (chạy nền, không chặn việc hiện điểm)
+      (async () => {
+        try {
+          const videoBlob = await stopRecording();
+          if (videoBlob) await uploadExamVideo(videoBlob);
+        } catch (err) {
+          console.error("⚠️ Không thể lưu video:", err);
+        } finally {
+          stopCameraStream();
+        }
+      })();
       
       // ----------------------------------------------------
       // ✅ PHẦN TÍNH VÀ HIỂN THỊ ĐIỂM VÀ NGÀY GIỜ NỘP BÀI
       // ----------------------------------------------------
       
-      const autoGradedCount = examData.questions.filter(q => q.type !== 'shortanswer').length;
-      // Dùng correctCount từ API đã sửa trong server.js
-      const rightAnswers = data.correctCount ?? 0; 
+      const autoGradedCount = data.autoGradedCount ?? examData.questions.filter(q => q.type !== 'shortanswer').length;
+      const totalPoints = data.totalPoints ?? 0;   // mỗi câu tối đa 1 điểm (Đúng/Sai: 0,1 / 0,25 / 0,5 / 1)
+      const fullCount = data.correctCount ?? 0;    // số câu đúng hoàn toàn
       const totalQuestions = examData.questions.length;
       const shortAnswerCount = totalQuestions - autoGradedCount;
-      
-      let outOf10 = '0.0';
+      const fmt = n => String(Number(n).toFixed(2)).replace(/\.?0+$/, '').replace('.', ',');
+
       let resultText = "";
       let submittedTimeInfo = "";
       let gradingNote = ""; // Chuẩn bị cho ghi chú tự luận
 
+      let finalScore = "---";
       if (autoGradedCount > 0) {
-        // Tính điểm trên thang 10 và làm tròn 1 chữ số thập phân
-        outOf10 = ((rightAnswers / autoGradedCount) * 10).toFixed(1);
+        finalScore = fmt(data.score ?? ((totalPoints / autoGradedCount) * 10));
       }
-      
-      let finalScore = outOf10;
 
       // 1. Tạo chuỗi kết quả điểm
       if (autoGradedCount === 0) {
-          finalScore = "---";
           resultText = `Kết quả của bạn: ${finalScore} (Bài thi Tự luận).`;
       } else if (shortAnswerCount > 0) {
           // Hiển thị điểm trắc nghiệm chi tiết
-          resultText = `Kết quả của bạn: ${finalScore}/10 
-(Đúng ${rightAnswers}/${autoGradedCount} câu trắc nghiệm).`;
+          resultText = `Điểm phần tự động: ${finalScore}/10 
+(Đúng hoàn toàn ${fullCount}/${autoGradedCount} câu, tổng ${fmt(totalPoints)}/${autoGradedCount} điểm câu).`;
           gradingNote = "\nPhần tự luận sẽ được giáo viên chấm sau.";
       } else {
-          // Chỉ có trắc nghiệm
-          resultText = `Kết quả của bạn: ${finalScore}/10`;
+          // Chỉ có trắc nghiệm / Đúng-Sai
+          resultText = `Kết quả của bạn: ${finalScore}/10 
+(Đúng hoàn toàn ${fullCount}/${autoGradedCount} câu).`;
       }
 
       // 2. Xử lý và thêm thông tin ngày giờ nộp bài
@@ -567,9 +650,12 @@ async function startCamera() {
       resultModal.show();
       
     } catch (error) {
-      document.getElementById('resultTitle').innerHTML = '❌ Đã xảy ra lỗi!';
-      document.getElementById('resultText').textContent = 'Không thể nộp bài thi. Vui lòng kiểm tra lại kết nối.';
-      resultModal.show();
+      // Nộp lỗi -> mở lại để học sinh nộp lại được, không mất bài
+      examSubmitted = false;
+      document.querySelectorAll('#examForm input, #examForm textarea').forEach(el => el.disabled = false);
+      document.querySelector('.exam-header .btn-success')?.removeAttribute('disabled');
+      if (timeLeft > 0) startTimer();
+      alert('Không thể nộp bài: ' + (error.message || 'kiểm tra lại kết nối') + '. Bài làm của bạn vẫn được giữ, hãy bấm Nộp bài lại.');
     }
 }
 
@@ -617,6 +703,7 @@ async function startCamera() {
 
       // Khi đóng tab hoặc reload
       window.addEventListener("beforeunload", function (e) {
+        if (examSubmitted) return; // đã nộp bài thì không cảnh báo / không ghi log nữa
         reportExit("Đóng tab hoặc tải lại");
         e.preventDefault();
         e.returnValue = "Bạn có chắc chắn muốn thoát? Lịch sử sẽ bị ghi lại.";
@@ -666,7 +753,13 @@ async function initCamera() {
 
 function startRecording(stream) {
   recordedChunks = [];
-  mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+  try {
+    const type = ["video/webm;codecs=vp8", "video/webm", "video/mp4"].find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t));
+    mediaRecorder = type ? new MediaRecorder(stream, { mimeType: type }) : new MediaRecorder(stream);
+  } catch (e) {
+    console.warn("Không ghi hình được:", e);
+    return;
+  }
 
   mediaRecorder.ondataavailable = (event) => {
     if (event.data.size > 0) recordedChunks.push(event.data);
@@ -701,7 +794,7 @@ async function uploadExamVideo(blob) {
   formData.append("classId", examData?.classroomId || "");
   formData.append("userId", userData.username || "unknown");
 
-  const res = await fetch("/api/upload-exam-video", { method: "POST", body: formData });
+  const res = await fetch("/api/upload-exam-video", { method: "POST", body: formData, credentials: "include" });
   const data = await res.json();
   console.log("📥 Phản hồi server:", data); // ← thêm
 }

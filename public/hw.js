@@ -36,8 +36,6 @@ const HW = (() => {
 
   /* Mở khung xem bài. opts: {role:'teacher'|'student', onChange(sub)} */
   function open(sub, opts){
-    opts = opts || {};
-    if(!sub){ toast('❌ Không tìm thấy bài nộp này, hãy tải lại trang.'); return; }
     let m = document.getElementById('hwModal');
     if(!m){ m=document.createElement('div'); m.id='hwModal'; m.className='hwm'; m.onclick=e=>{if(e.target===m)m.classList.remove('on')}; document.body.appendChild(m); }
     const teacher = opts.role==='teacher';
