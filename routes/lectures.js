@@ -17,6 +17,26 @@ const requireTeacher = (req, res, next) => {
   next();
 };
 
+// Lấy ID video từ mọi dạng link YouTube (watch?v=, youtu.be, shorts, embed, live)
+const ytId = (u) => {
+  try {
+    const x = new URL(u);
+    const host = x.hostname.replace(/^(www|m)\./, '');
+    let id = null;
+    if (host === 'youtu.be') id = x.pathname.split('/')[1];
+    else if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+      id = x.searchParams.get('v');
+      if (!id) {
+        const m = x.pathname.match(/^\/(embed|shorts|live|v)\/([\w-]{11})/);
+        if (m) id = m[2];
+      }
+    }
+    return /^[\w-]{11}$/.test(id || '') ? id : null;
+  } catch {
+    return null;
+  }
+};
+
 const toJSON = (l) => ({
   id: l._id, title: l.title, url: l.url, duration: l.duration || '',
   uploadedBy: l.uploadedBy, createdAt: l.createdAt
@@ -37,10 +57,13 @@ router.get('/', requireLogin, async (req, res) => {
 router.post('/', requireLogin, requireTeacher, async (req, res) => {
   try {
     const title = String(req.body.title || '').trim();
-    const url = String(req.body.url || '').trim();
+    let url = String(req.body.url || '').trim();
     const duration = String(req.body.duration || '').trim().slice(0, 20);
     if (!title) return res.status(400).json({ message: 'Tiêu đề không được để trống.' });
-    if (!/^https:\/\//i.test(url)) return res.status(400).json({ message: 'Đường dẫn video không hợp lệ.' });
+    // Link YouTube → chuẩn hoá về 1 dạng duy nhất để không bị đăng trùng
+    const vid = ytId(url);
+    if (vid) url = `https://www.youtube.com/watch?v=${vid}`;
+    else if (!/^https:\/\//i.test(url)) return res.status(400).json({ message: 'Đường dẫn video không hợp lệ.' });
 
     // Đã có (ví dụ đồng bộ lại từ máy cũ) thì trả về luôn, không tạo trùng
     const existed = await Lecture.findOne({ url });
