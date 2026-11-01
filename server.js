@@ -507,18 +507,52 @@ app.post("/api/posts", forumUpload.single("image"), async (req, res) => {
     return res.status(401).json({ message: "Bạn phải đăng nhập để đăng bài" });
   }
 
-  if (!req.file) {
-    return res.status(400).json({ message: "Chưa có ảnh" });
+  const caption = String(req.body.caption || '').trim().slice(0, 2000);
+  if (!caption && !req.file) {
+    return res.status(400).json({ message: "Vui lòng nhập nội dung hoặc chọn ảnh" });
   }
 
   const post = new Post({
     author: req.session.user.username,
-    caption: req.body.caption,
-    imageUrl: "/uploads/" + req.file.filename,
+    caption,
+    imageUrl: req.file ? "/uploads/" + req.file.filename : null,
   });
 
   await post.save();
   res.json(post);
+});
+
+// Xóa bài đăng (chủ bài hoặc giáo viên/admin)
+app.delete("/api/posts/:id", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ success: false, message: "Bạn phải đăng nhập" });
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
+    const u = req.session.user;
+    if (post.author !== u.username && !['teacher', 'admin'].includes(u.role)) {
+      return res.status(403).json({ success: false, message: "Bạn không có quyền xóa bài này" });
+    }
+    await Post.deleteOne({ _id: post._id });
+    await Comment.deleteMany({ postId: String(post._id) });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Lỗi máy chủ" });
+  }
+});
+
+// Báo cáo bài đăng
+app.post("/api/reports", async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ success: false, message: "Bạn phải đăng nhập" });
+    const { postId, reason } = req.body || {};
+    if (!mongoose.isValidObjectId(postId) || !String(reason || '').trim()) {
+      return res.status(400).json({ success: false, message: "Dữ liệu không hợp lệ" });
+    }
+    await new Report({ postId, reason: String(reason).trim().slice(0, 500), reporter: req.session.user.username }).save();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Lỗi máy chủ" });
+  }
 });
 
 // Lấy danh sách bài đăng

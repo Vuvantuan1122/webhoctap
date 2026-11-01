@@ -1,573 +1,303 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>💬 Góc hỏi đáp</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --primary-color: #3d36b6;
-      --primary-color-light: #79b2ff;
-      --secondary-color: #9c27b0;
-      --background-start: #0f0c29;
-      --background-mid: #302b63;
-      --background-end: #24243e;
-      --surface-color: rgba(30, 30, 50, 0.55);
-      --surface-color-hover: rgba(40, 40, 60, 0.7);
-      --glass-border-color: rgba(255, 255, 255, 0.15);
-      --primary-text-color: #f0f0f5;
-      --secondary-text-color: #a0a8c2;
-      --danger-color: #ef5350;
-      --warning-color: #ffa726;
-      --success-color: #66bb6a;
-      --border-radius: 16px;
-      --box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-      --font-family: 'Poppins', sans-serif;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Góc hỏi đáp | NT</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shell.css">
+<style>
+  .forum-wrap { max-width: 760px; margin: 0 auto; }
+  .forum-wrap .page-head { align-items: flex-end; }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+  /* ---------- Khung soạn bài ---------- */
+  .composer { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 22px; }
+  .composer-body { flex: 1; min-width: 0; }
+  .composer textarea.inp { min-height: 84px; border-radius: 14px; }
+  .composer-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .composer-hint { color: var(--text-secondary); font-size: .78rem; }
+  #imagePreview { position: relative; margin-top: 12px; display: none; width: fit-content; max-width: 100%; }
+  #imagePreview.on { display: block; }
+  #imagePreview img { display: block; max-width: 100%; max-height: 260px; border-radius: 14px; border: 1px solid var(--border-color); }
+  #removeImg { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 50%; border: 0; cursor: pointer; background: rgba(0,0,0,.65); color: #fff; display: grid; place-items: center; transition: .2s; }
+  #removeImg:hover { background: var(--danger-color); }
 
-    body {
-      font-family: var(--font-family);
-      background: linear-gradient(-45deg, var(--background-start), var(--background-mid), var(--background-end));
-      background-size: 400% 400%;
-      animation: gradient 15s ease infinite;
-      color: var(--primary-text-color);
-      line-height: 1.7;
-    }
+  /* ---------- Avatar chữ cái ---------- */
+  .av { width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; font-weight: 700; font-size: 1rem; color: #fff; text-transform: uppercase; border: 2px solid rgba(255,255,255,.14); }
+  .av.sm { width: 32px; height: 32px; font-size: .8rem; border-width: 1px; }
 
-    @keyframes gradient {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
+  /* ---------- Bài đăng ---------- */
+  #posts { display: grid; gap: 18px; }
+  .post { transition: border-color .2s; animation: rise .35s ease both; }
+  .post:hover { border-color: rgba(58,123,253,.35); }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .post-head { display: flex; align-items: center; gap: 12px; }
+  .post-meta { flex: 1; min-width: 0; }
+  .post-author { font-weight: 600; font-size: .95rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .post-time { color: var(--text-secondary); font-size: .78rem; }
+  .post-actions { display: flex; gap: 6px; }
+  .icon-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid transparent; background: transparent; color: var(--text-secondary); cursor: pointer; display: grid; place-items: center; font-size: 1.1rem; transition: .2s; }
+  .icon-btn:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .icon-btn.warn:hover { background: rgba(255,159,67,.16); color: #ffc58a; }
+  .icon-btn.del:hover { background: rgba(255,91,91,.16); color: #ff9a9a; }
+  .post-caption { margin: 14px 0 0; white-space: pre-wrap; word-break: break-word; line-height: 1.65; font-size: .95rem; }
+  .post-image { margin-top: 14px; border-radius: 14px; overflow: hidden; background: rgba(0,0,0,.35); border: 1px solid var(--border-color); }
+  .post-image img { display: block; width: 100%; max-height: 520px; object-fit: contain; cursor: zoom-in; }
 
-    main {
-      padding: 40px 0;
-    }
+  /* ---------- Bình luận ---------- */
+  .cm-toggle { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; }
+  .cm-toggle button { background: none; border: 0; color: #9cc0ff; font: 600 .85rem 'Poppins', sans-serif; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 4px 2px; }
+  .cm-toggle button:hover { color: #fff; }
+  .cm-toggle .chev { transition: transform .2s; }
+  .post.open .cm-toggle .chev { transform: rotate(180deg); }
+  .comments { display: none; margin-top: 12px; }
+  .post.open .comments { display: block; }
+  .comment-list { display: grid; gap: 10px; margin-bottom: 12px; }
+  .comment { display: flex; gap: 10px; align-items: flex-start; animation: rise .3s ease both; }
+  .bubble { background: rgba(255,255,255,.06); border: 1px solid var(--border-color); border-radius: 4px 16px 16px 16px; padding: 9px 14px; min-width: 0; max-width: 100%; }
+  .bubble b { font-size: .84rem; font-weight: 600; }
+  .bubble time { color: var(--text-secondary); font-size: .72rem; margin-left: 8px; }
+  .bubble p { font-size: .9rem; word-break: break-word; white-space: pre-wrap; margin-top: 2px; }
+  .bubble img { display: block; max-width: 220px; width: 100%; border-radius: 10px; margin-top: 8px; cursor: zoom-in; }
+  .no-cm { color: var(--text-secondary); font-size: .85rem; text-align: center; padding: 4px 0 8px; }
+  .comment-form { display: flex; gap: 8px; align-items: center; }
+  .comment-form .inp { border-radius: 999px; padding: 10px 16px; }
+  .comment-form .attach { cursor: pointer; }
+  .comment-form .send { width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; border: 0; cursor: pointer; color: #fff; display: grid; place-items: center; background: linear-gradient(135deg, #3a7bfd, #7c5cff); box-shadow: 0 6px 16px rgba(58,123,253,.35); transition: .2s; }
+  .comment-form .send:hover { transform: translateY(-2px); }
+  .cm-file { color: #9cc0ff; font-size: .75rem; margin-top: 6px; display: none; }
+  .cm-file.on { display: block; }
 
-    .container {
-      max-width: 800px;
-      margin: auto;
-      padding: 0 15px;
-    }
+  /* ---------- Hộp thoại, ảnh lớn, thông báo ---------- */
+  .dlg-wrap { position: fixed; inset: 0; background: rgba(0,0,0,.65); display: none; align-items: center; justify-content: center; z-index: 1200; padding: 14px; backdrop-filter: blur(3px); }
+  .dlg-wrap.on { display: flex; }
+  .dlg { width: 100%; max-width: 400px; }
+  .dlg p { color: var(--text-secondary); margin: 8px 0 14px; font-size: .9rem; }
+  .dlg .row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+  #lightbox { cursor: zoom-out; padding: 20px; }
+  #lightbox img { max-width: 94vw; max-height: 92vh; border-radius: 12px; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); background: rgba(20,22,28,.95); border: 1px solid var(--border-color); color: #fff; padding: 11px 20px; border-radius: 99px; font-size: .88rem; opacity: 0; transition: .25s; z-index: 2000; pointer-events: none; box-shadow: 0 8px 24px var(--shadow-color); }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+  .toast.error { border-color: rgba(255,91,91,.6); color: #ff9a9a; }
 
-    .page-title {
-  text-align: center;
-  font-size: 2.6rem;
-  font-weight: 700;
-  margin-bottom: 40px;
-  margin-top: 30px;
-  background: linear-gradient(90deg, var(--primary-color-light), var(--secondary-color));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-/* 🌟 Hiệu ứng phát sáng chữ khi hover */
-.page-title:hover {
-  text-shadow:
-    0 0 5px rgba(121,178,255,0.8),
-    0 0 10px rgba(121,178,255,0.6),
-    0 0 15px rgba(121,178,255,0.5),
-    0 0 25px rgba(121,178,255,0.4),
-    0 0 40px rgba(121,178,255,0.3);
-  transform: scale(1.03);
-}
-
-/* ✨ Hiệu ứng “nhịp sáng” liên tục (tùy chọn) */
-.page-title {
-  animation: subtleGlow 3s ease-in-out infinite alternate;
-}
-
-@keyframes subtleGlow {
-  from {
-    text-shadow:
-      0 0 5px rgba(121,178,255,0.3),
-      0 0 10px rgba(121,178,255,0.2);
-  }
-  to {
-    text-shadow:
-      0 0 8px rgba(121,178,255,0.6),
-      0 0 15px rgba(121,178,255,0.4);
-  }
-}
-
-
-    .card {
-      background: var(--surface-color);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      padding: 25px;
-      margin-bottom: 30px;
-      border-radius: var(--border-radius);
-      border: 1px solid var(--glass-border-color);
-      box-shadow: var(--box-shadow);
-      transition: 0.3s;
-    }
-
-    .card:hover {
-      background: var(--surface-color-hover);
-      transform: translateY(-5px);
-    }
-
-    /* --- Form đăng bài --- */
-    #postForm textarea {
-      width: 100%;
-      background: rgba(0,0,0,0.25);
-      color: var(--primary-text-color);
-      border: 1px solid var(--glass-border-color);
-      border-radius: 12px;
-      padding: 15px;
-      resize: vertical;
-      min-height: 120px;
-      outline: none;
-      transition: 0.3s;
-    }
-    #postForm textarea:focus {
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(121,178,255,0.3);
-    }
-
-    .post-form-controls {
-      display: flex;
-      gap: 15px;
-      justify-content: space-between;
-      margin-top: 15px;
-      flex-wrap: wrap;
-    }
-
-    .btn {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      border: none;
-      color: #fff;
-      padding: 12px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 1rem;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      transition: 0.3s;
-    }
-
-    label.btn {
-      background: #444b66;
-    }
-    label.btn:hover {
-      background: #2c334d;
-    }
-
-    .btn.btn-primary {
-      background: linear-gradient(90deg, var(--primary-color), var(--primary-color-light));
-    }
-    .btn.btn-primary:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 6px 20px rgba(58, 141, 255, 0.4);
-    }
-
-    #imagePreview img {
-      margin-top: 15px;
-      width: 100%;
-      max-height: 350px;
-      object-fit: cover;
-      border-radius: 10px;
-    }
-
-    /* --- Bài đăng --- */
-    .post-header {
-      display: flex;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--glass-border-color);
-      margin-bottom: 15px;
-      padding-bottom: 10px;
-    }
-
-    .post-author { font-weight: 600; color: white; }
-    .post-time { font-size: 0.85rem; color: var(--secondary-text-color); }
-
-    .post-caption { margin: 10px 0 15px; white-space: pre-wrap; }
-
-    .post-image img {
-      max-height: 500px;
-      width: 100%;
-      object-fit: contain;
-      border-radius: 10px;
-    }
-
-    .post-actions button {
-      background: none;
-      border: none;
-      color: var(--secondary-text-color);
-      cursor: pointer;
-      font-size: 1.2rem;
-      margin-left: 10px;
-      transition: 0.3s;
-    }
-    .post-actions button:hover { color: white; }
-    .btn-delete:hover { color: var(--danger-color) !important; }
-    .btn-report:hover { color: var(--warning-color) !important; }
-
-    /* --- Bình luận --- */
-    .comments-section {
-      margin-top: 20px;
-      border-top: 1px solid var(--glass-border-color);
-      padding-top: 15px;
-    }
-    .comment {
-      background: rgba(0,0,0,0.25);
-      padding: 10px 15px;
-      border-radius: 10px;
-      margin-bottom: 10px;
-    }
-    .comment-author { font-weight: 600; color: white; }
-    .comment-meta { font-size: 0.8rem; color: var(--secondary-text-color); }
-    .comment-content img {
-      max-width: 180px;
-      margin-top: 6px;
-      border-radius: 8px;
-    }
-
-    .comment-form {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      margin-top: 10px;
-    }
-    .comment-form input[type="text"] {
-      flex: 1;
-      padding: 10px 15px;
-      border-radius: 25px;
-      border: 1px solid var(--glass-border-color);
-      background: rgba(0,0,0,0.25);
-      color: var(--primary-text-color);
-    }
-
-    /* --- Toast notification --- */
-    #notification-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      z-index: 9999;
-    }
-    .toast {
-      padding: 12px 18px;
-      border-radius: 8px;
-      color: white;
-      font-weight: 600;
-      animation: fadeOut 3s forwards;
-    }
-    .toast.success { background: var(--success-color); }
-    .toast.error { background: var(--danger-color); }
-    .toast.info { background: var(--primary-color); }
-    @keyframes fadeOut {
-      0%, 90% { opacity: 1; transform: translateX(0); }
-      100% { opacity: 0; transform: translateX(50px); }
-    }
-    /* 🌫️ Hiệu ứng fade-in mượt cho toàn trang */
-body {
-  opacity: 0;
-  animation: bodyFadeIn 0.8s ease-out forwards;
-}
-
-@keyframes bodyFadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* 🪄 Fade-in cho từng card bài đăng */
-.card {
-  opacity: 0;
-  transform: translateY(20px);
-  animation: fadeInCard 0.6s ease-out forwards;
-}
-@keyframes fadeInCard {
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* 💬 Fade-in cho comment */
-.comment {
-  opacity: 0;
-  transform: translateY(10px);
-  animation: fadeInComment 0.4s ease-out forwards;
-}
-@keyframes fadeInComment {
-  to { opacity: 1; transform: translateY(0); }
-}
-/* 🌟 Viền sáng mượt cho khung đăng bài */
-.card:first-of-type {
-  position: relative;
-  border: 1px solid var(--glass-border-color);
-  transition: border-color 0.3s ease, box-shadow 0.4s ease;
-}
-
-/* Khi hover, chỉ viền sáng nhẹ quanh khung */
-.card:first-of-type:hover {
-  border-color: rgba(121,178,255,0.8);
-  box-shadow:
-    0 0 8px rgba(121,178,255,0.3),
-    0 0 15px rgba(121,178,255,0.2),
-    0 0 25px rgba(121,178,255,0.15);
-}
-/* 🌟 Viền sáng mượt khi hover vào khung đăng bài */
-.card:first-of-type {
-  position: relative;
-  border: 1px solid var(--glass-border-color);
-  transition: border-color 0.3s ease, box-shadow 0.4s ease;
-}
-
-/* Khi di chuột vào thì viền sáng lên mượt */
-.card:first-of-type:hover {
-  border-color: rgba(121,178,255,0.8);
-  box-shadow:
-    0 0 8px rgba(121,178,255,0.3),
-    0 0 15px rgba(121,178,255,0.2),
-    0 0 25px rgba(121,178,255,0.15);
-}
-
-/* 🧊 Xóa hiệu ứng viền khi focus vào textarea hoặc form */
-#postForm textarea:focus,
-#postForm:focus-within {
-  border-color: var(--glass-border-color);
-  box-shadow: none;
-  outline: none;
-}
-/* 🌟 Viền sáng mượt khi di chuột vào textarea */
-#postForm textarea {
-  border: 1px solid var(--glass-border-color);
-  background: rgba(0, 0, 0, 0.25);
-  color: var(--primary-text-color);
-  border-radius: 12px;
-  padding: 15px;
-  transition: all 0.3s ease;
-  outline: none;
-  resize: vertical;
-}
-
-/* Khi di chuột vào – viền sáng lên mượt */
-#postForm textarea:hover {
-  border-color: rgba(121,178,255,0.7);
-  box-shadow:
-    0 0 6px rgba(121,178,255,0.3),
-    0 0 12px rgba(121,178,255,0.2);
-}
-
-/* Khi click vào (focus) – vẫn giữ hiệu ứng nhẹ nhàng */
-#postForm textarea:focus {
-  border-color: rgba(121,178,255,0.9);
-  box-shadow:
-    0 0 8px rgba(121,178,255,0.4),
-    0 0 16px rgba(121,178,255,0.25);
-  background: rgba(0, 0, 0, 0.3);
-}
-
-
-  </style>
+  @media (max-width: 768px) { .composer { flex-direction: column; } .composer .av { display: none; } .composer-body { width: 100%; } }
+</style>
 </head>
-<body>
-  <main>
-    <div class="container">
-      <h1 class="page-title">💬 GÓC HỎI ĐÁP</h1>
-
-      <div class="card">
-        <form id="postForm" enctype="multipart/form-data">
-          <textarea name="caption" placeholder="Bạn đang nghĩ gì?"></textarea>
-          <div id="imagePreview"></div>
-          <div class="post-form-controls">
-            <label class="btn">
-              <i class="fas fa-paperclip"></i> Ảnh
-              <input type="file" name="image" id="imageUpload" accept="image/*" hidden>
-            </label>
-            <button type="submit" class="btn btn-primary">
-              <i class="fas fa-paper-plane"></i> Đăng bài
-            </button>
-          </div>
-        </form>
+<body data-active="forum">
+<main>
+  <div class="forum-wrap">
+    <div class="page-head">
+      <div>
+        <h1>Góc hỏi đáp</h1>
+        <p>Đặt câu hỏi, chia sẻ bài làm và cùng thảo luận với thầy cô, bạn bè</p>
       </div>
-
-      <div id="posts"></div>
+      <span class="badge info" id="count-badge" style="display:none"></span>
     </div>
-  </main>
 
-  <div id="notification-container"></div>
-
-  <script>
-    let currentUser = null;
-
-    function showNotification(msg, type='success') {
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.textContent = msg;
-      document.getElementById('notification-container').appendChild(toast);
-      setTimeout(()=>toast.remove(), 3000);
-    }
-
-    async function getCurrentUser() {
-      try {
-        const res = await fetch('/me', { credentials: 'include' });
-        if (res.ok) currentUser = await res.json();
-      } catch {}
-    }
-
-    const postForm = document.getElementById('postForm');
-    const imageUpload = document.getElementById('imageUpload');
-    const preview = document.getElementById('imagePreview');
-    const postsContainer = document.getElementById('posts');
-
-    imageUpload.addEventListener('change', e => {
-      const file = e.target.files[0];
-      preview.innerHTML = '';
-      if (file) {
-        const img = document.createElement('img');
-        img.src = URL.createObjectURL(file);
-        preview.appendChild(img);
-      }
-    });
-
-    postForm.addEventListener('submit', async e => {
-      e.preventDefault();
-      const formData = new FormData(postForm);
-      if (!formData.get('caption').trim() && !formData.get('image').size) {
-        showNotification('Vui lòng nhập nội dung hoặc chọn ảnh!', 'error');
-        return;
-      }
-      try {
-        const res = await fetch('/api/posts', {
-          method: 'POST',
-          body: formData,
-          credentials: 'include'
-        });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.message);
-        }
-        postForm.reset();
-        preview.innerHTML = '';
-        showNotification('Đăng bài thành công!');
-        loadPosts();
-      } catch (err) {
-        showNotification(err.message, 'error');
-      }
-    });
-
-    function renderPost(p) {
-      const isAdmin = currentUser?.username === 'Vuvantuan1122';
-      const div = document.createElement('div');
-      div.className = 'card';
-      div.dataset.id = p._id;
-      div.innerHTML = `
-        <div class="post-header">
-          <div>
-            <span class="post-author">${p.author || 'Ẩn danh'}</span><br>
-            <span class="post-time">${new Date(p.createdAt).toLocaleString('vi-VN')}</span>
-          </div>
-          <div class="post-actions">
-            <button class="btn-report" title="Báo cáo"><i class="fas fa-flag"></i></button>
-            ${isAdmin ? `<button class="btn-delete" title="Xóa"><i class="fas fa-trash"></i></button>` : ''}
-          </div>
+    <section class="card composer">
+      <div class="av" id="meAv">?</div>
+      <form class="composer-body" id="postForm" enctype="multipart/form-data">
+        <textarea name="caption" class="inp" maxlength="2000" placeholder="Bạn đang thắc mắc điều gì?"></textarea>
+        <div id="imagePreview"><img alt="Xem trước ảnh"><button type="button" id="removeImg" title="Bỏ ảnh"><i class='bx bx-x'></i></button></div>
+        <div class="composer-bar">
+          <label class="btn btn-g btn-sm" for="imageUpload"><i class='bx bx-image-add'></i> Thêm ảnh</label>
+          <input type="file" name="image" id="imageUpload" accept="image/*" hidden>
+          <button type="submit" class="btn btn-p" id="postBtn"><i class='bx bx-send'></i> <span>Đăng bài</span></button>
         </div>
-        <p class="post-caption">${p.caption || ''}</p>
-        ${p.imageUrl ? `<div class="post-image"><img src="${p.imageUrl}"></div>` : ''}
-        <div class="comments-section">
-          <h4>Bình luận</h4>
-          <div class="comment-list"></div>
-          <form class="comment-form" enctype="multipart/form-data">
-            <label title="Ảnh"><i class="fas fa-paperclip"></i><input type="file" name="image" accept="image/*" hidden></label>
-            <input type="text" name="content" placeholder="Viết bình luận...">
-            <button type="submit"><i class="fas fa-paper-plane"></i></button>
-          </form>
-        </div>`;
-      return div;
-    }
+      </form>
+    </section>
 
-    async function loadPosts() {
+    <div id="posts"><div class="loader"></div></div>
+  </div>
+</main>
+
+<div class="dlg-wrap" id="reportModal">
+  <div class="card dlg">
+    <h3 style="font-size:1.15rem"><i class='bx bx-flag' style="color:var(--warn)"></i> Báo cáo bài viết</h3>
+    <p>Cho chúng tôi biết lý do bạn thấy bài viết này không phù hợp.</p>
+    <textarea id="reportReason" class="inp" maxlength="500" placeholder="Nhập lý do..."></textarea>
+    <div class="row"><button class="btn btn-g" id="reportCancel">Hủy</button><button class="btn btn-p" id="reportOk">Gửi báo cáo</button></div>
+  </div>
+</div>
+<div class="dlg-wrap" id="deleteModal">
+  <div class="card dlg">
+    <h3 style="font-size:1.15rem"><i class='bx bx-trash' style="color:var(--danger-color)"></i> Xác nhận xóa</h3>
+    <p>Bạn có chắc chắn muốn xóa bài viết này không? Hành động này không thể hoàn tác.</p>
+    <div class="row"><button class="btn btn-g" id="delCancel">Hủy</button><button class="btn btn-r" id="delOk">Xóa</button></div>
+  </div>
+</div>
+<div class="dlg-wrap" id="lightbox"><img alt=""></div>
+
+<script src="shell.js"></script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const esc = Shell.esc;
+  let me = null, toastT, targetId = null;
+
+  const toast = (msg, type) => {
+    let t = $('toast');
+    if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); }
+    t.className = 'toast on' + (type === 'error' ? ' error' : '');
+    t.textContent = msg; clearTimeout(toastT);
+    toastT = setTimeout(() => t.classList.remove('on'), 3000);
+  };
+
+  const COLORS = ['#3a7bfd', '#7c5cff', '#16a085', '#e67e22', '#e84393', '#0097e6', '#8e44ad'];
+  const avatar = (name, sm) => {
+    const n = String(name || '?'); let h = 0;
+    for (const ch of n) h = (h * 31 + ch.charCodeAt(0)) | 0;
+    return `<div class="av${sm ? ' sm' : ''}" style="background:${COLORS[Math.abs(h) % COLORS.length]}">${esc(n.trim().charAt(0) || '?')}</div>`;
+  };
+  const when = d => new Date(d).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+  const isStaff = () => me && (me.role === 'teacher' || me.role === 'admin');
+  const canDelete = p => me && (isStaff() || p.author === me.username);
+
+  /* ---------- Đăng bài ---------- */
+  const form = $('postForm'), fileInp = $('imageUpload'), prev = $('imagePreview');
+  const clearImg = () => { fileInp.value = ''; prev.classList.remove('on'); };
+  fileInp.addEventListener('change', () => {
+    const f = fileInp.files[0];
+    if (!f) return clearImg();
+    prev.querySelector('img').src = URL.createObjectURL(f);
+    prev.classList.add('on');
+  });
+  $('removeImg').onclick = clearImg;
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    if (!fd.get('caption').trim() && !(fd.get('image') && fd.get('image').size)) return toast('Vui lòng nhập nội dung hoặc chọn ảnh!', 'error');
+    const btn = $('postBtn'); btn.disabled = true;
+    try {
+      const res = await fetch('/api/posts', { method: 'POST', body: fd, credentials: 'include' });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || 'Không đăng được bài');
+      form.reset(); clearImg(); toast('Đăng bài thành công!'); loadPosts();
+    } catch (err) { toast(err.message, 'error'); }
+    btn.disabled = false;
+  });
+
+  /* ---------- Hiển thị ---------- */
+  const openSet = new Set();
+  function postHTML(p) {
+    return `
+    <article class="card post ${openSet.has(p._id) ? 'open' : ''}" data-id="${esc(p._id)}">
+      <div class="post-head">
+        ${avatar(p.author)}
+        <div class="post-meta">
+          <div class="post-author">${esc(p.author || 'Ẩn danh')}</div>
+          <div class="post-time">${when(p.createdAt)}</div>
+        </div>
+        <div class="post-actions">
+          <button class="icon-btn warn" data-act="report" title="Báo cáo"><i class='bx bx-flag'></i></button>
+          ${canDelete(p) ? `<button class="icon-btn del" data-act="delete" title="Xóa bài"><i class='bx bx-trash'></i></button>` : ''}
+        </div>
+      </div>
+      ${p.caption ? `<p class="post-caption">${esc(p.caption)}</p>` : ''}
+      ${p.imageUrl ? `<div class="post-image"><img src="${esc(p.imageUrl)}" alt="Ảnh bài đăng" loading="lazy"></div>` : ''}
+      <div class="cm-toggle"><button data-act="toggle"><i class='bx bx-message-rounded-dots'></i> <span class="cm-count">Bình luận</span> <i class='bx bx-chevron-down chev'></i></button></div>
+      <div class="comments">
+        <div class="comment-list"></div>
+        <form class="comment-form" enctype="multipart/form-data">
+          <label class="icon-btn attach" title="Đính kèm ảnh"><i class='bx bx-image-add'></i><input type="file" name="image" accept="image/*" hidden></label>
+          <input type="text" name="content" class="inp" maxlength="1000" placeholder="Viết bình luận...">
+          <button type="submit" class="send" title="Gửi"><i class='bx bx-send'></i></button>
+        </form>
+        <div class="cm-file"></div>
+      </div>
+    </article>`;
+  }
+
+  async function loadPosts() {
+    let data = [];
+    try {
       const res = await fetch('/api/posts', { credentials: 'include' });
-      const data = await res.json();
-      postsContainer.innerHTML = '';
-      for (const p of data) {
-        const el = renderPost(p);
-        postsContainer.appendChild(el);
-        loadComments(p._id);
-      }
+      if (!res.ok) throw 0; data = await res.json();
+    } catch {
+      $('posts').innerHTML = `<div class="card empty"><i class='bx bx-error-circle'></i>Không tải được bài viết. Vui lòng thử lại sau.</div>`; return;
     }
+    const b = $('count-badge'); b.style.display = data.length ? '' : 'none'; b.innerHTML = `<i class='bx bx-news'></i> ${data.length} bài viết`;
+    if (!data.length) { $('posts').innerHTML = `<div class="card empty"><i class='bx bx-conversation'></i>Chưa có bài viết nào. Hãy là người đầu tiên đặt câu hỏi!</div>`; return; }
+    $('posts').innerHTML = data.map(postHTML).join('');
+    data.forEach(p => loadComments(p._id));
+  }
 
-    async function loadComments(postId) {
-      const res = await fetch(`/api/posts/${postId}/comments`);
-      const comments = await res.json();
-      const list = document.querySelector(`.card[data-id="${postId}"] .comment-list`);
-      list.innerHTML = '';
-      comments.forEach(c => {
-        const div = document.createElement('div');
-        div.className = 'comment';
-        div.innerHTML = `
-          <div class="comment-header">
-            <span class="comment-author">${c.author}</span>
-            <span class="comment-meta">${new Date(c.createdAt).toLocaleString('vi-VN')}</span>
-          </div>
-          <div class="comment-content">
-            <p>${c.content || ''}</p>
-            ${c.imageUrl ? `<img src="${c.imageUrl}">` : ''}
-          </div>`;
-        list.appendChild(div);
-      });
-    }
+  async function loadComments(id) {
+    const card = document.querySelector(`.post[data-id="${CSS.escape(id)}"]`); if (!card) return;
+    let cs = [];
+    try { const r = await fetch(`/api/posts/${id}/comments`); if (r.ok) cs = await r.json(); } catch {}
+    card.querySelector('.cm-count').textContent = cs.length ? `${cs.length} bình luận` : 'Bình luận';
+    card.querySelector('.comment-list').innerHTML = cs.length ? cs.map(c => `
+      <div class="comment">${avatar(c.author, true)}
+        <div class="bubble"><b>${esc(c.author)}</b><time>${when(c.createdAt)}</time>
+          ${c.content ? `<p>${esc(c.content)}</p>` : ''}
+          ${c.imageUrl ? `<img src="${esc(c.imageUrl)}" alt="Ảnh bình luận" loading="lazy">` : ''}
+        </div></div>`).join('') : `<div class="no-cm">Chưa có bình luận nào.</div>`;
+  }
 
-    document.addEventListener('submit', async e => {
-      const form = e.target;
-      if (form.matches('.comment-form')) {
-        e.preventDefault();
-        const postId = form.closest('.card').dataset.id;
-        const formData = new FormData(form);
-        if (!formData.get('content').trim() && !formData.get('image').size) return;
-        await fetch(`/api/posts/${postId}/comments`, { method:'POST', body: formData, credentials:'include' });
-        form.reset();
-        loadComments(postId);
-      }
-    });
+  /* ---------- Tương tác ---------- */
+  $('posts').addEventListener('click', e => {
+    const img = e.target.closest('.post-image img, .bubble img');
+    if (img) { $('lightbox').querySelector('img').src = img.src; $('lightbox').classList.add('on'); return; }
+    const btn = e.target.closest('[data-act]'); if (!btn) return;
+    const card = btn.closest('.post'); targetId = card.dataset.id;
+    const act = btn.dataset.act;
+    if (act === 'toggle') { card.classList.toggle('open'); card.classList.contains('open') ? openSet.add(targetId) : openSet.delete(targetId); }
+    else if (act === 'delete') $('deleteModal').classList.add('on');
+    else if (act === 'report') { $('reportReason').value = ''; $('reportModal').classList.add('on'); $('reportReason').focus(); }
+  });
+  $('lightbox').onclick = () => $('lightbox').classList.remove('on');
 
-    document.addEventListener('click', async e => {
-      const btn = e.target.closest('.btn-delete, .btn-report');
-      if (!btn) return;
-      const postId = btn.closest('.card').dataset.id;
-      if (btn.classList.contains('btn-delete')) {
-        if (confirm('Xóa bài này?')) {
-          const res = await fetch(`/api/posts/${postId}`, { method:'DELETE', credentials:'include' });
-          const data = await res.json();
-          if (data.success) showNotification('Đã xóa bài!', 'success');
-          loadPosts();
-        }
-      } else if (btn.classList.contains('btn-report')) {
-        const reason = prompt('Nhập lý do báo cáo:');
-        if (!reason) return;
-        const res = await fetch('/api/reports', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ postId, reason }),
-          credentials:'include'
-        });
-        const data = await res.json();
-        if (data.success) showNotification('Đã gửi báo cáo!', 'success');
-      }
-    });
+  $('posts').addEventListener('change', e => {
+    if (!e.target.matches('.comment-form input[type=file]')) return;
+    const box = e.target.closest('.comments').querySelector('.cm-file'), f = e.target.files[0];
+    box.textContent = f ? '📎 ' + f.name : ''; box.classList.toggle('on', !!f);
+  });
 
-    getCurrentUser().then(loadPosts);
-    
-  </script>
+  $('posts').addEventListener('submit', async e => {
+    const f = e.target; if (!f.matches('.comment-form')) return;
+    e.preventDefault();
+    const card = f.closest('.post'), id = card.dataset.id, fd = new FormData(f);
+    if (!fd.get('content').trim() && !(fd.get('image') && fd.get('image').size)) return;
+    try {
+      const r = await fetch(`/api/posts/${id}/comments`, { method: 'POST', body: fd, credentials: 'include' });
+      if (!r.ok) throw 0;
+      f.reset(); card.querySelector('.cm-file').classList.remove('on'); openSet.add(id); loadComments(id);
+    } catch { toast('Không gửi được bình luận', 'error'); }
+  });
+
+  $('delCancel').onclick = () => $('deleteModal').classList.remove('on');
+  $('delOk').onclick = async () => {
+    $('deleteModal').classList.remove('on');
+    try {
+      const r = await fetch(`/api/posts/${targetId}`, { method: 'DELETE', credentials: 'include' });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.success) throw new Error(d.message || 'Không xóa được bài');
+      toast('Đã xóa bài viết'); loadPosts();
+    } catch (err) { toast(err.message, 'error'); }
+  };
+  $('reportCancel').onclick = () => $('reportModal').classList.remove('on');
+  $('reportOk').onclick = async () => {
+    const reason = $('reportReason').value.trim();
+    if (!reason) return toast('Vui lòng nhập lý do', 'error');
+    $('reportModal').classList.remove('on');
+    try {
+      const r = await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ postId: targetId, reason }), credentials: 'include' });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.success) throw new Error(d.message || 'Không gửi được báo cáo');
+      toast('Đã gửi báo cáo, cảm ơn bạn!');
+    } catch (err) { toast(err.message, 'error'); }
+  };
+  document.querySelectorAll('.dlg-wrap:not(#lightbox)').forEach(w => w.addEventListener('click', e => { if (e.target === w) w.classList.remove('on'); }));
+
+  (async () => {
+    try { const r = await fetch('/me', { credentials: 'include' }); if (r.ok) me = await r.json(); } catch {}
+    if (me) $('meAv').outerHTML = avatar(me.username).replace('class="av"', 'class="av" id="meAv"');
+    loadPosts();
+  })();
+})();
+</script>
 </body>
 </html>

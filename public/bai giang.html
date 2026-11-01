@@ -9,38 +9,91 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shell.css">
 <style>
-  .lec-list-card { position: sticky; top: calc(var(--header-height) + 30px); max-height: calc(100vh - var(--header-height) - 60px); display: flex; flex-direction: column; }
-  #video-list { list-style: none; overflow-y: auto; display: grid; gap: 8px; margin: 0 -6px; padding: 0 6px; align-content: start; }
-  .lec-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; cursor: pointer; border: 1px solid transparent; background: rgba(255,255,255,.04); transition: .2s; }
-  .lec-item:hover { background: rgba(255,255,255,.09); }
-  .lec-item.playing { background: rgba(58,123,253,.25); border-color: var(--primary-color); }
-  .lec-ico { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center; font-size: 1.4rem; background: rgba(58,123,253,.18); color: #7fb0ff; }
-  .lec-item.playing .lec-ico { background: var(--primary-color); color: #fff; }
-  .lec-info { flex: 1; min-width: 0; }
-  .lec-info b { display: block; font-weight: 600; font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .lec-info span { color: var(--text-secondary); font-size: .76rem; }
-  .lec-del { width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255,91,91,.4); background: rgba(255,91,91,.12); color: #ff9a9a; cursor: pointer; flex-shrink: 0; display: grid; place-items: center; transition: .2s; }
-  .lec-del:hover { background: var(--danger-color); color: #fff; }
+  .lec-layout { display: grid; gap: 20px; grid-template-columns: 340px minmax(0, 1fr); align-items: start; }
 
-  .player-box { border-radius: 16px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; display: grid; place-items: center; }
-  .player-box video { width: 100%; height: 100%; display: none; background: #000; }
-  .player-box.has-video video { display: block; }
-  .player-box iframe { width: 100%; height: 100%; border: 0; display: none; background: #000; }
+  /* ---------- Mục lục khóa học ---------- */
+  .outline { position: sticky; top: calc(var(--header-height) + 30px); max-height: calc(100vh - var(--header-height) - 60px); display: flex; flex-direction: column; padding: 18px; }
+  .outline h3 { font-size: 1rem; line-height: 1.35; }
+  .prog-bar { height: 6px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; margin: 10px 0 6px; }
+  .prog-bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #3a7bfd, #7c5cff); transition: width .4s; }
+  .prog-txt { font-size: .78rem; color: var(--text-secondary); text-align: center; margin-bottom: 12px; }
+  .search { position: relative; margin-bottom: 12px; }
+  .search i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+  .search .inp { padding: 9px 12px 9px 36px; border-radius: 999px; font-size: .85rem; }
+  #tree { overflow-y: auto; margin: 0 -8px; padding: 0 8px; }
+  .sec { margin-bottom: 8px; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid var(--border-color); overflow: hidden; }
+  .sec-head { width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 12px; background: none; border: 0; color: var(--text-primary); cursor: pointer; text-align: left; font: 600 .85rem/1.35 'Poppins', sans-serif; }
+  .sec-head:hover { background: rgba(255,255,255,.05); }
+  .sec-head .t { flex: 1; min-width: 0; }
+  .sec-head .cnt { font-size: .7rem; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+  .sec-head .chev { transition: transform .2s; color: var(--text-secondary); font-size: 1.2rem; }
+  .sec.open .sec-head .chev { transform: rotate(180deg); }
+  .sec-body { display: none; padding: 2px 6px 8px; }
+  .sec.open .sec-body { display: block; }
+  .les { display: flex; align-items: flex-start; gap: 10px; padding: 9px 8px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; transition: .15s; }
+  .les:hover { background: rgba(255,255,255,.07); }
+  .les.playing { background: rgba(58,123,253,.22); border-color: rgba(58,123,253,.7); }
+  .tick { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; margin-top: 1px; display: grid; place-items: center; border: 2px solid rgba(255,255,255,.35); background: none; color: #fff; font-size: .8rem; cursor: pointer; padding: 0; transition: .2s; }
+  .tick:hover { border-color: var(--primary-color); }
+  .tick.done { background: var(--primary-color); border-color: var(--primary-color); }
+  .tick.static { cursor: default; border-style: dashed; border-color: rgba(255,255,255,.2); }
+  .les-t { flex: 1; min-width: 0; font-size: .82rem; line-height: 1.4; }
+  .les-t small { display: block; color: var(--text-secondary); font-size: .7rem; margin-top: 1px; }
+  .tree-empty { text-align: center; color: var(--text-secondary); font-size: .85rem; padding: 18px 6px; }
+  .hint { font-size: .72rem; color: var(--text-secondary); margin-top: 10px; text-align: center; }
+
+  /* ---------- Trình phát ---------- */
+  .player-card { padding: 12px; }
+  .player-box { border-radius: 14px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; display: grid; place-items: center; }
+  .player-box video, .player-box iframe { width: 100%; height: 100%; border: 0; display: none; background: #000; }
   .player-box.has-video .ph { display: none; }
   .ph { text-align: center; color: var(--text-secondary); padding: 20px; }
   .ph i { font-size: 4rem; color: var(--primary-color); display: block; margin-bottom: 8px; }
-  #video-title { font-size: 1.3rem; font-weight: 700; margin-top: 16px; }
-  #video-description { color: var(--text-secondary); margin-top: 4px; font-size: .9rem; }
 
+  /* ---------- Tiến độ + bảng ---------- */
+  .kpi-row { margin-bottom: 0; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  .kpi.card { padding: 16px 18px; display: block; }
+  .kpi.card b { display: block; font-size: .85rem; color: var(--text-secondary); font-weight: 500; }
+  .kpi.card span { display: block; font-size: 1.45rem; font-weight: 700; margin-top: 4px; }
+  .tbl-wrap { overflow-x: auto; margin: 0 -6px; }
+  table.lt { width: 100%; border-collapse: collapse; min-width: 520px; }
+  table.lt th { text-align: left; font-size: .72rem; color: var(--text-secondary); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border-color); }
+  table.lt td { padding: 11px 10px; font-size: .85rem; border-bottom: 1px solid rgba(255,255,255,.06); vertical-align: middle; }
+  table.lt tr:last-child td { border-bottom: 0; }
+  table.lt tbody tr:hover { background: rgba(255,255,255,.04); }
+  table.lt tr.playing td { background: rgba(58,123,253,.14); }
+  table.lt .sec-c { color: var(--text-secondary); font-size: .78rem; }
+  table.lt .act { white-space: nowrap; text-align: right; }
+  .lnk { background: none; border: 0; color: #7fb0ff; font: 600 .82rem 'Poppins', sans-serif; cursor: pointer; padding: 4px 6px; }
+  .lnk:hover { color: #fff; text-decoration: underline; }
+  .ib { width: 30px; height: 30px; border-radius: 50%; border: 1px solid transparent; background: transparent; color: var(--text-secondary); cursor: pointer; display: inline-grid; place-items: center; font-size: 1.05rem; transition: .2s; vertical-align: middle; }
+  .ib:hover { background: rgba(255,255,255,.1); color: #fff; }
+  .ib.del:hover { background: rgba(255,91,91,.18); color: #ff9a9a; }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tags .badge { font-size: .66rem; padding: 1px 8px; }
 
-  .dlg-wrap { position: fixed; inset: 0; background: rgba(0,0,0,.65); display: none; align-items: center; justify-content: center; z-index: 1200; padding: 14px; backdrop-filter: blur(3px); }
+  /* ---------- Form giáo viên ---------- */
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .cls-pick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+  .cls-chip { position: relative; }
+  .cls-chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .cls-chip span { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; font-size: .82rem; font-weight: 600; cursor: pointer; color: var(--text-secondary); background: rgba(255,255,255,.06); border: 1px solid var(--border-color); transition: .2s; user-select: none; }
+  .cls-chip span:hover { border-color: rgba(58,123,253,.6); color: #fff; }
+  .cls-chip input:checked + span { background: rgba(58,123,253,.28); border-color: var(--primary-color); color: #fff; }
+  .cls-chip input:focus-visible + span { box-shadow: 0 0 0 3px rgba(58,123,253,.35); }
+  .cls-note { color: var(--text-secondary); font-size: .78rem; margin-top: 8px; }
+
+  .dlg-wrap { position: fixed; inset: 0; background: rgba(0,0,0,.65); display: none; align-items: center; justify-content: center; z-index: 1200; padding: 14px; backdrop-filter: blur(3px); overflow-y: auto; }
   .dlg-wrap.on { display: flex; }
-  .dlg { width: 100%; max-width: 380px; }
+  .dlg { width: 100%; max-width: 440px; }
   .dlg p { color: var(--text-secondary); margin: 8px 0 18px; font-size: .9rem; }
-  .dlg .row { display: flex; justify-content: flex-end; gap: 10px; }
+  .dlg .row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); background: rgba(20,22,28,.95); border: 1px solid var(--border-color); color: #fff; padding: 11px 20px; border-radius: 99px; font-size: .88rem; opacity: 0; transition: .25s; z-index: 2000; pointer-events: none; box-shadow: 0 8px 24px var(--shadow-color); }
   .toast.on { opacity: 1; transform: translate(-50%, 0); }
-  @media (max-width: 992px) { .lec-list-card { position: static; max-height: 420px; } }
+
+  .path-sel { min-width: 220px; max-width: 100%; }
+  @media (max-width: 1100px) { .lec-layout { grid-template-columns: 1fr; } .outline { position: static; max-height: 480px; } }
+  @media (max-width: 600px) { .row2 { grid-template-columns: 1fr; } .hide-sm { display: none; } }
 </style>
 </head>
 <body data-active="lecture">
@@ -51,39 +104,70 @@
         <h1>Bài giảng</h1>
         <p id="head-sub">Xem lại các bài giảng video do giáo viên đăng tải</p>
       </div>
-      <span class="badge info" id="role-badge" style="display:none;font-size:.85rem;padding:7px 14px"><i class='bx bx-user-voice'></i> Chế độ giáo viên</span>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <select id="path-sel" class="inp path-sel" style="display:none" aria-label="Chọn lộ trình"></select>
+        <span class="badge info" id="role-badge" style="display:none;font-size:.85rem;padding:7px 14px"><i class='bx bx-user-voice'></i> Chế độ giáo viên</span>
+      </div>
     </div>
 
-    <div class="grid-2">
-      <aside class="card lec-list-card">
-        <h3><i class='bx bxs-videos'></i> Danh sách bài giảng</h3>
-        <p class="sub-t" id="count-line">Đang tải…</p>
-        <div id="empty-list" class="empty" style="display:none"><i class='bx bx-video-off'></i><span id="empty-text">Chưa có bài giảng nào.</span></div>
-        <ul id="video-list"></ul>
+    <div class="lec-layout">
+      <aside class="card outline">
+        <h3><i class='bx bx-map-alt'></i> <span id="path-name">Lộ trình</span></h3>
+        <div id="prog-box" style="display:none">
+          <div class="prog-bar"><i id="prog-fill"></i></div>
+          <div class="prog-txt" id="prog-txt"></div>
+        </div>
+        <div class="search" style="margin-top:12px"><i class='bx bx-search'></i><input class="inp" id="q" placeholder="Tìm kiếm bài giảng" autocomplete="off"></div>
+        <div id="tree"><div class="loader"></div></div>
+        <p class="hint" id="tick-hint" style="display:none">Bấm vào vòng tròn để đánh dấu bài đã học</p>
       </aside>
 
       <div class="stack">
-        <section class="card">
+        <section class="card player-card">
           <div class="player-box" id="player-box">
-            <div class="ph"><i class='bx bx-play-circle'></i>Chọn một bài giảng trong danh sách để bắt đầu học</div>
+            <div class="ph"><i class='bx bx-play-circle'></i>Chọn một bài giảng trong lộ trình để bắt đầu học</div>
             <video id="video-player" controls playsinline></video>
             <iframe id="yt-player" title="Video bài giảng" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
           </div>
-          <h2 id="video-title">Chào mừng!</h2>
-          <p id="video-description">Chọn một bài giảng ở danh sách bên cạnh để xem.</p>
+        </section>
+
+        <div class="kpi-row" id="kpis" style="display:none">
+          <div class="card kpi"><b>Bài giảng đã học</b><span id="k-done">0/0</span></div>
+          <div class="card kpi"><b>Số phần</b><span id="k-sec">0</span></div>
+          <div class="card kpi"><b>Tiến độ hoàn thành</b><span id="k-pct">0%</span></div>
+        </div>
+
+        <section class="card">
+          <h3><i class='bx bxs-videos'></i> Bài giảng dạng video</h3>
+          <p class="sub-t" id="count-line">Đang tải…</p>
+          <div id="empty-list" class="empty" style="display:none"><i class='bx bx-video-off'></i><span id="empty-text">Chưa có bài giảng nào.</span></div>
+          <div class="tbl-wrap" id="tbl-wrap" style="display:none">
+            <table class="lt">
+              <thead><tr><th>Tên bài</th><th class="hide-sm">Phần</th><th id="th-3">Thời gian hoàn thành</th><th class="act">Thao tác</th></tr></thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
         </section>
 
         <section class="card" id="upload-section" style="display:none">
           <h3><i class='bx bx-cloud-upload'></i> Đăng bài giảng mới</h3>
-          <p class="sub-t">Dán link video YouTube, bài giảng sẽ hiển thị ngay cho tất cả học sinh.</p>
+          <p class="sub-t">Dán link video YouTube, chọn lộ trình, phần và lớp được xem.</p>
           <form id="upload-form">
-            <label class="lb" for="lecture-title-input">Tiêu đề bài giảng</label>
-            <input type="text" id="lecture-title-input" class="inp" maxlength="200" placeholder="Ví dụ: Bài 1: Giới thiệu về Lập trình Web" required>
-            <label class="lb" for="video-url-input">Link video YouTube</label>
-            <input type="url" id="video-url-input" class="inp" placeholder="https://www.youtube.com/watch?v=..." required>
+            <label class="lb" for="f-title">Tiêu đề bài giảng</label>
+            <input type="text" id="f-title" class="inp" maxlength="200" placeholder="Ví dụ: Bg01. Khoảng cách cơ bản" required>
+            <label class="lb" for="f-url">Link video YouTube</label>
+            <input type="url" id="f-url" class="inp" placeholder="https://www.youtube.com/watch?v=..." required>
             <p class="sub-t" style="margin-top:6px">Nên đặt video ở chế độ <b>Không công khai (Unlisted)</b>. Chế độ <b>Riêng tư (Private)</b> thì học sinh sẽ không xem được.</p>
-            <label class="lb" for="video-duration-input">Thời lượng (không bắt buộc)</label>
-            <input type="text" id="video-duration-input" class="inp" maxlength="20" placeholder="Ví dụ: 12:30">
+            <div class="row2">
+              <div><label class="lb" for="f-path">Lộ trình</label><input type="text" id="f-path" class="inp" maxlength="100" list="dl-path" placeholder="Ví dụ: Nền tảng Toán THPT" autocomplete="off"></div>
+              <div><label class="lb" for="f-section">Phần</label><input type="text" id="f-section" class="inp" maxlength="100" list="dl-section" placeholder="Ví dụ: Khoảng cách cơ bản" autocomplete="off"></div>
+            </div>
+            <datalist id="dl-path"></datalist><datalist id="dl-section"></datalist>
+            <label class="lb">Đăng cho lớp</label>
+            <div class="cls-pick" id="cls-pick"></div>
+            <p class="cls-note">Không chọn lớp nào = hiện cho tất cả học sinh.</p>
+            <label class="lb" for="f-dur">Thời lượng (không bắt buộc)</label>
+            <input type="text" id="f-dur" class="inp" maxlength="20" placeholder="Ví dụ: 12:30">
             <button type="submit" class="btn btn-p btn-block" id="upload-btn" style="margin-top:16px"><i class='bx bx-upload'></i> <span>Đăng bài</span></button>
           </form>
         </section>
@@ -96,10 +180,25 @@
   <div class="card dlg">
     <h3 style="font-size:1.15rem"><i class='bx bx-trash' style="color:var(--danger-color)"></i> Xác nhận xóa</h3>
     <p>Bạn có chắc chắn muốn xóa bài giảng này không? Hành động này không thể hoàn tác.</p>
-    <div class="row">
-      <button class="btn btn-g" id="confirm-cancel">Hủy</button>
-      <button class="btn btn-r" id="confirm-ok">Xóa</button>
-    </div>
+    <div class="row"><button class="btn btn-g" id="confirm-cancel">Hủy</button><button class="btn btn-r" id="confirm-ok">Xóa</button></div>
+  </div>
+</div>
+
+<div class="dlg-wrap" id="edit-modal">
+  <div class="card dlg">
+    <h3 style="font-size:1.15rem"><i class='bx bx-edit'></i> Sửa bài giảng</h3>
+    <form id="edit-form">
+      <label class="lb" for="e-title">Tiêu đề</label>
+      <input type="text" id="e-title" class="inp" maxlength="200" required>
+      <label class="lb" for="e-path">Lộ trình</label>
+      <input type="text" id="e-path" class="inp" maxlength="100" list="dl-path" autocomplete="off">
+      <label class="lb" for="e-section">Phần</label>
+      <input type="text" id="e-section" class="inp" maxlength="100" list="dl-section" autocomplete="off">
+      <label class="lb">Lớp được xem</label>
+      <div class="cls-pick" id="e-cls"></div>
+      <p class="cls-note">Không chọn lớp nào = hiện cho tất cả học sinh.</p>
+      <div class="row"><button type="button" class="btn btn-g" id="edit-cancel">Hủy</button><button type="submit" class="btn btn-p" id="edit-ok">Lưu</button></div>
+    </form>
   </div>
 </div>
 
@@ -108,6 +207,7 @@
 (function () {
   const $ = id => document.getElementById(id);
   const esc = Shell.esc;
+  const DEF_PATH = 'Bài giảng chung', DEF_SEC = 'Chưa phân phần';
 
   // Lấy ID video từ mọi dạng link YouTube (watch?v=, youtu.be, shorts, embed, live)
   function ytId(u) {
@@ -124,7 +224,14 @@
     } catch { return null; }
   }
 
-  let me = null, lectures = [], playingId = null, itemToDelete = null, toastT;
+  let me = null, lectures = [], classes = [], done = {}, curPath = null, playingId = null, itemToDelete = null, editing = null, toastT;
+  const collapsed = new Set();
+  const isTeacher = () => !!me && me.role === 'teacher';
+  const canEdit = l => isTeacher() && l.uploadedBy === me.username;
+  const pathOf = l => l.path || DEF_PATH;
+  const secOf = l => l.section || DEF_SEC;
+  const className = id => (classes.find(c => String(c._id) === String(id)) || {}).name;
+  const fmt = d => { const t = new Date(d), p = n => String(n).padStart(2, '0'); return `${p(t.getHours())}:${p(t.getMinutes())}, ${p(t.getDate())}/${p(t.getMonth() + 1)}/${t.getFullYear()}`; };
 
   const toast = msg => {
     let t = $('toast');
@@ -132,27 +239,78 @@
     t.textContent = msg; t.classList.add('on'); clearTimeout(toastT);
     toastT = setTimeout(() => t.classList.remove('on'), 3000);
   };
-  const isTeacher = () => !!me && me.role === 'teacher';
-  const canDelete = l => isTeacher() && l.uploadedBy === me.username;
 
-  /* ---------- Hiển thị danh sách ---------- */
-  function renderList() {
-    const list = $('video-list');
-    $('empty-list').style.display = lectures.length ? 'none' : '';
-    $('count-line').textContent = lectures.length ? `${lectures.length} bài giảng` : '';
-    list.innerHTML = lectures.map(l => `
-      <li class="lec-item ${l.id === playingId ? 'playing' : ''}" data-id="${esc(l.id)}">
-        <div class="lec-ico"><i class='bx bx-play'></i></div>
-        <div class="lec-info"><b title="${esc(l.title)}">${esc(l.title)}</b><span>${l.duration ? 'Thời lượng: ' + esc(l.duration) : 'Video'} · ${esc(l.uploadedBy)}</span></div>
-        ${canDelete(l) ? `<button class="lec-del" data-del="${esc(l.id)}" title="Xóa bài giảng"><i class='bx bx-trash'></i></button>` : ''}
-      </li>`).join('');
+  /* ---------- Dữ liệu dẫn xuất ---------- */
+  const paths = () => [...new Set(lectures.map(pathOf))];
+  const inPath = () => lectures.filter(l => pathOf(l) === curPath);
+  const matches = l => { const q = $('q').value.trim().toLowerCase(); return !q || l.title.toLowerCase().includes(q) || secOf(l).toLowerCase().includes(q); };
+  const sectionsOf = list => { const m = new Map(); list.forEach(l => { const k = secOf(l); if (!m.has(k)) m.set(k, []); m.get(k).push(l); }); return m; };
+
+  /* ---------- Hiển thị ---------- */
+  function renderAll() {
+    const ps = paths();
+    if (!ps.includes(curPath)) curPath = ps[0] || null;
+    const sel = $('path-sel');
+    sel.style.display = ps.length > 1 ? '' : 'none';
+    sel.innerHTML = ps.map(p => `<option value="${esc(p)}" ${p === curPath ? 'selected' : ''}>${esc(p)}</option>`).join('');
+    $('path-name').textContent = curPath || 'Lộ trình';
+    $('dl-path').innerHTML = ps.filter(p => p !== DEF_PATH).map(p => `<option value="${esc(p)}">`).join('');
+    renderTree(); renderTable(); renderProgress();
+  }
+
+  function renderProgress() {
+    const list = inPath(), n = list.length, d = list.filter(l => done[l.id]).length, pct = n ? Math.round(d / n * 100) : 0;
+    const student = !isTeacher();
+    $('prog-box').style.display = student && n ? '' : 'none';
+    $('kpis').style.display = student && n ? '' : 'none';
+    $('prog-fill').style.width = pct + '%';
+    $('prog-txt').textContent = `${pct}% hoàn thành`;
+    $('k-sec').textContent = sectionsOf(list).size;
+    $('k-done').textContent = `${d}/${n}`;
+    $('k-pct').textContent = pct + '%';
+  }
+
+  function renderTree() {
+    const list = inPath().filter(matches), q = $('q').value.trim();
+    if (!list.length) { $('tree').innerHTML = `<div class="tree-empty">${q ? 'Không tìm thấy bài giảng phù hợp.' : 'Chưa có bài giảng nào.'}</div>`; return; }
+    $('tree').innerHTML = [...sectionsOf(list)].map(([name, items]) => {
+      const all = inPath().filter(l => secOf(l) === name), d = all.filter(l => done[l.id]).length;
+      const open = q || !collapsed.has(name) ? 'open' : '';
+      return `<div class="sec ${open}" data-sec="${esc(name)}">
+        <button class="sec-head" data-toggle><span class="t">${esc(name)}</span>${isTeacher() ? '' : `<span class="cnt">${d}/${all.length}</span>`}<i class='bx bx-chevron-down chev'></i></button>
+        <div class="sec-body">${items.map(l => `
+          <div class="les ${l.id === playingId ? 'playing' : ''}" data-id="${esc(l.id)}">
+            ${isTeacher() ? `<span class="tick static"></span>` : `<button class="tick ${done[l.id] ? 'done' : ''}" data-tick="${esc(l.id)}" title="${done[l.id] ? 'Bỏ đánh dấu' : 'Đánh dấu đã học'}">${done[l.id] ? "<i class='bx bx-check'></i>" : ''}</button>`}
+            <div class="les-t">${esc(l.title)}${l.duration ? `<small>${esc(l.duration)}</small>` : ''}</div>
+          </div>`).join('')}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderTable() {
+    const list = inPath().filter(matches), t = isTeacher();
+    $('th-3').textContent = t ? 'Lớp được xem' : 'Thời gian hoàn thành';
+    $('empty-list').style.display = list.length ? 'none' : '';
+    $('tbl-wrap').style.display = list.length ? '' : 'none';
+    $('count-line').textContent = list.length ? `${list.length} bài giảng` : '';
+    $('tbody').innerHTML = list.map(l => `
+      <tr class="${l.id === playingId ? 'playing' : ''}" data-id="${esc(l.id)}">
+        <td>${esc(l.title)}</td>
+        <td class="hide-sm sec-c">${esc(secOf(l))}</td>
+        <td>${t
+          ? `<div class="tags">${(l.classIds || []).length ? l.classIds.map(id => `<span class="badge info">${esc(className(id) || 'Lớp đã xóa')}</span>`).join('') : '<span class="badge success">Tất cả học sinh</span>'}</div>`
+          : (done[l.id] ? esc(fmt(done[l.id])) : '<span style="color:var(--text-secondary)">—</span>')}</td>
+        <td class="act">
+          <button class="lnk" data-play="${esc(l.id)}">${!t && done[l.id] ? 'Xem lại' : 'Xem'}</button>
+          ${canEdit(l) ? `<button class="ib" data-edit="${esc(l.id)}" title="Sửa"><i class='bx bx-edit'></i></button><button class="ib del" data-del="${esc(l.id)}" title="Xóa bài giảng"><i class='bx bx-trash'></i></button>` : ''}
+        </td>
+      </tr>`).join('');
   }
 
   function play(l) {
     playingId = l.id;
-    const v = $('video-player'), f = $('yt-player');
-    const id = ytId(l.url);
-    if (id) {                       // Video YouTube → nhúng bằng iframe chính thức
+    const v = $('video-player'), f = $('yt-player'), id = ytId(l.url);
+    if (id) {                       // YouTube → chỉ nhúng khung xem
       v.pause(); v.removeAttribute('src'); v.load(); v.style.display = 'none';
       f.style.display = 'block';
       f.src = `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1`;
@@ -162,9 +320,8 @@
       v.play().catch(() => {});
     }
     $('player-box').classList.add('has-video');
-    $('video-title').textContent = l.title;
-    $('video-description').textContent = `Giáo viên: ${l.uploadedBy}${l.duration ? ' · ' + l.duration : ''}`;
-    renderList();
+    renderTree(); renderTable();
+    if (innerWidth <= 1100) $('player-box').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function resetPlayer() {
@@ -172,17 +329,64 @@
     v.pause(); v.removeAttribute('src'); v.load(); v.style.display = '';
     f.removeAttribute('src'); f.style.display = 'none';
     $('player-box').classList.remove('has-video');
-    $('video-title').textContent = 'Chào mừng!';
-    $('video-description').textContent = 'Chọn một bài giảng ở danh sách bên cạnh để xem.';
     playingId = null;
   }
 
-  $('video-list').addEventListener('click', e => {
-    const del = e.target.closest('[data-del]');
-    if (del) { itemToDelete = del.dataset.del; $('confirm-modal').classList.add('on'); return; }
-    const li = e.target.closest('.lec-item'); if (!li) return;
+  /* ---------- Tương tác danh sách ---------- */
+  $('path-sel').onchange = e => { curPath = e.target.value; try { localStorage.setItem('lecPath', curPath); } catch {} renderAll(); };
+  $('q').addEventListener('input', () => { renderTree(); renderTable(); });
+
+  $('tree').addEventListener('click', async e => {
+    const tick = e.target.closest('[data-tick]');
+    if (tick) { e.stopPropagation(); return toggleDone(tick.dataset.tick); }
+    const head = e.target.closest('[data-toggle]');
+    if (head) { const s = head.parentNode, n = s.dataset.sec; s.classList.toggle('open'); s.classList.contains('open') ? collapsed.delete(n) : collapsed.add(n); return; }
+    const li = e.target.closest('.les'); if (!li) return;
     const l = lectures.find(x => x.id === li.dataset.id); if (l) play(l);
   });
+
+  $('tbody').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.play) { const l = lectures.find(x => x.id === b.dataset.play); if (l) play(l); }
+    else if (b.dataset.del) { itemToDelete = b.dataset.del; $('confirm-modal').classList.add('on'); }
+    else if (b.dataset.edit) openEdit(b.dataset.edit);
+  });
+
+  async function toggleDone(id) {
+    const was = !!done[id];
+    if (was) delete done[id]; else done[id] = new Date().toISOString();
+    renderAll();
+    try {
+      const r = await fetch(`/api/lectures/${encodeURIComponent(id)}/progress`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ done: !was }) });
+      if (!r.ok) throw 0;
+      const d = await r.json(); if (d.completedAt) done[id] = d.completedAt;
+      renderAll();
+    } catch {
+      if (was) done[id] = new Date().toISOString(); else delete done[id];
+      renderAll(); toast('❌ Không lưu được tiến độ');
+    }
+  }
+
+  /* ---------- Chọn lớp (dùng chung form đăng & form sửa) ---------- */
+  function chipsHTML(selected) {
+    if (!classes.length) return `<span class="sub-t" style="margin:0">Bạn chưa có lớp nào – bài giảng sẽ hiện cho tất cả học sinh.</span>`;
+    return classes.map(c => `<label class="cls-chip"><input type="checkbox" value="${esc(c._id)}" ${selected && selected.includes(String(c._id)) ? 'checked' : ''}><span><i class='bx bx-school'></i>${esc(c.name)}</span></label>`).join('');
+  }
+  const picked = box => [...box.querySelectorAll('input:checked')].map(i => i.value);
+
+  async function loadClasses() {
+    try { const r = await fetch('/api/classrooms/my', { credentials: 'include' }); classes = r.ok ? await r.json() : []; } catch { classes = []; }
+    $('cls-pick').innerHTML = chipsHTML();
+  }
+
+  // Gợi ý "Phần" theo lộ trình đang gõ
+  function fillSections(pathVal, dl) {
+    const p = pathVal.trim() || DEF_PATH;
+    const set = [...new Set(lectures.filter(l => pathOf(l) === p && l.section).map(l => l.section))];
+    $(dl).innerHTML = set.map(s => `<option value="${esc(s)}">`).join('');
+  }
+  $('f-path').addEventListener('input', () => fillSections($('f-path').value, 'dl-section'));
+  $('e-path').addEventListener('input', () => fillSections($('e-path').value, 'dl-section'));
 
   /* ---------- Tải dữ liệu từ server ---------- */
   async function loadLectures() {
@@ -192,14 +396,21 @@
       if (r.status === 401) { msg = 'Vui lòng đăng nhập để xem bài giảng.'; lectures = []; }
       else if (!r.ok) throw new Error();
       else lectures = await r.json();
-    } catch {
-      lectures = []; msg = 'Không tải được bài giảng. Vui lòng thử lại sau.';
-    }
+    } catch { lectures = []; msg = 'Không tải được bài giảng. Vui lòng thử lại sau.'; }
+    try { const saved = localStorage.getItem('lecPath'); if (saved && curPath === null) curPath = saved; } catch {}
     $('empty-text').textContent = msg;
-    renderList();
+    $('tree').innerHTML = '';
+    renderAll();
   }
 
-  // Bản cũ lưu bài giảng trong localStorage của máy giáo viên → đồng bộ lên server 1 lần để học sinh thấy
+  async function loadProgress() {
+    try {
+      const r = await fetch('/api/lectures/progress', { credentials: 'include' });
+      if (r.ok) (await r.json()).forEach(p => { done[p.lectureId] = p.completedAt; });
+    } catch {}
+  }
+
+  // Bản cũ lưu bài giảng trong localStorage của máy giáo viên → đồng bộ lên server 1 lần
   async function migrateLocal() {
     let old = [];
     try { old = JSON.parse(localStorage.getItem('myLectures') || '[]'); } catch {}
@@ -215,12 +426,10 @@
     if (ok === old.length) { localStorage.removeItem('myLectures'); toast(`Đã đồng bộ ${ok} bài giảng cũ lên hệ thống`); }
   }
 
-  /* ---------- Đăng bài giảng bằng link YouTube (giáo viên) ---------- */
+  /* ---------- Đăng bài giảng (giáo viên) ---------- */
   $('upload-form').addEventListener('submit', async e => {
     e.preventDefault();
-    const title = $('lecture-title-input').value.trim();
-    const link = $('video-url-input').value.trim();
-    const duration = $('video-duration-input').value.trim();
+    const title = $('f-title').value.trim(), link = $('f-url').value.trim();
     if (!title || !link) return toast('Vui lòng nhập đầy đủ tiêu đề và link video.');
     const id = ytId(link);
     if (!id) return toast('❌ Link YouTube không hợp lệ. Hãy dán link dạng youtube.com/watch?v=… hoặc youtu.be/…');
@@ -229,22 +438,48 @@
     btn.disabled = true; label.textContent = 'Đang đăng…';
     try {
       const r = await fetch('/api/lectures', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, url: `https://www.youtube.com/watch?v=${id}`, duration }) });
+        body: JSON.stringify({ title, url: `https://www.youtube.com/watch?v=${id}`, duration: $('f-dur').value.trim(),
+          path: $('f-path').value.trim(), section: $('f-section').value.trim(), classIds: picked($('cls-pick')) }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.message || 'Không lưu được bài giảng.');
-      if (d.duplicated) {
-        toast('Video này đã có trong danh sách bài giảng.');
-      } else {
-        lectures.unshift(d.lecture);
-        renderList();
-        $('upload-form').reset();
-        toast('✅ Đã đăng bài giảng – học sinh có thể xem ngay');
+      if (d.duplicated) toast('Bạn đã đăng video này rồi.');
+      else {
+        lectures.push(d.lecture);
+        curPath = pathOf(d.lecture);
+        $('upload-form').reset(); $('cls-pick').innerHTML = chipsHTML();
+        renderAll();
+        toast(d.lecture.classIds.length ? `✅ Đã đăng cho ${d.lecture.classIds.length} lớp` : '✅ Đã đăng bài giảng cho tất cả học sinh');
       }
-    } catch (err) {
-      console.error(err); toast('❌ ' + err.message);
-    } finally {
-      btn.disabled = false; label.textContent = 'Đăng bài';
-    }
+    } catch (err) { console.error(err); toast('❌ ' + err.message); }
+    finally { btn.disabled = false; label.textContent = 'Đăng bài'; }
+  });
+
+  /* ---------- Sửa ---------- */
+  function openEdit(id) {
+    const l = lectures.find(x => x.id === id); if (!l) return;
+    editing = id;
+    $('e-title').value = l.title; $('e-path').value = l.path || ''; $('e-section').value = l.section || '';
+    $('e-cls').innerHTML = chipsHTML(l.classIds || []);
+    fillSections(l.path || '', 'dl-section');
+    $('edit-modal').classList.add('on');
+  }
+  const closeEdit = () => { $('edit-modal').classList.remove('on'); editing = null; };
+  $('edit-cancel').onclick = closeEdit;
+  $('edit-modal').addEventListener('click', e => { if (e.target.id === 'edit-modal') closeEdit(); });
+  $('edit-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!editing) return;
+    const btn = $('edit-ok'); btn.disabled = true;
+    try {
+      const r = await fetch('/api/lectures/' + encodeURIComponent(editing), { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: $('e-title').value.trim(), path: $('e-path').value.trim(), section: $('e-section').value.trim(), classIds: picked($('e-cls')) }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.message || 'Không lưu được thay đổi.');
+      const i = lectures.findIndex(x => x.id === editing); lectures[i] = d.lecture;
+      curPath = pathOf(d.lecture);
+      closeEdit(); renderAll(); toast('✅ Đã lưu thay đổi');
+    } catch (err) { toast('❌ ' + err.message); }
+    btn.disabled = false;
   });
 
   /* ---------- Xóa (giáo viên) ---------- */
@@ -260,7 +495,7 @@
       if (!r.ok) throw new Error(d.message || 'Không xóa được bài giảng.');
       if (playingId === id) resetPlayer();
       lectures = lectures.filter(l => l.id !== id);
-      renderList(); toast('Đã xóa bài giảng thành công.');
+      renderAll(); toast('Đã xóa bài giảng thành công.');
     } catch (err) { toast('❌ ' + err.message); }
     closeConfirm();
   };
@@ -271,7 +506,13 @@
     if (isTeacher()) {
       $('upload-section').style.display = '';
       $('role-badge').style.display = '';
-      $('head-sub').textContent = 'Đăng bài giảng video – học sinh sẽ thấy ngay khi bạn đăng';
+      $('th-3').textContent = 'Lớp được xem';
+      $('head-sub').textContent = 'Xây dựng lộ trình học: chia phần, chọn lớp được xem';
+      await loadClasses();
+    } else {
+      $('head-sub').textContent = 'Học theo lộ trình, đánh dấu bài đã học để theo dõi tiến độ';
+      $('tick-hint').style.display = '';
+      await loadProgress();
     }
     await loadLectures();
     if (isTeacher()) { await migrateLocal(); await loadLectures(); }
