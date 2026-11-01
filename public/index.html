@@ -586,12 +586,8 @@
                 <a href="exams.html"><i class='bx bxs-edit-alt'></i> <span>Kiểm tra</span></a>
                 <a href="nganhangcauhoi.html"><i class='bx bxs-book-content'></i> <span>Ngân hàng câu hỏi</span></a>
                 <a href="bangxephang.html"><i class='bx bxs-trophy'></i> <span>Bảng xếp hạng</span></a>
-                <a href="profile.html"><i class='bx bx-id-card'></i> <span>Hồ sơ của tôi</span></a>
                 <a href="chat.html"><i class='bx bxs-message-dots'></i> <span>Trò chuyện</span></a>
             </nav>
-            <button id="logoutBtn">
-                <i class='bx bx-log-out'></i> Đăng xuất
-            </button>
         </aside>
 
         <main>
@@ -609,24 +605,6 @@
     </div>
 
     <div class="modal-overlay" id="modal-overlay"></div>
-
-    <div class="modal" id="avatarMenu">
-        <button id="viewProfile"><i class='bx bx-id-card'></i> Xem hồ sơ của tôi</button>
-        <button id="viewAvatar"><i class='bx bx-user-circle'></i> Xem ảnh đại diện</button>
-        <button id="changeAvatar"><i class='bx bx-image-add'></i> Đổi ảnh đại diện</button>
-        <button id="deleteAvatar"><i class='bx bx-trash'></i> Xoá ảnh đại diện</button>
-    </div>
-    
-    <input type="file" id="upload" accept="image/*" style="display:none" />
-    
-    <div class="modal" id="avatarViewer">
-        <div class="viewer-content">
-            <img id="avatarLarge" src="" alt="Ảnh đại diện lớn" />
-            <button id="closeViewer" class="btn-close-modal">Đóng</button>
-        </div>
-    </div>
-    
-
 
     <script>
         // === Quản lý Modal (Popup) ===
@@ -676,62 +654,6 @@
             }
         });
 
-        // === Phần Logout ===
-        document.getElementById('logoutBtn').addEventListener('click', async () => {
-            alert('Đăng xuất thành công!');
-            window.location.href = '1.html';
-        });
-
-        // === Phần Avatar và menu ===
-        const avatar = document.getElementById('avatar');
-        const upload = document.getElementById('upload');
-        const avatarMenu = document.getElementById('avatarMenu');
-        const defaultAvatar = 'default-avatar.png';
-
-        avatar.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openModal(avatarMenu);
-        });
-
-        document.getElementById('viewProfile').addEventListener('click', () => {
-            window.location.href = 'profile.html';
-        });
-
-        document.getElementById('viewAvatar').addEventListener('click', () => {
-            const avatarViewer = document.getElementById('avatarViewer');
-            document.getElementById('avatarLarge').src = avatar.src;
-            closeModal(avatarMenu);
-            openModal(avatarViewer);
-        });
-        
-        document.getElementById('changeAvatar').addEventListener('click', () => {
-            upload.click();
-            closeModal(avatarMenu);
-        });
-
-        document.getElementById('deleteAvatar').addEventListener('click', () => {
-            avatar.src = defaultAvatar;
-            localStorage.removeItem('userAvatar');
-            closeModal(avatarMenu);
-        });
-
-        upload.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = () => {
-                avatar.src = reader.result;
-                localStorage.setItem('userAvatar', reader.result);
-            };
-            reader.readAsDataURL(file);
-        });
-
-        window.addEventListener('load', () => {
-            const savedAvatar = localStorage.getItem('userAvatar');
-            avatar.src = savedAvatar ? savedAvatar : defaultAvatar;
-        });
-
-        
         // === Phần Menu Môn Học ===
         document.getElementById('homeworkBtn').addEventListener('click', () => {
   window.location.href = 'baitapvn.html';
@@ -962,6 +884,7 @@
     })();
     </script>
 
+<script src="account-menu.js"></script>
 </body>
 
 </html>

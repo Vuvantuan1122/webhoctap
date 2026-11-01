@@ -32,7 +32,6 @@
   .sec.open .sec-body { display: block; }
   .les { display: flex; align-items: flex-start; gap: 10px; padding: 9px 8px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; transition: .15s; }
   .les:hover { background: rgba(255,255,255,.07); }
-  .les.playing { background: rgba(58,123,253,.22); border-color: rgba(58,123,253,.7); }
   .tick { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; margin-top: 1px; display: grid; place-items: center; border: 2px solid rgba(255,255,255,.35); background: none; color: #fff; font-size: .8rem; cursor: pointer; padding: 0; transition: .2s; }
   .tick:hover { border-color: var(--primary-color); }
   .tick.done { background: var(--primary-color); border-color: var(--primary-color); }
@@ -41,14 +40,6 @@
   .les-t small { display: block; color: var(--text-secondary); font-size: .7rem; margin-top: 1px; }
   .tree-empty { text-align: center; color: var(--text-secondary); font-size: .85rem; padding: 18px 6px; }
   .hint { font-size: .72rem; color: var(--text-secondary); margin-top: 10px; text-align: center; }
-
-  /* ---------- Trình phát ---------- */
-  .player-card { padding: 12px; }
-  .player-box { border-radius: 14px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; display: grid; place-items: center; }
-  .player-box video, .player-box iframe { width: 100%; height: 100%; border: 0; display: none; background: #000; }
-  .player-box.has-video .ph { display: none; }
-  .ph { text-align: center; color: var(--text-secondary); padding: 20px; }
-  .ph i { font-size: 4rem; color: var(--primary-color); display: block; margin-bottom: 8px; }
 
   /* ---------- Tiến độ + bảng ---------- */
   .kpi-row { margin-bottom: 0; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
@@ -61,11 +52,13 @@
   table.lt td { padding: 11px 10px; font-size: .85rem; border-bottom: 1px solid rgba(255,255,255,.06); vertical-align: middle; }
   table.lt tr:last-child td { border-bottom: 0; }
   table.lt tbody tr:hover { background: rgba(255,255,255,.04); }
-  table.lt tr.playing td { background: rgba(58,123,253,.14); }
   table.lt .sec-c { color: var(--text-secondary); font-size: .78rem; }
   table.lt .act { white-space: nowrap; text-align: right; }
   .lnk { background: none; border: 0; color: #7fb0ff; font: 600 .82rem 'Poppins', sans-serif; cursor: pointer; padding: 4px 6px; }
+  .lnk { text-decoration: none; display: inline-block; }
   .lnk:hover { color: #fff; text-decoration: underline; }
+  a.tl { color: var(--text-primary); text-decoration: none; }
+  a.tl:hover { color: #7fb0ff; }
   .ib { width: 30px; height: 30px; border-radius: 50%; border: 1px solid transparent; background: transparent; color: var(--text-secondary); cursor: pointer; display: inline-grid; place-items: center; font-size: 1.05rem; transition: .2s; vertical-align: middle; }
   .ib:hover { background: rgba(255,255,255,.1); color: #fff; }
   .ib.del:hover { background: rgba(255,91,91,.18); color: #ff9a9a; }
@@ -102,7 +95,7 @@
     <div class="page-head">
       <div>
         <h1>Bài giảng</h1>
-        <p id="head-sub">Xem lại các bài giảng video do giáo viên đăng tải</p>
+        <p id="head-sub">Chọn một bài giảng để mở trang bài học</p>
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <select id="path-sel" class="inp path-sel" style="display:none" aria-label="Chọn lộ trình"></select>
@@ -123,14 +116,6 @@
       </aside>
 
       <div class="stack">
-        <section class="card player-card">
-          <div class="player-box" id="player-box">
-            <div class="ph"><i class='bx bx-play-circle'></i>Chọn một bài giảng trong lộ trình để bắt đầu học</div>
-            <video id="video-player" controls playsinline></video>
-            <iframe id="yt-player" title="Video bài giảng" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-          </div>
-        </section>
-
         <div class="kpi-row" id="kpis" style="display:none">
           <div class="card kpi"><b>Bài giảng đã học</b><span id="k-done">0/0</span></div>
           <div class="card kpi"><b>Số phần</b><span id="k-sec">0</span></div>
@@ -138,7 +123,7 @@
         </div>
 
         <section class="card">
-          <h3><i class='bx bxs-videos'></i> Bài giảng dạng video</h3>
+          <h3><i class='bx bxs-videos'></i> Danh sách bài giảng</h3>
           <p class="sub-t" id="count-line">Đang tải…</p>
           <div id="empty-list" class="empty" style="display:none"><i class='bx bx-video-off'></i><span id="empty-text">Chưa có bài giảng nào.</span></div>
           <div class="tbl-wrap" id="tbl-wrap" style="display:none">
@@ -208,6 +193,7 @@
   const $ = id => document.getElementById(id);
   const esc = Shell.esc;
   const DEF_PATH = 'Bài giảng chung', DEF_SEC = 'Chưa phân phần';
+  const lessonHref = id => 'bai hoc.html?id=' + encodeURIComponent(id);
 
   // Lấy ID video từ mọi dạng link YouTube (watch?v=, youtu.be, shorts, embed, live)
   function ytId(u) {
@@ -224,7 +210,7 @@
     } catch { return null; }
   }
 
-  let me = null, lectures = [], classes = [], done = {}, curPath = null, playingId = null, itemToDelete = null, editing = null, toastT;
+  let me = null, lectures = [], classes = [], done = {}, curPath = null, itemToDelete = null, editing = null, toastT;
   const collapsed = new Set();
   const isTeacher = () => !!me && me.role === 'teacher';
   const canEdit = l => isTeacher() && l.uploadedBy === me.username;
@@ -279,7 +265,7 @@
       return `<div class="sec ${open}" data-sec="${esc(name)}">
         <button class="sec-head" data-toggle><span class="t">${esc(name)}</span>${isTeacher() ? '' : `<span class="cnt">${d}/${all.length}</span>`}<i class='bx bx-chevron-down chev'></i></button>
         <div class="sec-body">${items.map(l => `
-          <div class="les ${l.id === playingId ? 'playing' : ''}" data-id="${esc(l.id)}">
+          <div class="les" data-id="${esc(l.id)}">
             ${isTeacher() ? `<span class="tick static"></span>` : `<button class="tick ${done[l.id] ? 'done' : ''}" data-tick="${esc(l.id)}" title="${done[l.id] ? 'Bỏ đánh dấu' : 'Đánh dấu đã học'}">${done[l.id] ? "<i class='bx bx-check'></i>" : ''}</button>`}
             <div class="les-t">${esc(l.title)}${l.duration ? `<small>${esc(l.duration)}</small>` : ''}</div>
           </div>`).join('')}</div>
@@ -294,42 +280,17 @@
     $('tbl-wrap').style.display = list.length ? '' : 'none';
     $('count-line').textContent = list.length ? `${list.length} bài giảng` : '';
     $('tbody').innerHTML = list.map(l => `
-      <tr class="${l.id === playingId ? 'playing' : ''}" data-id="${esc(l.id)}">
-        <td>${esc(l.title)}</td>
+      <tr data-id="${esc(l.id)}">
+        <td><a class="tl" href="${lessonHref(l.id)}">${esc(l.title)}</a></td>
         <td class="hide-sm sec-c">${esc(secOf(l))}</td>
         <td>${t
           ? `<div class="tags">${(l.classIds || []).length ? l.classIds.map(id => `<span class="badge info">${esc(className(id) || 'Lớp đã xóa')}</span>`).join('') : '<span class="badge success">Tất cả học sinh</span>'}</div>`
           : (done[l.id] ? esc(fmt(done[l.id])) : '<span style="color:var(--text-secondary)">—</span>')}</td>
         <td class="act">
-          <button class="lnk" data-play="${esc(l.id)}">${!t && done[l.id] ? 'Xem lại' : 'Xem'}</button>
+          <a class="lnk" href="${lessonHref(l.id)}">${!t && done[l.id] ? 'Xem lại' : 'Xem'}</a>
           ${canEdit(l) ? `<button class="ib" data-edit="${esc(l.id)}" title="Sửa"><i class='bx bx-edit'></i></button><button class="ib del" data-del="${esc(l.id)}" title="Xóa bài giảng"><i class='bx bx-trash'></i></button>` : ''}
         </td>
       </tr>`).join('');
-  }
-
-  function play(l) {
-    playingId = l.id;
-    const v = $('video-player'), f = $('yt-player'), id = ytId(l.url);
-    if (id) {                       // YouTube → chỉ nhúng khung xem
-      v.pause(); v.removeAttribute('src'); v.load(); v.style.display = 'none';
-      f.style.display = 'block';
-      f.src = `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1`;
-    } else {                        // Video cũ (Cloudinary…) → thẻ <video>
-      f.removeAttribute('src'); f.style.display = 'none';
-      v.style.display = 'block'; v.src = l.url;
-      v.play().catch(() => {});
-    }
-    $('player-box').classList.add('has-video');
-    renderTree(); renderTable();
-    if (innerWidth <= 1100) $('player-box').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
-  function resetPlayer() {
-    const v = $('video-player'), f = $('yt-player');
-    v.pause(); v.removeAttribute('src'); v.load(); v.style.display = '';
-    f.removeAttribute('src'); f.style.display = 'none';
-    $('player-box').classList.remove('has-video');
-    playingId = null;
   }
 
   /* ---------- Tương tác danh sách ---------- */
@@ -342,13 +303,12 @@
     const head = e.target.closest('[data-toggle]');
     if (head) { const s = head.parentNode, n = s.dataset.sec; s.classList.toggle('open'); s.classList.contains('open') ? collapsed.delete(n) : collapsed.add(n); return; }
     const li = e.target.closest('.les'); if (!li) return;
-    const l = lectures.find(x => x.id === li.dataset.id); if (l) play(l);
+    location.href = lessonHref(li.dataset.id);
   });
 
   $('tbody').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.play) { const l = lectures.find(x => x.id === b.dataset.play); if (l) play(l); }
-    else if (b.dataset.del) { itemToDelete = b.dataset.del; $('confirm-modal').classList.add('on'); }
+    if (b.dataset.del) { itemToDelete = b.dataset.del; $('confirm-modal').classList.add('on'); }
     else if (b.dataset.edit) openEdit(b.dataset.edit);
   });
 
@@ -493,7 +453,6 @@
       const r = await fetch('/api/lectures/' + encodeURIComponent(id), { method: 'DELETE', credentials: 'include' });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.message || 'Không xóa được bài giảng.');
-      if (playingId === id) resetPlayer();
       lectures = lectures.filter(l => l.id !== id);
       renderAll(); toast('Đã xóa bài giảng thành công.');
     } catch (err) { toast('❌ ' + err.message); }

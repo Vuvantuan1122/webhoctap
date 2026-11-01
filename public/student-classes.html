@@ -18,22 +18,52 @@
         <h1>Lớp học</h1>
         <p>Tham gia lớp bằng mã do giáo viên cung cấp và theo dõi trạng thái duyệt</p>
       </div>
+      <span class="badge info" style="font-size:.85rem;padding:7px 14px"><i class='bx bx-user'></i> Học sinh</span>
     </div>
 
-    <div class="grid-2">
-      <div id="main-controls" class="card side-sticky">
-        <h3><i class='bx bx-user-plus'></i> Gửi yêu cầu tham gia</h3>
-        <p class="sub-t" id="user-info">Đang kiểm tra đăng nhập...</p>
+    <!-- Tổng quan -->
+    <div class="cls-kpis">
+      <div class="card stat"><div class="ico blue"><i class='bx bx-school'></i></div><div><b id="s-all">0</b><span>Tổng số lớp</span></div></div>
+      <div class="card stat"><div class="ico green"><i class='bx bx-check-circle'></i></div><div><b id="s-ok">0</b><span>Đã được duyệt</span></div></div>
+      <div class="card stat"><div class="ico amber"><i class='bx bx-time-five'></i></div><div><b id="s-wait">0</b><span>Đang chờ duyệt</span></div></div>
+    </div>
 
-        <label class="lb" for="joinCode">Mã lớp học (6 ký tự)</label>
-        <input type="text" id="joinCode" class="inp" maxlength="6" placeholder="VD: A1B2C3" autocomplete="off">
-        <button onclick="joinClassroom()" class="btn btn-p btn-block" id="joinBtn" style="margin-top:16px"><i class='bx bx-send'></i> <span>Gửi yêu cầu</span></button>
+    <div class="cls-layout">
+      <!-- Cột trái: tham gia lớp -->
+      <div id="main-controls" class="card side-sticky">
+        <h3><i class='bx bx-user-plus'></i> Tham gia lớp học</h3>
+        <p class="sub-t">Nhập mã lớp gồm 6 ký tự để gửi yêu cầu</p>
+        <div class="greet"><i class='bx bx-info-circle'></i><span id="user-info">Đang kiểm tra đăng nhập...</span></div>
+
+        <label class="lb" for="joinCode">Mã lớp học</label>
+        <input type="text" id="joinCode" class="inp" maxlength="6" placeholder="VD: A1B2C3" autocomplete="off" spellcheck="false">
+        <div class="cnt-hint"><span id="code-len">0</span>/6 ký tự</div>
+        <button onclick="joinClassroom()" class="btn btn-p btn-block" id="joinBtn" style="margin-top:14px"><i class='bx bx-send'></i> <span>Gửi yêu cầu</span></button>
         <div id="join-message" class="message"></div>
+
+        <ol class="steps">
+          <li><b>Xin mã lớp</b> từ giáo viên của bạn.</li>
+          <li><b>Nhập mã</b> vào ô trên và gửi yêu cầu tham gia.</li>
+          <li><b>Chờ duyệt</b> – khi giáo viên đồng ý, lớp sẽ chuyển sang “Đã duyệt”.</li>
+        </ol>
       </div>
 
+      <!-- Cột phải: danh sách lớp -->
       <div id="my-classes-section" class="card">
-        <h3><i class='bx bx-school'></i> Lớp đã tham gia / chờ duyệt</h3>
-        <p class="sub-t">Danh sách lớp của bạn</p>
+        <div class="cls-bar">
+          <div>
+            <h3><i class='bx bx-collection'></i> Lớp của tôi</h3>
+            <p class="sub-t" id="list-sub" style="margin:2px 0 0">Danh sách lớp đã tham gia và đang chờ duyệt</p>
+          </div>
+          <div class="cls-tools">
+            <div class="cls-search"><i class='bx bx-search'></i><input class="inp" id="q" placeholder="Tìm theo tên lớp, mã lớp" autocomplete="off"></div>
+            <div class="chips" id="chips">
+              <button class="on" data-f="all">Tất cả</button>
+              <button data-f="ok">Đã duyệt</button>
+              <button data-f="wait">Chờ duyệt</button>
+            </div>
+          </div>
+        </div>
         <div id="my-classrooms" class="cls-grid"></div>
       </div>
     </div>
@@ -46,7 +76,7 @@ const API_URL = '/api';
 const esc = Shell.esc;
 const userData = JSON.parse(localStorage.getItem("userData") || "{}");
 const isLoggedIn = localStorage.getItem("isLoggedIn");
-let currentUser = null;
+let currentUser = null, classrooms = [], filter = 'all', toastT;
 
 if (!isLoggedIn || !userData.role) {
   alert("⚠️ Bạn cần đăng nhập để truy cập trang này!");
@@ -55,22 +85,32 @@ if (!isLoggedIn || !userData.role) {
   alert("🚫 Chỉ học sinh mới có quyền truy cập trang này!");
   window.location.href = "teacher-classes.html";
 } else {
-  document.getElementById("user-info").textContent = `Xin chào, ${userData.username}! (Tài khoản học sinh)`;
+  document.getElementById("user-info").innerHTML = `Xin chào, <b>${esc(userData.username)}</b>!`;
 }
+
+const $ = id => document.getElementById(id);
+const hue = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.codePointAt(0)) % 360; return h; };
+const dmy = d => { const t = new Date(d); return isNaN(t) ? '—' : `${String(t.getDate()).padStart(2, '0')}/${String(t.getMonth() + 1).padStart(2, '0')}/${t.getFullYear()}`; };
+const toast = msg => {
+  let t = $('toast');
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add('on'); clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('on'), 2600);
+};
 
 window.onload = () => {
   checkAuth().then(user => { currentUser = user; if (currentUser) loadMyClassrooms(); });
 };
 
 function showMessage(elementId, message, type) {
-  const el = document.getElementById(elementId);
+  const el = $(elementId);
   el.innerHTML = message;
   el.className = `message ${type} show`;
   setTimeout(() => { if (el.classList.contains('show')) el.className = 'message'; }, 5000);
 }
 
 async function checkAuth() {
-  const info = document.getElementById("user-info");
+  const info = $("user-info");
   try {
     const res = await fetch('/me', { credentials: "include" });
     if (res.status !== 200) {
@@ -88,8 +128,8 @@ async function checkAuth() {
 }
 
 async function joinClassroom() {
-  const joinCode = document.getElementById("joinCode").value.trim();
-  const btn = document.getElementById("joinBtn");
+  const joinCode = $("joinCode").value.trim().toUpperCase();
+  const btn = $("joinBtn");
   const label = btn.querySelector('span');
   btn.disabled = true; label.textContent = 'Đang gửi...';
 
@@ -106,7 +146,7 @@ async function joinClassroom() {
     const data = await res.json();
     if (res.ok) {
       showMessage('join-message', `✅ ${esc(data.message)}`, 'success');
-      document.getElementById("joinCode").value = "";
+      $("joinCode").value = ""; $('code-len').textContent = '0';
       loadMyClassrooms();
     } else {
       showMessage('join-message', `❌ ${esc(data.message || "Không gửi được yêu cầu.")}`, 'error');
@@ -117,37 +157,78 @@ async function joinClassroom() {
     btn.disabled = false; label.textContent = 'Gửi yêu cầu';
   }
 }
-document.getElementById("joinCode").addEventListener('keydown', e => { if (e.key === 'Enter') joinClassroom(); });
+$("joinCode").addEventListener('keydown', e => { if (e.key === 'Enter') joinClassroom(); });
+$("joinCode").addEventListener('input', e => { $('code-len').textContent = e.target.value.trim().length; });
+
+const me = () => (currentUser && currentUser.username) || userData.username;
+const statusOf = c => (c.students || []).includes(me()) ? 'ok' : (c.pendingStudents || []).includes(me()) ? 'wait' : 'unk';
 
 async function loadMyClassrooms() {
-  const listDiv = document.getElementById("my-classrooms");
-  listDiv.innerHTML = '<div class="loader"></div>';
+  const listDiv = $("my-classrooms");
+  listDiv.innerHTML = '<div class="loader" style="grid-column:1/-1"></div>';
   try {
     const res = await fetch(`${API_URL}/classrooms/my`, { credentials: "include" });
     if (!res.ok) throw new Error("Không thể tải lớp học.");
-    const classrooms = await res.json();
-
-    if (!Array.isArray(classrooms) || classrooms.length === 0) {
-      listDiv.innerHTML = '<div class="empty" style="grid-column:1/-1"><i class="bx bx-school"></i>Bạn chưa tham gia lớp học nào.<br>Hãy nhập mã lớp để tham gia!</div>';
-      return;
-    }
-    listDiv.innerHTML = classrooms.map(c => {
-      const approved = (c.students || []).includes(currentUser?.username);
-      const pending = (c.pendingStudents || []).includes(currentUser?.username);
-      const st = approved ? ['success', 'bx-check-circle', 'Đã duyệt']
-               : pending ? ['pending', 'bx-time-five', 'Chờ duyệt']
-               : ['error', 'bx-help-circle', 'Không rõ trạng thái'];
-      return `<div class="class-card">
-        <div class="top"><h4>${esc(c.name || "Không có tên lớp")}</h4><span class="join-code"><i class='bx bx-key'></i>${esc(c.joinCode || "N/A")}</span></div>
-        <div class="meta">
-          <div><i class='bx bx-user-voice'></i>Giáo viên: <b>${esc(c.teacherUsername || "Chưa rõ")}</b></div>
-          <div><span class="badge ${st[0]}"><i class='bx ${st[1]}'></i>${st[2]}</span></div>
-        </div></div>`;
-    }).join('');
+    classrooms = await res.json();
+    if (!Array.isArray(classrooms)) classrooms = [];
+    renderStats(); renderList();
   } catch (error) {
-    listDiv.innerHTML = `<div class="message error show" style="grid-column:1/-1">❌ Lỗi tải lớp: ${esc(error.message)}</div>`;
+    listDiv.innerHTML = `<div class="message error show">❌ Lỗi tải lớp: ${esc(error.message)}</div>`;
   }
 }
+
+function renderStats() {
+  $('s-all').textContent = classrooms.length;
+  $('s-ok').textContent = classrooms.filter(c => statusOf(c) === 'ok').length;
+  $('s-wait').textContent = classrooms.filter(c => statusOf(c) === 'wait').length;
+}
+
+function renderList() {
+  const listDiv = $("my-classrooms"), q = $('q').value.trim().toLowerCase();
+  if (!classrooms.length) {
+    listDiv.innerHTML = '<div class="empty"><i class="bx bx-school"></i>Bạn chưa tham gia lớp học nào.<br>Hãy nhập mã lớp để tham gia!</div>';
+    return;
+  }
+  const list = classrooms.filter(c => (filter === 'all' || statusOf(c) === filter) &&
+    (!q || (c.name || '').toLowerCase().includes(q) || (c.joinCode || '').toLowerCase().includes(q)));
+  if (!list.length) { listDiv.innerHTML = '<div class="empty"><i class="bx bx-search-alt"></i>Không có lớp nào phù hợp.</div>'; return; }
+
+  listDiv.innerHTML = list.map(c => {
+    const s = statusOf(c);
+    const st = s === 'ok' ? ['success', 'bx-check-circle', 'Đã được duyệt – bạn đang là thành viên của lớp']
+             : s === 'wait' ? ['pending', 'bx-time-five', 'Đang chờ giáo viên duyệt']
+             : ['error', 'bx-help-circle', 'Không rõ trạng thái'];
+    const name = c.name || 'Không có tên lớp';
+    return `<div class="class-card" style="--h:${hue(name)}">
+      <div class="cc-top">
+        <div class="cc-ico">${esc(Array.from(name)[0].toUpperCase())}</div>
+        <div class="cc-main"><h4>${esc(name)}</h4>
+          <div class="cc-desc ${c.description ? '' : 'none'}">${c.description ? esc(c.description) : 'Chưa có mô tả'}</div></div>
+      </div>
+      <div class="cc-code"><div><small>Mã lớp</small><div class="code">${esc(c.joinCode || 'N/A')}</div></div>
+        <button class="copy-btn" data-copy="${esc(c.joinCode || '')}" title="Sao chép mã lớp"><i class='bx bx-copy'></i></button></div>
+      <div class="cc-meta">
+        <div class="m full"><i class='bx bx-user-voice'></i>Giáo viên: <b>${esc(c.teacherUsername || 'Chưa rõ')}</b></div>
+        <div class="m"><i class='bx bx-group'></i><b>${(c.students || []).length}</b>&nbsp;học sinh</div>
+        <div class="m"><i class='bx bx-calendar'></i><b>${dmy(c.createdAt)}</b></div>
+      </div>
+      <div class="cc-foot"><div class="cc-state ${st[0]}"><i class='bx ${st[1]}'></i>${st[2]}</div></div>
+    </div>`;
+  }).join('');
+}
+
+$('q').addEventListener('input', renderList);
+$('chips').addEventListener('click', e => {
+  const b = e.target.closest('button[data-f]'); if (!b) return;
+  filter = b.dataset.f;
+  $('chips').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  renderList();
+});
+$('my-classrooms').addEventListener('click', async e => {
+  const b = e.target.closest('[data-copy]'); if (!b || !b.dataset.copy) return;
+  try { await navigator.clipboard.writeText(b.dataset.copy); toast('Đã sao chép mã lớp ' + b.dataset.copy); }
+  catch { toast('Mã lớp: ' + b.dataset.copy); }
+});
 </script>
 </body>
 </html>

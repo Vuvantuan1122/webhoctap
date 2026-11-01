@@ -51,59 +51,22 @@
       <nav class="sidebar-menu">
         ${NAV[role].map(n => `<a href="${n[1]}" class="${active === n[0] ? 'active' : ''}"><i class='bx ${n[2]}'></i> <span>${n[3]}</span></a>`).join('')}
       </nav>
-      <button id="logoutBtn"><i class='bx bx-log-out'></i> Đăng xuất</button>
     </aside>`;
   document.body.insertBefore(pc, main);
   pc.appendChild(main);
 
-  const extra = document.createElement('div');
-  extra.innerHTML = `
-    <div class="modal-overlay" id="modal-overlay"></div>
-    <div class="modal" id="avatarMenu">
-      <button id="viewAvatar"><i class='bx bx-user-circle'></i> Xem ảnh đại diện</button>
-      <button id="changeAvatar"><i class='bx bx-image-add'></i> Đổi ảnh đại diện</button>
-      <button id="deleteAvatar"><i class='bx bx-trash'></i> Xoá ảnh đại diện</button>
-    </div>
-    <input type="file" id="upload" accept="image/*" style="display:none" />
-    <div class="modal" id="avatarViewer">
-      <div class="viewer-content">
-        <img id="avatarLarge" src="" alt="Ảnh đại diện lớn" />
-        <button id="closeViewer" class="btn-close-modal">Đóng</button>
-      </div>
-    </div>`;
-  while (extra.firstChild) document.body.appendChild(extra.firstChild);
-
   const $ = id => document.getElementById(id);
-  const overlay = $('modal-overlay'), sidebar = $('sidebar'), avatar = $('avatar');
-  const popups = document.querySelectorAll('.modal');
-  const openModal = m => { m.classList.add('show'); overlay.classList.add('show'); };
-  const closeModal = m => { m.classList.remove('show'); overlay.classList.remove('show'); };
-
-  $('closeViewer').onclick = () => closeModal($('avatarViewer'));
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay'; overlay.id = 'modal-overlay';
+  document.body.appendChild(overlay);
+  const sidebar = $('sidebar');
   $('menu-toggle').onclick = () => { sidebar.classList.toggle('open'); overlay.classList.toggle('show'); };
-  overlay.onclick = () => {
-    popups.forEach(m => m.classList.contains('show') && closeModal(m));
-    if (sidebar.classList.contains('open')) { sidebar.classList.remove('open'); overlay.classList.remove('show'); }
-  };
+  overlay.onclick = () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); };
 
-  avatar.src = localStorage.getItem('userAvatar') || DEFAULT_AVATAR;
-  avatar.onclick = e => { e.stopPropagation(); openModal($('avatarMenu')); };
-  $('viewAvatar').onclick = () => { $('avatarLarge').src = avatar.src; closeModal($('avatarMenu')); openModal($('avatarViewer')); };
-  $('changeAvatar').onclick = () => { $('upload').click(); closeModal($('avatarMenu')); };
-  $('deleteAvatar').onclick = () => { avatar.src = DEFAULT_AVATAR; localStorage.removeItem('userAvatar'); closeModal($('avatarMenu')); };
-  $('upload').onchange = e => {
-    const f = e.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = () => { avatar.src = r.result; try { localStorage.setItem('userAvatar', r.result); } catch {} };
-    r.readAsDataURL(f);
-  };
-
-  $('logoutBtn').onclick = async () => {
-    try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); } catch {}
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userData');
-    window.location.href = '1.html';
-  };
+  // Menu tài khoản ở ảnh đại diện: hồ sơ, ảnh đại diện, đăng xuất
+  const am = document.createElement('script');
+  am.src = 'account-menu.js';
+  document.body.appendChild(am);
 
   window.Shell = { role, userData, esc: s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) };
 })();
